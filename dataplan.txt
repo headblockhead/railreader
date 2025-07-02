@@ -1,0 +1,6 @@
+goals:
+- search for train services (departing from/arriving to) a station
+	- platform
+	- length
+	- estimated occupancy
+- follow a train along it's journey (see stops, estimated time, services onboard)
