@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -119,6 +121,9 @@ func (dc *DarwinConnection) ProcessKafkaMessage(msg kafka.Message) error {
 }
 
 func (dc *DarwinConnection) ProcessMessageCapsule(msg DarwinMessageCapsule) error {
-	// process message here
+	//log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
+
+	os.WriteFile(filepath.Join("capture", msg.MessageID+".json"), []byte(msg.Bytes), 0644)
+
 	return nil
 }

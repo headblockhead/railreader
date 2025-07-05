@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
-	"runtime"
 	"sync"
 	"syscall"
 
@@ -92,7 +91,8 @@ func (c ServeCommand) Run(connectionContext context.Context) error {
 
 	var darwinProcessorGroup sync.WaitGroup
 
-	for range runtime.NumCPU() {
+	//for range runtime.NumCPU() {
+	for range 1 {
 		darwinProcessorGroup.Add(1)
 		go func() {
 			defer darwinProcessorGroup.Done()
