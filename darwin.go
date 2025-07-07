@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log/slog"
 	"os"
@@ -38,6 +39,20 @@ type DarwinMessageCapsule struct {
 	Expiration   int64                           `json:"expiration"`
 }
 
+type DarwinPport struct {
+	XMLName          xml.Name        `xml:"Pport"`
+	Timestamp        time.Time       `xml:"ts,attr"`
+	Version          string          `xml:"version,attr"`
+	UpdateResponse   *DarwinResponse `xml:"uR"`
+	SnapshotResponse *DarwinResponse `xml:"sR"`
+}
+
+type DarwinResponse struct {
+	UpdateOrigin  string `xml:"updateOrigin,attr"`
+	RequestSource string `xml:"requestSource,attr"`
+	RequestID     string `xml:"requestID,attr"`
+}
+
 func NewDarwinConnection(connectionContext context.Context, fetcherContext context.Context, log *slog.Logger, bootstrapServer string, groupID string, username string, password string) *DarwinConnection {
 	return &DarwinConnection{
 		log:               log,
@@ -46,7 +61,7 @@ func NewDarwinConnection(connectionContext context.Context, fetcherContext conte
 		reader: kafka.NewReader(kafka.ReaderConfig{
 			Brokers: []string{bootstrapServer},
 			GroupID: groupID,
-			Topic:   "prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-JSON",
+			Topic:   "prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML",
 			Dialer: &kafka.Dialer{
 				Timeout:   10 * time.Second,
 				DualStack: true,
@@ -92,7 +107,9 @@ func (dc *DarwinConnection) ProcessKafkaMessage(msg kafka.Message) error {
 	var key struct {
 		MessageID string `json:"messageID"`
 	}
-	json.Unmarshal(msg.Key, &key)
+	if err := json.Unmarshal(msg.Key, &key); err != nil {
+		return fmt.Errorf("failed to unmarshal kafka message key: %w", err)
+	}
 
 	log := dc.log.With(slog.String("messageID", string(key.MessageID)))
 
@@ -102,6 +119,8 @@ func (dc *DarwinConnection) ProcessKafkaMessage(msg kafka.Message) error {
 		return fmt.Errorf("failed to unmarshal kafka message: %w", err)
 	}
 	log.Debug("unmarshaled Kafka message")
+
+	// TODO: check common fields are always as we expect
 
 	if err := dc.connectionContext.Err(); err != nil {
 		return fmt.Errorf("context error: %w", err)
@@ -115,15 +134,23 @@ func (dc *DarwinConnection) ProcessKafkaMessage(msg kafka.Message) error {
 		return fmt.Errorf("failed to commit message: %w", err)
 	}
 
-	log.Debug("processed a Kafka message")
+	log.Debug("processed a message")
 
 	return nil
 }
 
 func (dc *DarwinConnection) ProcessMessageCapsule(msg DarwinMessageCapsule) error {
-	//log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
+	log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
 
-	os.WriteFile(filepath.Join("capture", msg.MessageID+".json"), []byte(msg.Bytes), 0644)
+	os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644)
+
+	var pport DarwinPport
+	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
+		return fmt.Errorf("failed to unmarshal message XML: %w", err)
+	}
+	log.Debug("unmarshalled", slog.String("ts", pport.Timestamp.Format(time.Stamp)))
+
+	// TODO: check common fields are always as we expect
 
 	return nil
 }

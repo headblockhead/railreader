@@ -1,2 +1,2 @@
 # rail-reader
-Making Network Rail and National Rail's API easy
+Middleman between National Rail and Network Rail's datafeeds, and your project!
