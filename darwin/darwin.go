@@ -22,33 +22,33 @@ type Connection struct {
 	reader            *kafka.Reader
 }
 
+// MessageCapsule is the raw JSON structure as received from the Rail Data Marketplace's Kafka topic.
+// It contains a ridiculous amount of completely useless data and is practically fully undocumented, so I ignore everything but the message data inside, and the message's ID.
 type MessageCapsule struct {
-	Destination struct {
-		Name            string `json:"name"`
-		DestinationType string `json:"destinationType"`
-	} `json:"destination"`
-	MessageID    string `json:"messageID"`
-	Priority     int    `json:"priority"`
-	Redelivered  bool   `json:"redelivered"`
-	MessageType  string `json:"messageType"`
-	DeliveryMode int    `json:"deliveryMode"`
-	Bytes        string `json:"bytes"`
-	ReplyTo      string `json:"replyTo"`
-	Expiration   int64  `json:"expiration"`
+	MessageID string `json:"messageID"`
+	Bytes     string `json:"bytes"`
 }
 
+// PushPortMessage is the root node of Darwin messages.
 type PushPortMessage struct {
-	XMLName          xml.Name  `xml:"Pport"`
-	Timestamp        time.Time `xml:"ts,attr"`
-	Version          string    `xml:"version,attr"`
+	Timestamp time.Time `xml:"ts,attr"`
+	Version   string    `xml:"version,attr"`
+
 	UpdateResponse   *Response `xml:"uR"`
 	SnapshotResponse *Response `xml:"sR"`
 }
 
+// Response to a request made to update Darwin's data, by broadcasting the new state(s) of the data to all subscribers.
 type Response struct {
-	UpdateOrigin  string `xml:"updateOrigin,attr"`
+	// UpdateOrigin is optionally provided by the requestor to indicate which system the update originated from.
+	UpdateOrigin string `xml:"updateOrigin,attr"`
+	// RequestSource is optionally provided by the requestor to indicate who they are.
 	RequestSource string `xml:"requestSource,attr"`
-	RequestID     string `xml:"requestID,attr"`
+	// RequestID is optionally provided by the requestor to identify their request.
+	RequestID string `xml:"requestID,attr"`
+
+	// 0 or more of any of these updated elements can be present in a response.
+	// This includes 0 of all, which is a valid response.
 
 	Schedules                          []ScheduleInformation                `xml:"schedule"`
 	Deactivations                      []DeactivationInformation            `xml:"deactivated"`
@@ -64,16 +64,44 @@ type Response struct {
 }
 
 type ScheduleInformation struct {
-	// RID stands for 'Real-Time Train Information Identity' - the unique ID for this specific train running this route, now.
+	// RID is the unique 16-character ID for this specific train, running this schedule, at this time.
 	RID string `xml:"rid,attr"`
-	// ID for this route at this time of day
-	UID           string `xml:"uid,attr"`
-	TrainID       string `xml:"trainID,attr"`
-	RSID          string `xml:"rsid,attr"`
-	SSD           string `xml:"ssd,attr"`
-	TOC           string `xml:"toc,attr"`
-	Status        string `xml:"status,attr"`
+	// UID is (despite the name) a non-unique 6-character ID for this route at this time of day.
+	UID string `xml:"uid,attr"`
+	// TrainID is the 4-character headcode of the train, as:
+	// [0-9][A-Z][0-9][0-9]
+	TrainID string `xml:"trainID,attr"`
+	// RSID is the optionally provided Retail Service ID, either as an:
+	// 8 character "portion identifier" (including a leading TOC code),
+	// or a 6 character base identifier (without a TOC code).
+	RSID string `xml:"rsid,attr"`
+	// SSD is the scheduled start date of the train, in YYYY-MM-DD format.
+	SSD string `xml:"ssd,attr"`
+	// TOC is the Rail Delivery Group's 2-character code for the train operating company.
+	TOC string `xml:"toc,attr"`
+	// Status is the 1-character code for the type of transport:
+	// TODO: check this
+	// it can be:
+	// B - Bus
+	// F - Freight (unused?)
+	// P - Passenger train
+	// S - Ship?
+	// T - Trip (unused?)
+	// or a number between 1 and 5 inclusive.
+	Status string `xml:"status,attr"`
+	// TrainCategory is a 2-character code for the type of train.
+	// Values that indicate a passenger service are:
+	// OL, OO, OW, XC, XD, XI, XR, XX, XZ
+	// It defaults to OO.
 	TrainCategory string `xml:"trainCat,attr"`
+	// IsPassengerService defaults to true.
+	IsPassengerService bool `xml:"isPassengerSvc,attr"`
+	// IsActive defaults to true. If false, this schedule
+	IsActive bool `xml:"isActive,attr"`
+	// Deleted defaults to false. If true, do not use or display this schedule.
+	Deleted bool `xml:"deleted,attr"`
+	// IsCharter defaults to false.
+	IsCharter bool `xml:"isCharter,attr"`
 }
 
 type DeactivationInformation struct {
@@ -148,7 +176,7 @@ func (dc *Connection) FetchKafkaMessage() (msg kafka.Message, err error) {
 	if err := json.Unmarshal(msg.Key, &key); err != nil {
 		return msg, fmt.Errorf("failed to unmarshal kafka message key: %w", err)
 	}
-	dc.log.Debug("recieved Kafka message", slog.String("messageID", key.MessageID))
+	dc.log.Debug("received Kafka message", slog.String("messageID", key.MessageID))
 	return msg, nil
 }
 
@@ -167,19 +195,17 @@ func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
 	log := dc.log.With(slog.String("messageID", string(key.MessageID)))
 
 	log.Debug("unmarshaling Kafka message...")
-	var capsule MessageCapsule
-	if err := json.Unmarshal(msg.Value, &capsule); err != nil {
+	var c MessageCapsule
+	if err := json.Unmarshal(msg.Value, &c); err != nil {
 		return fmt.Errorf("failed to unmarshal kafka message: %w", err)
 	}
 	log.Debug("unmarshaled Kafka message")
-
-	// TODO: check common fields are always as we expect
 
 	if err := dc.connectionContext.Err(); err != nil {
 		return fmt.Errorf("context error: %w", err)
 	}
 
-	if err := dc.ProcessMessageCapsule(capsule); err != nil {
+	if err := dc.ProcessMessageCapsule(c); err != nil {
 		return fmt.Errorf("failed to process message capsule: %w", err)
 	}
 

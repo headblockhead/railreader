@@ -92,7 +92,7 @@ func (c ServeCommand) Run() error {
 	}()
 
 	dc := darwin.NewConnection(connectionContext, fetcherContext, dlog, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Username, c.Darwin.Password)
-	darwinKafkaMessages := make(chan kafka.Message, 256)
+	darwinKafkaMessages := make(chan kafka.Message, 32)
 
 	var darwinProcessorGroup sync.WaitGroup
 
