@@ -63,40 +63,54 @@ type Response struct {
 	Alarms                             []Alarms                             `xml:"alarm"`
 }
 
+type TransportType string
+
+/*func (tt TransportType) String() string {*/
+/*return map[TransportType]string{*/
+/*PassengerAndParcelTrain: "Passenger and Parcel Train",*/
+/*}[tt]*/
+/*}*/
+
+const (
+	PassengerAndParcelTrain     TransportType = "P"
+	Bus                         TransportType = "B"
+	Ship                        TransportType = "S"
+	Trip                        TransportType = "T"
+	Freight                     TransportType = "F"
+	PassengerAndParcelShortTerm TransportType = "1"
+	BusShortTerm                TransportType = "5"
+	ShipShortTerm               TransportType = "4"
+	TripShortTerm               TransportType = "3"
+	FreightShortTerm            TransportType = "2"
+)
+
 type ScheduleInformation struct {
 	// RID is the unique 16-character ID for this specific train, running this schedule, at this time.
 	RID string `xml:"rid,attr"`
 	// UID is (despite the name) a non-unique 6-character ID for this route at this time of day.
 	UID string `xml:"uid,attr"`
-	// TrainID is the 4-character headcode of the train, as:
+	// TrainID is the 4-character headcode of the train, with the format:
 	// [0-9][A-Z][0-9][0-9]
 	TrainID string `xml:"trainID,attr"`
 	// RSID is the optionally provided Retail Service ID, either as an:
 	// 8 character "portion identifier" (including a leading TOC code),
-	// or a 6 character base identifier (without a TOC code).
+	// or a 6 character "base identifier" (without a TOC code).
 	RSID string `xml:"rsid,attr"`
 	// SSD is the scheduled start date of the train, in YYYY-MM-DD format.
 	SSD string `xml:"ssd,attr"`
 	// TOC is the Rail Delivery Group's 2-character code for the train operating company.
 	TOC string `xml:"toc,attr"`
-	// Status is the 1-character code for the type of transport:
-	// TODO: check this
-	// it can be:
-	// B - Bus
-	// F - Freight (unused?)
-	// P - Passenger train
-	// S - Ship?
-	// T - Trip (unused?)
-	// or a number between 1 and 5 inclusive.
-	Status string `xml:"status,attr"`
+	// Status is the 1-character code for the type of transport.
+	// If not provided, it defaults to P (Passenger and Parcel Train).
+	Status TransportType `xml:"status,attr"`
 	// TrainCategory is a 2-character code for the type of train.
 	// Values that indicate a passenger service are:
-	// OL, OO, OW, XC, XD, XI, XR, XX, XZ
-	// It defaults to OO.
+	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
+	// If not provided, it defaults to OO.
 	TrainCategory string `xml:"trainCat,attr"`
-	// IsPassengerService defaults to true.
+	// IsPassengerService is true if not provided. This can be set to false based on the value of the TrainCategory.
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
-	// IsActive defaults to true. If false, this schedule
+	// IsActive is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
 	IsActive bool `xml:"isActive,attr"`
 	// Deleted defaults to false. If true, do not use or display this schedule.
 	Deleted bool `xml:"deleted,attr"`
