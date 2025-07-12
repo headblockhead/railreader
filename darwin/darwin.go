@@ -108,7 +108,7 @@ type ScheduleInformation struct {
 	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
 	// If not provided, it defaults to OO.
 	TrainCategory string `xml:"trainCat,attr"`
-	// IsPassengerService is true if not provided. This can be set to false based on the value of the TrainCategory.
+	// IsPassengerService is true if not provided. This will sometimes be false, based on the value of the TrainCategory.
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
 	// IsActive is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
 	IsActive bool `xml:"isActive,attr"`
