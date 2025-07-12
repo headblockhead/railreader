@@ -65,11 +65,20 @@ type Response struct {
 
 type TransportType string
 
-/*func (tt TransportType) String() string {*/
-/*return map[TransportType]string{*/
-/*PassengerAndParcelTrain: "Passenger and Parcel Train",*/
-/*}[tt]*/
-/*}*/
+func (tt TransportType) String() string {
+	return map[TransportType]string{
+		PassengerAndParcelTrain:     "Train",
+		Bus:                         "Bus",
+		Ship:                        "Ship",
+		Trip:                        "Trip",
+		Freight:                     "Freight",
+		PassengerAndParcelShortTerm: "Train",
+		BusShortTerm:                "Bus",
+		ShipShortTerm:               "Ship",
+		TripShortTerm:               "Trip",
+		FreightShortTerm:            "Freight",
+	}[tt]
+}
 
 const (
 	PassengerAndParcelTrain     TransportType = "P"
@@ -84,8 +93,13 @@ const (
 	FreightShortTerm            TransportType = "2"
 )
 
+type Location struct {
+	XMLName xml.Name
+	TIPLOC  string `xml:"tpl,attr"`
+}
+
 type ScheduleInformation struct {
-	// RID is the unique 16-character ID for this specific train, running this schedule, at this time.
+	// RID is the unique 16-character ID for a specific train, running this schedule, at this time.
 	RID string `xml:"rid,attr"`
 	// UID is (despite the name) a non-unique 6-character ID for this route at this time of day.
 	UID string `xml:"uid,attr"`
@@ -100,9 +114,9 @@ type ScheduleInformation struct {
 	SSD string `xml:"ssd,attr"`
 	// TOC is the Rail Delivery Group's 2-character code for the train operating company.
 	TOC string `xml:"toc,attr"`
-	// Status is the 1-character code for the type of transport.
+	// TransportType is the 1-character code for the type of transport.
 	// If not provided, it defaults to P (Passenger and Parcel Train).
-	Status TransportType `xml:"status,attr"`
+	TransportType TransportType `xml:"status,attr"`
 	// TrainCategory is a 2-character code for the type of train.
 	// Values that indicate a passenger service are:
 	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
@@ -112,13 +126,38 @@ type ScheduleInformation struct {
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
 	// IsActive is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
 	IsActive bool `xml:"isActive,attr"`
-	// Deleted defaults to false. If true, do not use or display this schedule.
-	Deleted bool `xml:"deleted,attr"`
-	// IsCharter defaults to false.
+	// Deleted means you should not use or display this schedule.
+	Deleted   bool `xml:"deleted,attr"`
 	IsCharter bool `xml:"isCharter,attr"`
+
+	Locations []Location `xml:",any"`
 }
 
+func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// Alias type created used to avoid recursion.
+	type Alias ScheduleInformation
+	var schedule Alias
+
+	// Set default values
+	schedule.TransportType = PassengerAndParcelTrain
+	schedule.TrainCategory = "OO"
+	schedule.IsPassengerService = true
+
+	if err := d.DecodeElement(&schedule, &start); err != nil {
+		return fmt.Errorf("failed to decode ScheduleInformation: %w", err)
+	}
+
+	// Convert the alias back to the original type
+	*si = ScheduleInformation(schedule)
+
+	return nil
+}
+
+// DeactivationInformation is sent to indicate a RID is expected to recieve no further updates, and shouldn't be displayed publicly.
+// A deactivation can be un-done by a subsequent ScheduleInformation with the same RID.
 type DeactivationInformation struct {
+	// RID is the unique 16-character ID for the specific train+schedule+time combo that has been deactivated.
+	RID string `xml:"rid,attr"`
 }
 
 type AssociationInformation struct {
@@ -241,9 +280,17 @@ func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
 		return fmt.Errorf("failed to unmarshal message XML: %w", err)
 	}
-	log.Debug("unmarshalled", slog.String("ts", pport.Timestamp.Format(time.Stamp)))
 
 	// TODO: check common fields are always as we expect
+
+	js, err := json.Marshal(pport)
+	if err != nil {
+		return err
+	}
+
+	if pport.UpdateResponse != nil && pport.UpdateResponse.Schedules != nil {
+		log.Info("unmarshaled", slog.String("msg", string(js)))
+	}
 
 	return nil
 }
