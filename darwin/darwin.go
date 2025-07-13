@@ -63,10 +63,10 @@ type Response struct {
 	Alarms                             []Alarms                             `xml:"alarm"`
 }
 
-type TransportType string
+type ServiceType string
 
-func (tt TransportType) String() string {
-	return map[TransportType]string{
+func (tt ServiceType) String() string {
+	return map[ServiceType]string{
 		PassengerAndParcelTrain:     "Train",
 		Bus:                         "Bus",
 		Ship:                        "Ship",
@@ -81,21 +81,84 @@ func (tt TransportType) String() string {
 }
 
 const (
-	PassengerAndParcelTrain     TransportType = "P"
-	Bus                         TransportType = "B"
-	Ship                        TransportType = "S"
-	Trip                        TransportType = "T"
-	Freight                     TransportType = "F"
-	PassengerAndParcelShortTerm TransportType = "1"
-	BusShortTerm                TransportType = "5"
-	ShipShortTerm               TransportType = "4"
-	TripShortTerm               TransportType = "3"
-	FreightShortTerm            TransportType = "2"
+	PassengerAndParcelTrain     ServiceType = "P"
+	Bus                         ServiceType = "B"
+	Ship                        ServiceType = "S"
+	Trip                        ServiceType = "T"
+	Freight                     ServiceType = "F"
+	PassengerAndParcelShortTerm ServiceType = "1"
+	BusShortTerm                ServiceType = "5"
+	ShipShortTerm               ServiceType = "4"
+	TripShortTerm               ServiceType = "3"
+	FreightShortTerm            ServiceType = "2"
 )
+
+type ActivityCode string
+
+// TODO
+/*const (*/
+/*None                                     ActivityCode = "  "*/
+/*StopsToDetatchVehicles                   ActivityCode = "-D"*/
+/*StopsToAttachAndDetachVehicles           ActivityCode = "-T"*/
+/*StopsToAttachVehicles                    ActivityCode = "-U"*/
+/*StopsOrShuntsForOtherTrainsToPass        ActivityCode = "A "*/
+/*StopsToAttachOrDetachAssistingLocomotive ActivityCode = "AE"*/
+/*)*/
+
+type DisruptionReason string
+
+// TODO
 
 type Location struct {
 	XMLName xml.Name
-	TIPLOC  string `xml:"tpl,attr"`
+	// TIPLOC is the code for the location
+	TIPLOC string `xml:"tpl,attr"`
+	// Activity optionally provides what is happening at this location.
+	Activity ActivityCode `xml:"act,attr"`
+	// PlannedActivity optionally provides what was/is planned to happen at this location.
+	// This is only usually given if the Activity is different to the PlannedActivity.
+	PlannedActivity ActivityCode `xml:"planAct,attr"`
+	Cancelled       bool         `xml:"can,attr"`
+	// FormationID is the ID of the train formation that is used at this location.
+	// Formations 'ripple' forward from locations with a FormationID, until the next cancelled location, or the next FormationID.
+	FormationID         string `xml:"fid,attr"`
+	AffectedByDiversion bool   `xml:"affectedByVersion,attr"`
+}
+
+// callpoints have optionally: pta, ptd
+
+type OriginLocation struct {
+	Location
+	XMLName xml.Name `xml:"OR"`
+	// CancellationReasons is an optionally provided list of reasons why this location was cancelled. A reason may be provided per location, but may also be provided for the entire service.
+	CancellationReasons []DisruptionReason `xml:"cancelreason"`
+	PublicArrivalTime   string             `xml:"pta,attr"`
+	PublicDepartureTime string             `xml:"ptd,attr"`
+	// WorkingArrivalTime is optionally provided.
+	WorkingArrivalTime   string `xml:"wta,attr"`
+	WorkingDepartureTime string `xml:"wtd,attr"`
+	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
+	FalseDestination string `xml:"fd,attr"`
+}
+
+type OperationalOriginLocation struct {
+	Location
+	XMLName xml.Name `xml:"OPOR"`
+	// CancellationReasons is an optionally provided list of reasons why this location was cancelled. A reason may be provided per location, but may also be provided for the entire service.
+	CancellationReasons  []DisruptionReason `xml:"cancelreason"`
+	WorkingArrivalTime   string             `xml:"wta,attr"`
+	WorkingDepartureTime string             `xml:"wtd,attr"`
+}
+
+type PassengerIntermediateLocation struct {
+	Location
+	XMLName xml.Name `xml:"IP"`
+	// CancellationReasons is an optionally provided list of reasons why this location was cancelled. A reason may be provided per location, but may also be provided for the entire service.
+	CancellationReasons  []DisruptionReason `xml:"cancelreason"`
+	PublicArrivalTime    string             `xml:"pta,attr"`
+	PublicDepartureTime  string             `xml:"ptd,attr"`
+	WorkingArrivalTime   string             `xml:"wta,attr"`
+	WorkingDepartureTime string             `xml:"wtd,attr"`
 }
 
 type ScheduleInformation struct {
@@ -114,9 +177,9 @@ type ScheduleInformation struct {
 	SSD string `xml:"ssd,attr"`
 	// TOC is the Rail Delivery Group's 2-character code for the train operating company.
 	TOC string `xml:"toc,attr"`
-	// TransportType is the 1-character code for the type of transport.
+	// Status is the 1-character code for the type of transport.
 	// If not provided, it defaults to P (Passenger and Parcel Train).
-	TransportType TransportType `xml:"status,attr"`
+	Status ServiceType `xml:"status,attr"`
 	// TrainCategory is a 2-character code for the type of train.
 	// Values that indicate a passenger service are:
 	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
@@ -124,13 +187,20 @@ type ScheduleInformation struct {
 	TrainCategory string `xml:"trainCat,attr"`
 	// IsPassengerService is true if not provided. This will sometimes be false, based on the value of the TrainCategory.
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
-	// IsActive is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
+	// IsActive is true if not provided. It is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
 	IsActive bool `xml:"isActive,attr"`
 	// Deleted means you should not use or display this schedule.
 	Deleted   bool `xml:"deleted,attr"`
 	IsCharter bool `xml:"isCharter,attr"`
 
+	// Locations is a slice of at least 2 location elements that describe the train's schedule, plus
+}
+
+type Schedule struct {
 	Locations []Location `xml:",any"`
+	// CancellationReason is the reason why this service was cancelled.
+	// There may be cancellation reasons provided for individual locations
+	CancellationReason DisruptionReason `xml:"cancelReason"`
 }
 
 func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -139,9 +209,10 @@ func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartEleme
 	var schedule Alias
 
 	// Set default values
-	schedule.TransportType = PassengerAndParcelTrain
+	schedule.Status = PassengerAndParcelTrain
 	schedule.TrainCategory = "OO"
 	schedule.IsPassengerService = true
+	schedule.IsActive = true
 
 	if err := d.DecodeElement(&schedule, &start); err != nil {
 		return fmt.Errorf("failed to decode ScheduleInformation: %w", err)
