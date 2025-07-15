@@ -1,21 +1,7 @@
 package darwin
 
+// ServiceType represents what mode of transport a service is.
 type ServiceType string
-
-func (tt ServiceType) String() string {
-	return map[ServiceType]string{
-		PassengerAndParcelTrain:     "Train",
-		Bus:                         "Bus",
-		Ship:                        "Ship",
-		Trip:                        "Trip",
-		Freight:                     "Freight",
-		PassengerAndParcelShortTerm: "Train",
-		BusShortTerm:                "Bus",
-		ShipShortTerm:               "Ship",
-		TripShortTerm:               "Trip",
-		FreightShortTerm:            "Freight",
-	}[tt]
-}
 
 const (
 	PassengerAndParcelTrain     ServiceType = "P"
@@ -30,22 +16,68 @@ const (
 	FreightShortTerm            ServiceType = "2"
 )
 
+var ServiceTypeToString = map[ServiceType]string{
+	PassengerAndParcelTrain:     "Train",
+	Bus:                         "Bus",
+	Ship:                        "Ship",
+	Trip:                        "Trip",
+	Freight:                     "Freight",
+	PassengerAndParcelShortTerm: "Train",
+	BusShortTerm:                "Bus",
+	ShipShortTerm:               "Ship",
+	TripShortTerm:               "Trip",
+	FreightShortTerm:            "Freight",
+}
+
+func (tt ServiceType) String() string {
+	return ServiceTypeToString[tt]
+}
+
 type ActivityCode string
 
-// TODO
-/*const (*/
-/*None                                     ActivityCode = "  "*/
-/*StopsToDetatchVehicles                   ActivityCode = "-D"*/
-/*StopsToAttachAndDetachVehicles           ActivityCode = "-T"*/
-/*StopsToAttachVehicles                    ActivityCode = "-U"*/
-/*StopsOrShuntsForOtherTrainsToPass        ActivityCode = "A "*/
-/*StopsToAttachOrDetachAssistingLocomotive ActivityCode = "AE"*/
-/*)*/
+// Some of the meaning of these codes are unknown/unclear.
+const (
+	None                                                ActivityCode = "  "
+	StopsOrShuntsForOtherTrainsToPass                   ActivityCode = "A "
+	StopsToAttachOrDetachAssistingLocomotive            ActivityCode = "AE"
+	ShowsAsXOnArrival                                   ActivityCode = "AX"
+	StopsForBankingLocomotive                           ActivityCode = "BL"
+	StopsToChangeTrainsmen                              ActivityCode = "C "
+	StopsToSetDownPassengers                            ActivityCode = "D "
+	StopsToDetatchVehicles                              ActivityCode = "-D"
+	StopsForExamination                                 ActivityCode = "E "
+	NationalRailTimetableDataToAdd                      ActivityCode = "G "
+	NotionalActivityToPreventWTTTimingColumnsMerge      ActivityCode = "H "
+	NotionalActivityToPreventWTTTimingColumnsMergeTwice ActivityCode = "HH"
+	PassengerCountPoint                                 ActivityCode = "K "
+	TicketCollectionAndExaminationPoint                 ActivityCode = "KC"
+	TicketExaminationPoint                              ActivityCode = "KE"
+	TicketExaminationPointFirstClassOnly                ActivityCode = "KF"
+	TicketExaminationPointSelective                     ActivityCode = "KS"
+	StopsToChangeLocomotives                            ActivityCode = "L "
+	StopNotAdvertised                                   ActivityCode = "N "
+	StopsForOtherOperatingReasons                       ActivityCode = "OP"
+	TrainLocomotiveOnRear                               ActivityCode = "OR"
+	PropellingBetweenPointsShown                        ActivityCode = "PR"
+	StopsWhenRequired                                   ActivityCode = "R "
+	ReversingMovementOrDriverChangesEnds                ActivityCode = "RM"
+	StopsForLocomotiveToRunRound                        ActivityCode = "RR"
+	StopsForRailwayPersonellOnly                        ActivityCode = "S "
+	StopsToTakeUpAndSetDownPassengers                   ActivityCode = "T "
+	StopsToAttachAndDetachVehicles                      ActivityCode = "-T"
+	TrainBegins                                         ActivityCode = "TB"
+	TrainFinishes                                       ActivityCode = "TF"
+	DetailConsistForTOPSDirect                          ActivityCode = "TS"
+	StopsOrPassesForTabletStaffOrToken                  ActivityCode = "TW"
+	StopsToTakeUpPassengers                             ActivityCode = "U "
+	StopsToAttachVehicles                               ActivityCode = "-U"
+	StopsForWateringOfCoaches                           ActivityCode = "W "
+	PassesAnotherTrainAtCrossingPointOnSingleLine       ActivityCode = "X "
+)
 
 type DisruptionReason string
 
 // TODO
-const ()
 
 // TIPLOC is a code representing a location.
 // TIPLOCs can be a station, junction, or any other relevant location.
