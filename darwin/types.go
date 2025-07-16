@@ -75,6 +75,21 @@ const (
 	PassesAnotherTrainAtCrossingPointOnSingleLine       ActivityCode = "X "
 )
 
+type TrainCategory string
+
+const (
+	// O - Ordinary
+	UndergroundOrMetro    TrainCategory = "OL"
+	UnadvertisedPassenger TrainCategory = "OU"
+	Passenger             TrainCategory = "OO"
+	Staff                 TrainCategory = "OS"
+	Mixed                 TrainCategory = "OW"
+	// X - Express
+	ChannelTunnel TrainCategory = "XC"
+
+	// TODO
+)
+
 type DisruptionReason string
 
 // TODO

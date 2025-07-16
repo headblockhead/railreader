@@ -7,7 +7,7 @@ import (
 
 type ScheduleInformation struct {
 	// Locations is a slice of at least 2 location elements that describe the train's schedule.
-	Locations []LocationGeneric `xml:",any"`
+	Locations []LocationGeneric `xml:",any"` // Any other elements will be interpreted as locations.
 	// CancellationReasons are the reasons why this service was cancelled.
 	// This is provided at the service level, and/or the location level.
 	CancellationReasons []DisruptionReason `xml:"cancelReason"`
@@ -39,7 +39,7 @@ type ScheduleInformation struct {
 	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
 	// TODO: provide enum or string func for these. (see CIF)
 	// If not provided, it defaults to OO.
-	TrainCategory string `xml:"trainCat,attr"`
+	TrainCategory TrainCategory `xml:"trainCat,attr"`
 	// IsPassengerService is true if not provided. This will sometimes be false, based on the value of the TrainCategory.
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
 	// IsActive is true if not provided. It is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
