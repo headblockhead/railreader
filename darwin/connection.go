@@ -4,12 +4,17 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
+
+	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
 type Connection struct {
@@ -106,6 +111,30 @@ func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
 	}
 
 	log.Debug("processed a message")
+
+	return nil
+}
+
+func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
+	log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
+
+	os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644)
+
+	var pport decoder.PushPortMessage
+	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
+		return fmt.Errorf("failed to unmarshal message XML: %w", err)
+	}
+
+	// TODO: check common fields are always as we expect
+
+	reXML, err := xml.MarshalIndent(pport, "", "	")
+	if err != nil {
+		return fmt.Errorf("failed to marshal message XML: %w", err)
+	}
+
+	os.WriteFile(filepath.Join("output", msg.MessageID+".xml"), reXML, 0644)
+
+	log.Debug("Processed message capsule")
 
 	return nil
 }

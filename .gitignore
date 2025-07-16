@@ -32,5 +32,5 @@ go.work.sum
 # .vscode/
 
 # Captured and reproduced data stream for testing
-cmd/rail-reader/capture
-cmd/rail-reader/output
+cmd/railreader/capture
+cmd/railreader/output

@@ -1,11 +1,7 @@
-package darwin
+package decoder
 
 import (
 	"encoding/xml"
-	"fmt"
-	"log/slog"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -43,28 +39,4 @@ type Response struct {
 	/*TrainAlertMessages                 []TrainAlertMessages                 `xml:"trainAlert"`*/
 	/*TrackingIDChanges                  []TrackingIDChanges                  `xml:"trackingID"`*/
 	/*Alarms                             []Alarms                             `xml:"alarm"`*/
-}
-
-func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
-	log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
-
-	os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644)
-
-	var pport PushPortMessage
-	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
-		return fmt.Errorf("failed to unmarshal message XML: %w", err)
-	}
-
-	// TODO: check common fields are always as we expect
-
-	reXML, err := xml.MarshalIndent(pport, "", "	")
-	if err != nil {
-		return fmt.Errorf("failed to marshal message XML: %w", err)
-	}
-
-	os.WriteFile(filepath.Join("output", msg.MessageID+".xml"), reXML, 0644)
-
-	log.Debug("Processed message capsule")
-
-	return nil
 }

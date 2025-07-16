@@ -1,4 +1,4 @@
-package darwin
+package decoder
 
 // DeactivationInformation is sent to indicate a RID is expected to recieve no further updates, and shouldn't be displayed publicly.
 // A deactivation can be un-done by a subsequent ScheduleInformation with the same RID.

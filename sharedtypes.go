@@ -1,4 +1,4 @@
-package darwin
+package railreader
 
 // ServiceType represents what mode of transport a service is.
 type ServiceType string

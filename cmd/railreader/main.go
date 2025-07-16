@@ -10,7 +10,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
-	"github.com/headblockhead/rail-reader/darwin"
+	"github.com/headblockhead/railreader/darwin"
 	"github.com/segmentio/kafka-go"
 )
 

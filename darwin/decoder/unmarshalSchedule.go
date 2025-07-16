@@ -1,8 +1,10 @@
-package darwin
+package decoder
 
 import (
 	"encoding/xml"
 	"fmt"
+
+	"github.com/headblockhead/railreader"
 )
 
 type ScheduleInformation struct {
@@ -10,11 +12,11 @@ type ScheduleInformation struct {
 	Locations []LocationGeneric `xml:",any"` // Any other elements will be interpreted as locations.
 	// CancellationReasons are the reasons why this service was cancelled.
 	// This is provided at the service level, and/or the location level.
-	CancellationReasons []DisruptionReason `xml:"cancelReason"`
+	CancellationReasons []railreader.DisruptionReason `xml:"cancelReason"`
 	// DivertedVias are the TIPLOCs that this service is diverted via.
-	DivertedVias []TIPLOC `xml:"divertedVia"`
+	DivertedVias []railreader.TIPLOC `xml:"divertedVia"`
 	// DiversionReasons are the reasons why this service is diverted.
-	DiversionReasons []DisruptionReason `xml:"diversionReason"`
+	DiversionReasons []railreader.DisruptionReason `xml:"diversionReason"`
 
 	// RID is the unique 16-character ID for a specific train, running this schedule, at this time.
 	RID string `xml:"rid,attr"`
@@ -33,13 +35,13 @@ type ScheduleInformation struct {
 	TOC string `xml:"toc,attr"`
 	// Status is the 1-character code for the type of transport.
 	// If not provided, it defaults to P (Passenger and Parcel Train).
-	Status ServiceType `xml:"status,attr"`
+	Status railreader.ServiceType `xml:"status,attr"`
 	// TrainCategory is a 2-character code for the type of train.
 	// Values that indicate a passenger service are:
 	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
 	// TODO: provide enum or string func for these. (see CIF)
 	// If not provided, it defaults to OO.
-	TrainCategory TrainCategory `xml:"trainCat,attr"`
+	TrainCategory railreader.TrainCategory `xml:"trainCat,attr"`
 	// IsPassengerService is true if not provided. This will sometimes be false, based on the value of the TrainCategory.
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
 	// IsActive is true if not provided. It is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
@@ -55,7 +57,7 @@ func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartEleme
 	var schedule Alias
 
 	// Set default values
-	schedule.Status = PassengerAndParcelTrain
+	schedule.Status = railreader.PassengerAndParcelTrain
 	schedule.TrainCategory = "OO"
 	schedule.IsPassengerService = true
 	schedule.IsActive = true
@@ -168,64 +170,64 @@ func (lg LocationGeneric) MarshalXML(e *xml.Encoder, start xml.StartElement) err
 // Location is the base struct for all location types.
 type Location struct {
 	// TIPLOC is the code for the location
-	TIPLOC TIPLOC `xml:"tpl,attr"`
+	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 	// Activity optionally provides what is happening at this location.
-	Activity ActivityCode `xml:"act,attr"`
+	Activity railreader.ActivityCode `xml:"act,attr"`
 	// PlannedActivity optionally provides what was/is planned to happen at this location.
 	// This is only usually given if the Activity is different to the PlannedActivity.
-	PlannedActivity ActivityCode `xml:"planAct,attr"`
-	Cancelled       bool         `xml:"can,attr"`
+	PlannedActivity railreader.ActivityCode `xml:"planAct,attr"`
+	Cancelled       bool                    `xml:"can,attr"`
 	// FormationID is the ID of the train formation that is used at this location.
 	// Formations 'ripple' forward from locations with a FormationID, until the next cancelled location, or the next FormationID.
 	FormationID         string `xml:"fid,attr"`
 	AffectedByDiversion bool   `xml:"affectedByVersion,attr"`
 	// CancellationReasons is an optionally provided list of reasons why this location was cancelled. A reason may be provided per location, but may also be provided for the entire service.
-	CancellationReasons []DisruptionReason `xml:"cancelreason"`
+	CancellationReasons []railreader.DisruptionReason `xml:"cancelreason"`
 }
 
 type OriginLocation struct {
 	Location
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime TrainTime `xml:"pta,attr"`
+	PublicArrivalTime railreader.TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime TrainTime `xml:"ptd,attr"`
+	PublicDepartureTime railreader.TrainTime `xml:"ptd,attr"`
 	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
-	FalseDestination TIPLOC `xml:"fd,attr"`
+	FalseDestination railreader.TIPLOC `xml:"fd,attr"`
 }
 
 type OperationalOriginLocation struct {
 	Location
 	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 }
 
 type IntermediateLocation struct {
 	Location
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime TrainTime `xml:"pta,attr"`
+	PublicArrivalTime railreader.TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime  TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type OperationalIntermediateLocation struct {
 	Location
-	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type IntermediatePassingLocation struct {
 	Location
-	WorkingPassingTime TrainTime `xml:"wtp,attr"`
+	WorkingPassingTime railreader.TrainTime `xml:"wtp,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay int `xml:"rdelay,attr"`
 }
@@ -233,21 +235,21 @@ type IntermediatePassingLocation struct {
 type DestinationLocation struct {
 	Location
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime TrainTime `xml:"pta,attr"`
+	PublicArrivalTime railreader.TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime  TrainTime `xml:"wta,attr"`
+	PublicDepartureTime railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime  railreader.TrainTime `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type OperationalDestinationLocation struct {
 	Location
-	WorkingArrivalTime TrainTime `xml:"wta,attr"`
+	WorkingArrivalTime railreader.TrainTime `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay int `xml:"rdelay,attr"`
 }
