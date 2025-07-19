@@ -37,11 +37,8 @@ type ScheduleInformation struct {
 	// If not provided, it defaults to P (Passenger and Parcel Train).
 	Status railreader.ServiceType `xml:"status,attr"`
 	// TrainCategory is a 2-character code for the type of train.
-	// Values that indicate a passenger service are:
-	// OL, OO, OW, XC, XD, XI, XR, XX, XZ.
-	// TODO: provide enum or string func for these. (see CIF)
 	// If not provided, it defaults to OO.
-	TrainCategory railreader.TrainCategory `xml:"trainCat,attr"`
+	TrainCategory railreader.ServiceCategory `xml:"trainCat,attr"`
 	// IsPassengerService is true if not provided. This will sometimes be false, based on the value of the TrainCategory.
 	IsPassengerService bool `xml:"isPassengerSvc,attr"`
 	// IsActive is true if not provided. It is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
@@ -57,7 +54,7 @@ func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartEleme
 	var schedule Alias
 
 	// Set default values
-	schedule.Status = railreader.PassengerAndParcelTrain
+	schedule.Status = railreader.ServicePassengerOrParcelTrain
 	schedule.TrainCategory = "OO"
 	schedule.IsPassengerService = true
 	schedule.IsActive = true

@@ -127,13 +127,6 @@ func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 
 	// TODO: check common fields are always as we expect
 
-	reXML, err := xml.MarshalIndent(pport, "", "	")
-	if err != nil {
-		return fmt.Errorf("failed to marshal message XML: %w", err)
-	}
-
-	os.WriteFile(filepath.Join("output", msg.MessageID+".xml"), reXML, 0644)
-
 	log.Debug("Processed message capsule")
 
 	return nil
