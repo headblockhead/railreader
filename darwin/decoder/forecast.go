@@ -94,7 +94,7 @@ type LocationForecastTimeData struct {
 	ActualTime *railreader.TrainTime `xml:"at,attr"`
 	// ActualTimeRevoked indicates that a previously given 'actual time' was incorrect, and has been replaced by an estimated time.
 	ActualTimeRevoked bool `xml:"atRemoved,attr"`
-	// ActualTimeSource is the optionally provided source of the Actual Time data, such as "Manual" or "GPS".
+	// ActualTimeSource is the optionally provided source of the Actual Time data, such as "Manual", "GPS", etc.
 	ActualTimeSource *string `xml:"atClass,attr"`
 	// EstimatedTimeMinimum is optional, and indicates the absolute minimum value the estimated time could be.
 	EstimatedTimeMinimum *railreader.TrainTime `xml:"etmin,attr"`
@@ -104,8 +104,8 @@ type LocationForecastTimeData struct {
 	// Delayed indicates that the forecast for this location is "unknown delay".
 	// This is usually shown on signage as "Delayed", without a specific time.
 	Delayed bool `xml:"delayed,attr"`
-	// Source is the optionally provided source of the time data, such as "Darwin".
+	// Source is the optionally provided source of the time data, such as "Darwin", "CIS", "TRUST", etc.
 	Source *string `xml:"src,attr"`
-	// SourceSystem is optional.
-	SourceSystem *CISCode `xml:"srcInst,attr"`
+	// SourceSystem is optional. If Source is "CIS", it may be a CISCode. If Source is "TRUST", it may be something like "Auto" or "Manu"
+	SourceSystem *string `xml:"srcInst,attr"`
 }
