@@ -18,7 +18,7 @@ type ScheduleInformation struct {
 	// RetailServiceID is the optionally provided Retail Service ID, either as an:
 	// 8 character "portion identifier" (including a leading TOC code),
 	// or a 6 character "base identifier" (without a TOC code).
-	RetailServiceID string `xml:"rsid,attr"`
+	RetailServiceID *string `xml:"rsid,attr"`
 	// ScheduledStartDate in YYYY-MM-DD format.
 	ScheduledStartDate string `xml:"ssd,attr"`
 	// TrainOperatingCompany is the Rail Delivery Group's 2-character code for the train operating company.
@@ -41,11 +41,11 @@ type ScheduleInformation struct {
 	Locations []LocationGeneric `xml:",any"` // Any other provided XML elements will be interpreted as locations.
 	// CancellationReason is the reason why this service was cancelled.
 	// This is provided at the service level, and/or the location level.
-	CancellationReason DisruptionReason `xml:"cancelReason"`
+	CancellationReason *DisruptionReason `xml:"cancelReason"`
 	// DivertedVia is the TIPLOC that this service has been diverted via (which may or may not be on the timetable).
-	DivertedVia railreader.TIPLOC `xml:"divertedVia"`
+	DivertedVia *railreader.TIPLOC `xml:"divertedVia"`
 	// DiversionReason is the reason why this service has been diverted.
-	DiversionReason DisruptionReason `xml:"diversionReason"`
+	DiversionReason *DisruptionReason `xml:"diversionReason"`
 }
 
 func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -71,7 +71,7 @@ func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartEleme
 
 type DisruptionReason struct {
 	// TIPLOC is the optionally provided location code for the position of the disruption.
-	TIPLOC railreader.TIPLOC `xml:"tiploc,attr"`
+	TIPLOC *railreader.TIPLOC `xml:"tiploc,attr"`
 	// Near is true if the disruption should be interpreted as being near the provided TIPLOC, rather than at the exact location.
 	Near bool `xml:"near,attr"`
 
@@ -190,53 +190,53 @@ type LocationSchedule struct {
 	// TIPLOC is the code for the location
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 	// Activity optionally provides what is happening at this location.
-	Activity railreader.ActivityCode `xml:"act,attr"`
+	Activity *railreader.ActivityCode `xml:"act,attr"`
 	// PlannedActivity optionally provides what was/is planned to happen at this location.
 	// This is only usually given if the Activity is different to the PlannedActivity.
-	PlannedActivity railreader.ActivityCode `xml:"planAct,attr"`
-	Cancelled       bool                    `xml:"can,attr"`
+	PlannedActivity *railreader.ActivityCode `xml:"planAct,attr"`
+	Cancelled       bool                     `xml:"can,attr"`
 	// FormationID is the ID of the train formation that is used at this location.
 	// Formations 'ripple' forward from locations with a FormationID, until the next cancelled location, or the next FormationID.
-	FormationID         string `xml:"fid,attr"`
-	AffectedByDiversion bool   `xml:"affectedByVersion,attr"`
+	FormationID         *string `xml:"fid,attr"`
+	AffectedByDiversion bool    `xml:"affectedByVersion,attr"`
 
 	// CancellationReason is an optionally provided reason why this location was cancelled.
-	CancellationReason DisruptionReason `xml:"cancelReason"`
+	CancellationReason *DisruptionReason `xml:"cancelReason"`
 }
 
 type OriginLocation struct {
 	LocationSchedule
 	XMLName xml.Name `xml:"OR"`
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime railreader.TrainTime `xml:"pta,attr"`
+	PublicArrivalTime *railreader.TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime railreader.TrainTime `xml:"ptd,attr"`
+	PublicDepartureTime *railreader.TrainTime `xml:"ptd,attr"`
 	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
+	WorkingArrivalTime   *railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime  `xml:"wtd,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
-	FalseDestination railreader.TIPLOC `xml:"fd,attr"`
+	FalseDestination *railreader.TIPLOC `xml:"fd,attr"`
 }
 
 type OperationalOriginLocation struct {
 	LocationSchedule
 	XMLName xml.Name `xml:"OPOR"`
 	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
+	WorkingArrivalTime   *railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime  `xml:"wtd,attr"`
 }
 
 type IntermediateLocation struct {
 	LocationSchedule
 	XMLName xml.Name `xml:"IP"`
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime railreader.TrainTime `xml:"pta,attr"`
+	PublicArrivalTime *railreader.TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
+	PublicDepartureTime  *railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   railreader.TrainTime  `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime  `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay int `xml:"rdelay,attr"`
+	RoutingDelay *int `xml:"rdelay,attr"`
 }
 
 type OperationalIntermediateLocation struct {
@@ -245,7 +245,7 @@ type OperationalIntermediateLocation struct {
 	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
 	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay int `xml:"rdelay,attr"`
+	RoutingDelay *int `xml:"rdelay,attr"`
 }
 
 type IntermediatePassingLocation struct {
@@ -253,21 +253,21 @@ type IntermediatePassingLocation struct {
 	XMLName            xml.Name             `xml:"PP"`
 	WorkingPassingTime railreader.TrainTime `xml:"wtp,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay int `xml:"rdelay,attr"`
+	RoutingDelay *int `xml:"rdelay,attr"`
 }
 
 type DestinationLocation struct {
 	LocationSchedule
 	XMLName xml.Name `xml:"DT"`
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime railreader.TrainTime `xml:"pta,attr"`
+	PublicArrivalTime *railreader.TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime railreader.TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime  railreader.TrainTime `xml:"wta,attr"`
+	PublicDepartureTime *railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime  railreader.TrainTime  `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
+	WorkingDepartureTime *railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay int `xml:"rdelay,attr"`
+	RoutingDelay *int `xml:"rdelay,attr"`
 }
 
 type OperationalDestinationLocation struct {
@@ -275,7 +275,7 @@ type OperationalDestinationLocation struct {
 	XMLName            xml.Name             `xml:"OPDT"`
 	WorkingArrivalTime railreader.TrainTime `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
+	WorkingDepartureTime *railreader.TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay int `xml:"rdelay,attr"`
+	RoutingDelay *int `xml:"rdelay,attr"`
 }

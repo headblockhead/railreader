@@ -13,22 +13,22 @@ type TrainFormationInformation struct {
 }
 
 type Formation struct {
-	// FID is the Formation ID
-	FID string `xml:"fid,attr"`
+	ID string `xml:"fid,attr"`
 	// Source is the optionally provided source of the formation data.
-	Source string `xml:"src,attr"`
-	// SourceInstance is the CIS code of the source system.
-	SourceInstance CISCode `xml:"srcInstance,attr"`
-	Coaches        []Coach `xml:"coaches>coach"`
+	Source *string `xml:"src,attr"`
+	// SourceSystem is optional.
+	SourceSystem *CISCode `xml:"srcInstance,attr"`
+
+	Coaches []Coach `xml:"coaches>coach"`
 }
 
 type Coach struct {
 	// CoachIdentifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
 	CoachIdentifier string `xml:"coachNumber,attr"`
 	// CoachClass is the optionally provided class of the coach (eg "First", "Standard")
-	CoachClass string `xml:"coachClass,attr"`
+	CoachClass *string `xml:"coachClass,attr"`
 
-	Toilets []ToiletInformation `xml:"toilet"`
+	Toilet ToiletInformation `xml:"toilet"`
 }
 
 type ToiletInformation struct {

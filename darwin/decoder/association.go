@@ -19,9 +19,9 @@ type AssociatedService struct {
 	RID string `xml:"rid,attr"`
 
 	// At least one of these times must be present.
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
-	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   *railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime *railreader.TrainTime `xml:"wtd,attr"`
+	WorkingPassingTime   *railreader.TrainTime `xml:"wtp,attr"`
+	PublicArrivalTime    *railreader.TrainTime `xml:"pta,attr"`
+	PublicDepartureTime  *railreader.TrainTime `xml:"ptd,attr"`
 }
