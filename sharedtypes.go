@@ -16,7 +16,7 @@ const (
 	ServiceFreightShortTerm           ServiceType = "2"
 )
 
-var ServiceTypeToString = map[ServiceType]string{
+var ServiceTypeStrings = map[ServiceType]string{
 	ServicePassengerOrParcelTrain:     "Train",
 	ServiceBus:                        "Bus",
 	ServiceShip:                       "Ship",
@@ -30,7 +30,7 @@ var ServiceTypeToString = map[ServiceType]string{
 }
 
 func (tt ServiceType) String() string {
-	if str, ok := ServiceTypeToString[tt]; ok {
+	if str, ok := ServiceTypeStrings[tt]; ok {
 		return str
 	}
 	return "Unknown"
@@ -81,7 +81,7 @@ const (
 	ActivityPassesAnotherTrainAtCrossingPointOnSingleLine ActivityCode = "X "
 )
 
-var ActivityCodeToString = map[ActivityCode]string{
+var ActivityCodeStrings = map[ActivityCode]string{
 	ActivityTrainBegins:                                   "begins",
 	ActivityTrainFinishes:                                 "finishes",
 	ActivityStopsToTakeUpAndSetDownPassengers:             "stops",
@@ -114,7 +114,7 @@ var ActivityCodeToString = map[ActivityCode]string{
 }
 
 func (ac ActivityCode) String() string {
-	if str, ok := ActivityCodeToString[ac]; ok {
+	if str, ok := ActivityCodeStrings[ac]; ok {
 		return str
 	}
 	return "does an unknown activity"
@@ -192,10 +192,10 @@ const (
 	CategoryRfDChannelJointVenture     ServiceCategory = "H6"
 )
 
-var ServiceCategoryToString = map[ServiceCategory]string{
+var ServiceCategoryStrings = map[ServiceCategory]string{
 	// O - Ordinary
 	CategoryUndergroundOrMetro:    "Underground/Metro",
-	CategoryUnadvertisedPassenger: "Unadvertised Passenger",
+	CategoryUnadvertisedPassenger: "(unadvertised) Passenger",
 	CategoryPassenger:             "Passenger",
 	CategoryStaff:                 "Staff",
 	CategoryMixed:                 "Mixed",
@@ -204,7 +204,7 @@ var ServiceCategoryToString = map[ServiceCategory]string{
 	CategorySleeper:             "Sleeper",
 	CategoryInternational:       "International",
 	CategoryMotorail:            "Motorail",
-	CategoryUnadvertisedExpress: "Unadvertised Express",
+	CategoryUnadvertisedExpress: "(unadvertised) Express",
 	CategoryExpress:             "Express",
 	CategorySleeperDomestic:     "Sleeper",
 	// B - Bus
@@ -261,13 +261,13 @@ var ServiceCategoryToString = map[ServiceCategory]string{
 }
 
 func (sc ServiceCategory) String() string {
-	if str, ok := ServiceCategoryToString[sc]; ok {
+	if str, ok := ServiceCategoryStrings[sc]; ok {
 		return str
 	}
 	return "Unknown"
 }
 
-type DisruptionReason string
+type DisruptionReasonID string
 
 // TODO
 
@@ -279,3 +279,12 @@ type TIPLOC string
 
 // TrainTime is a time in HH:MM or HH:MM:SS format, representing a time of day.
 type TrainTime string
+
+type AssociationCategory string
+
+const (
+	AssociationJoin   AssociationCategory = "JJ"
+	AssociationDivide AssociationCategory = "VV"
+	AssociationLink   AssociationCategory = "LK"
+	AssociationNext   AssociationCategory = "NP"
+)

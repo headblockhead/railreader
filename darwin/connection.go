@@ -118,11 +118,22 @@ func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
 func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 	log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
 
-	os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644)
+	if err := os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644); err != nil {
+		return fmt.Errorf("failed to write message capsule to file: %w", err)
+	}
 
 	var pport decoder.PushPortMessage
 	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
 		return fmt.Errorf("failed to unmarshal message XML: %w", err)
+	}
+
+	reXML, err := xml.MarshalIndent(pport, "", "	")
+	if err != nil {
+		return fmt.Errorf("failed to marshal message XML: %w", err)
+	}
+
+	if err := os.WriteFile(filepath.Join("output", msg.MessageID+".xml"), reXML, 0644); err != nil {
+		return fmt.Errorf("failed to write processed message XML to file: %w", err)
 	}
 
 	// TODO: check common fields are always as we expect
