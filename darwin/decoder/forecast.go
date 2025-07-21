@@ -33,11 +33,8 @@ type LocationForecast struct {
 	DepartureData *LocationForecastTimeData `xml:"dep"`
 	PassingData   *LocationForecastTimeData `xml:"pass"`
 
-	PlatformData *PlatformData `xml:"plat"`
 	// Suppressed indicates that this service should not be shown to users at this location.
 	Suppressed bool `xml:"suppr,attr"`
-	// Length may or may not match the Formation data. If it is 0, it is unknown.
-	Length int `xml:"length,attr"`
 	// DetachesFromFront is true (at a location where train stock is detached) if train stock will be detached from the front of the train at this location, and false if it will be detached from the rear.
 	DetachesFromFront bool `xml:"detachFront,attr"`
 
@@ -46,6 +43,9 @@ type LocationForecast struct {
 	Uncertainty *Uncertainty `xml:"Uncertainty"`
 	// AffectedBy is expected to contain a National Rail Enquires incident number, to link multiple services disrupted by the same incident together.
 	AffectedBy *string `xml:"affectedBy"`
+	// Length may or may not match the Formation data. If it is 0, it is unknown.
+	Length       int           `xml:"length"`
+	PlatformData *PlatformData `xml:"plat"`
 }
 
 type Uncertainty struct {
