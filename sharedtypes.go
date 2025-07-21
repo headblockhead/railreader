@@ -288,3 +288,5 @@ const (
 	AssociationLink   AssociationCategory = "LK"
 	AssociationNext   AssociationCategory = "NP"
 )
+
+type TrainDescriptorArea string

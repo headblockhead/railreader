@@ -98,8 +98,8 @@ type Response struct {
 	ServiceLoadings   []ServiceLoading      `xml:"serviceLoading"`
 	FormationLoadings []FormationLoading    `xml:"formationLoading"`
 	StationMessages   []StationMessage      `xml:"OW"`
-	/*TrainOrders                        []TrainOrderInformation              `xml:"trainOrder"`*/
-	/*TrainAlertMessages                 []TrainAlertMessages                 `xml:"trainAlert"`*/
-	/*TrackingIDChanges                  []TrackingIDChanges                  `xml:"trackingID"`*/
-	/*Alarms                             []Alarms                             `xml:"alarm"`*/
+	TrainAlerts       []TrainAlert          `xml:"trainAlert"`
+	TrainOrders       []TrainOrder          `xml:"trainOrder"`
+	HeadcodeChanges   []HeadcodeChange      `xml:"trackingID"`
+	Alarms            []Alarm               `xml:"alarm"`
 }
