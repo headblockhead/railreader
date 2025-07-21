@@ -2,7 +2,7 @@ package decoder
 
 import "github.com/headblockhead/railreader"
 
-type ActualAndForecastInformation struct {
+type ForecastTime struct {
 	// RID is the unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
 	// UID is (despite the name) a non-unique 6-character ID for a route at a time of day.
@@ -21,11 +21,12 @@ type LocationForecast struct {
 	// TIPLOC is the code for the location
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 
-	// zero or more of:
+	// at least one of:
 	PublicArrivalTime    *railreader.TrainTime `xml:"pta,attr"`
 	PublicDepartureTime  *railreader.TrainTime `xml:"ptd,attr"`
 	WorkingArrivalTime   *railreader.TrainTime `xml:"wta,attr"`
 	WorkingDepartureTime *railreader.TrainTime `xml:"wtd,attr"`
+	WorkingPassingTime   *railreader.TrainTime `xml:"wtp,attr"`
 
 	// zero or one of:
 	ArrivalData   *LocationForecastTimeData `xml:"arr"`

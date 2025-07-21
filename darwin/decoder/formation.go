@@ -5,10 +5,11 @@ import (
 	"fmt"
 )
 
-type TrainFormationInformation struct {
+type FormationsOfService struct {
 	// RID is a unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
 
+	// Formations is a list of the various formations the train may use during its journey.
 	Formations []Formation `xml:"formation"`
 }
 

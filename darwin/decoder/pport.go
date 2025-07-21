@@ -70,8 +70,8 @@ type CISCode string
 
 // Status is a response sent periodically to indicate the status of the system, or to repsond to a bad request.
 type Status struct {
-	// RequestSource is optionally provided by the requestor to indicate who they are.
-	RequestSource *CISCode `xml:"requestSource,attr"`
+	// RequestSourceSystem is optionally provided by the requestor to indicate who they are.
+	RequestSourceSystem *CISCode `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
 	RequestID *string    `xml:"requestID,attr"`
 	Code      StatusCode `xml:"code,attr"`
@@ -90,13 +90,14 @@ type Response struct {
 	// 0 or more of any of these updated elements can be present in a response.
 	// This includes 0 of all, which is a valid response.
 
-	Schedules             []ScheduleInformation          `xml:"schedule"`
-	Deactivations         []DeactivationInformation      `xml:"deactivated"`
-	Associations          []AssociationInformation       `xml:"association"`
-	TrainFormations       []TrainFormationInformation    `xml:"scheduleFormations"`
-	ActualAndForecastData []ActualAndForecastInformation `xml:"TS"`
-	/*TrainLoadings                      []TrainLoadingInformation            `xml:"formationLoadings"`*/
-	/*TableSuppressionAndStationMessages []TableSuppressionAndStationMessages `xml:"OW"`*/
+	Schedules         []Schedule            `xml:"schedule"`
+	Deactivations     []Deactivation        `xml:"deactivated"`
+	Associations      []Association         `xml:"association"`
+	Formations        []FormationsOfService `xml:"scheduleFormations"`
+	ForecastTimes     []ForecastTime        `xml:"TS"`
+	ServiceLoadings   []ServiceLoading      `xml:"serviceLoading"`
+	FormationLoadings []FormationLoading    `xml:"formationLoading"`
+	StationMessages   []StationMessage      `xml:"OW"`
 	/*TrainOrders                        []TrainOrderInformation              `xml:"trainOrder"`*/
 	/*TrainAlertMessages                 []TrainAlertMessages                 `xml:"trainAlert"`*/
 	/*TrackingIDChanges                  []TrackingIDChanges                  `xml:"trackingID"`*/

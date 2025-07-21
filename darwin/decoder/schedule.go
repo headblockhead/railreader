@@ -7,7 +7,7 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
-type ScheduleInformation struct {
+type Schedule struct {
 	// RID is the unique 16-character ID for a specific train, running this schedule, at this time.
 	RID string `xml:"rid,attr"`
 	// UID is (despite the name) a non-unique 6-character ID for this route at this time of day.
@@ -48,9 +48,9 @@ type ScheduleInformation struct {
 	DiversionReason *DisruptionReason `xml:"diversionReason"`
 }
 
-func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// Alias type created used to avoid recursion.
-	type Alias ScheduleInformation
+	type Alias Schedule
 	var schedule Alias
 
 	// Set default values
@@ -64,7 +64,7 @@ func (si *ScheduleInformation) UnmarshalXML(d *xml.Decoder, start xml.StartEleme
 	}
 
 	// Convert the alias back to the original type
-	*si = ScheduleInformation(schedule)
+	*si = Schedule(schedule)
 
 	return nil
 }

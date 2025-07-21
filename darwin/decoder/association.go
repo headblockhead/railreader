@@ -2,7 +2,7 @@ package decoder
 
 import "github.com/headblockhead/railreader"
 
-type AssociationInformation struct {
+type Association struct {
 	TIPLOC   railreader.TIPLOC              `xml:"tiploc,attr"`
 	Category railreader.AssociationCategory `xml:"category,attr"`
 	// Cancelled indicates the association won't happen.
