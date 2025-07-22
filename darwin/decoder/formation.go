@@ -16,9 +16,9 @@ type FormationsOfService struct {
 type Formation struct {
 	ID string `xml:"fid,attr"`
 	// Source is the optionally provided source of the formation data.
-	Source *string `xml:"src,attr"`
+	Source string `xml:"src,attr"`
 	// SourceSystem is optional.
-	SourceSystem *CISCode `xml:"srcInstance,attr"`
+	SourceSystem CISCode `xml:"srcInst,attr"`
 
 	Coaches []Coach `xml:"coaches>coach"`
 }
@@ -27,7 +27,7 @@ type Coach struct {
 	// CoachIdentifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
 	CoachIdentifier string `xml:"coachNumber,attr"`
 	// CoachClass is the optionally provided class of the coach (eg "First", "Standard")
-	CoachClass *string `xml:"coachClass,attr"`
+	CoachClass string `xml:"coachClass,attr"`
 
 	Toilet ToiletInformation `xml:"toilet"`
 }
@@ -44,10 +44,14 @@ func (ti *ToiletInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 
 	// Set default values
 	toiletinfo.ToiletStatus = ToiletStatusInService
-	toiletinfo.ToiletType = ToiletTypeUnknown
 
 	if err := d.DecodeElement(&toiletinfo, &start); err != nil {
 		return fmt.Errorf("failed to decode ToiletInformation: %w", err)
+	}
+
+	// If the ToiletType is empty, set it to the default value
+	if toiletinfo.ToiletType == "" {
+		toiletinfo.ToiletType = ToiletTypeUnknown
 	}
 
 	// Convert the alias back to the original type
@@ -82,14 +86,14 @@ type ToiletType string
 const (
 	ToiletTypeUnknown    ToiletType = "Unknown"
 	ToiletTypeNone       ToiletType = "None"
-	ToiletTypeAvailable  ToiletType = "Standard"
+	ToiletTypeStandard   ToiletType = "Standard"
 	ToiletTypeAccessible ToiletType = "Accessible"
 )
 
 var ToiletAvailabilityStrings = map[ToiletType]string{
 	ToiletTypeUnknown:    "unknown",
 	ToiletTypeNone:       "none",
-	ToiletTypeAvailable:  "standard",
+	ToiletTypeStandard:   "standard",
 	ToiletTypeAccessible: "accessible",
 }
 

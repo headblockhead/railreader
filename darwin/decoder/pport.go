@@ -1,13 +1,7 @@
 package decoder
 
-import (
-	"encoding/xml"
-)
-
 // PushPortMessage is the root node of Darwin messages.
 type PushPortMessage struct {
-	XMLName xml.Name `xml:"Pport"`
-
 	Timestamp string `xml:"ts,attr"`
 	Version   string `xml:"version,attr"`
 

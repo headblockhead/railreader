@@ -12,20 +12,22 @@ type FormationLoading struct {
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 
 	// at least one of:
-	PublicArrivalTime    *railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  *railreader.TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   *railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime *railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   *railreader.TrainTime `xml:"wtp,attr"`
+	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
+	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
+	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
 
 	Loading []CoachLoadingData `xml:"loading"`
 }
 
 type CoachLoadingData struct {
 	// CoachIdentifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
-	CoachIdentifier string   `xml:"coachNumber,attr"`
-	Source          *string  `xml:"src,attr"`
-	SourceSystem    *CISCode `xml:"srcInst,attr"`
+	CoachIdentifier string `xml:"coachNumber,attr"`
+	// Source is optional.
+	Source string `xml:"src,attr"`
+	// SourceSystem is optional.
+	SourceSystem CISCode `xml:"srcInst,attr"`
 
 	Percentage int `xml:",chardata"`
 }
