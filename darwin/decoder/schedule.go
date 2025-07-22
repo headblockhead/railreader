@@ -71,7 +71,7 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 type DisruptionReason struct {
 	// TIPLOC is the optionally provided location code for the position of the disruption.
-	TIPLOC *railreader.TIPLOC `xml:"tiploc,attr"`
+	TIPLOC railreader.TIPLOC `xml:"tiploc,attr"`
 	// Near is true if the disruption should be interpreted as being near the provided TIPLOC, rather than at the exact location.
 	Near bool `xml:"near,attr"`
 
