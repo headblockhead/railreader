@@ -2,7 +2,6 @@ package decoder
 
 import "testing"
 
-// TODO
 var pportTestCases = map[string]PushPortMessage{
 	`<Pport ts="2006-01-02T15:04:05.999999999-07:00" version="18.0">
 	<TimeTableId ttfile="20060102150405_v8.xml.gz" ttreffile="20060102150405_ref_v99.xml.gz">20060102150405</TimeTableId>

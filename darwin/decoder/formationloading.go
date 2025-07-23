@@ -26,8 +26,8 @@ type CoachLoadingData struct {
 	CoachIdentifier string `xml:"coachNumber,attr"`
 	// Source is optional.
 	Source string `xml:"src,attr"`
-	// SourceSystem is optional.
-	SourceSystem CISCode `xml:"srcInst,attr"`
+	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
+	SourceSystem string `xml:"srcInst,attr"`
 
 	Percentage int `xml:",chardata"`
 }

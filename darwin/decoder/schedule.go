@@ -53,7 +53,7 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	type Alias Schedule
 	var schedule Alias
 
-	// Set default values
+	// Set default values.
 	schedule.Service = railreader.ServicePassengerOrParcelTrain
 	schedule.Category = railreader.CategoryPassenger
 	schedule.PassengerService = true
@@ -63,7 +63,7 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 		return fmt.Errorf("failed to decode ScheduleInformation: %w", err)
 	}
 
-	// Convert the alias back to the original type
+	// Convert the alias back to the original type.
 	*si = Schedule(schedule)
 
 	return nil

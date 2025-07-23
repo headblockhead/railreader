@@ -6,8 +6,6 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
-// TODO test default values
-
 var scheduleTestCases = map[string]Schedule{
 	`<schedule rid="012345678901234" uid="A00001" trainId="2C04" rsid="GW123456" ssd="2006-01-02" toc="GW" status="B" trainCat="BR" isPassengerSvc="true" isActive="true" deleted="true" isCharter="true">
 		<OR tpl="MNOP" act="TBT " planAct="TB" can="true" fid="012345678901234-001" affectedByDiversion="true" pta="00:01" ptd="00:02" wta="00:03" wtd="00:04" fd="QRST">

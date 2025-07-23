@@ -63,7 +63,8 @@ type CISCode string
 // Status is a response sent periodically to indicate the status of the system, or to repsond to a bad request.
 type Status struct {
 	// RequestSourceSystem is optionally provided by the requestor to indicate who they are.
-	RequestSourceSystem CISCode `xml:"requestSource,attr"`
+	// This is usually a CISCode.
+	RequestSourceSystem string `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
 	RequestID   string     `xml:"requestID,attr"`
 	Code        StatusCode `xml:"code,attr"`

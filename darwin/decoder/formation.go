@@ -15,9 +15,9 @@ type FormationsOfService struct {
 
 type Formation struct {
 	ID string `xml:"fid,attr"`
-	// Source is the optionally provided source of the formation data.
+	// Source is optional.
 	Source string `xml:"src,attr"`
-	// SourceSystem is optional.
+	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
 	SourceSystem CISCode `xml:"srcInst,attr"`
 
 	Coaches []Coach `xml:"coaches>coach"`
@@ -42,19 +42,19 @@ func (ti *ToiletInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 	type Alias ToiletInformation
 	var toiletinfo Alias
 
-	// Set default values
+	// Set default values.
 	toiletinfo.ToiletStatus = ToiletStatusInService
 
 	if err := d.DecodeElement(&toiletinfo, &start); err != nil {
 		return fmt.Errorf("failed to decode ToiletInformation: %w", err)
 	}
 
-	// If the ToiletType is empty, set it to the default value
+	// If the ToiletType is empty, set it to the default value.
 	if toiletinfo.ToiletType == "" {
 		toiletinfo.ToiletType = ToiletTypeUnknown
 	}
 
-	// Convert the alias back to the original type
+	// Convert the alias back to the original type.
 	*ti = ToiletInformation(toiletinfo)
 
 	return nil
