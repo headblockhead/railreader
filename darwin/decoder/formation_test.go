@@ -10,7 +10,7 @@ var formationTestCases = map[string]FormationsOfService{
 					<toilet status="NotInService">Standard</toilet>
 				</coach>
 				<coach coachNumber="B">
-					<!--This shoud be assumed to be an unknown toilet in service-->
+					<!--This should default to an unknown toilet in service-->
 					<toilet/>
 				</coach>
 			</coaches>
