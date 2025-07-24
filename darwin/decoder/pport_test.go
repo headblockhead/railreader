@@ -43,6 +43,6 @@ var pportTestCases = map[string]PushPortMessage{
 
 func TestUnmarshalPushPortMessage(t *testing.T) {
 	if err := TestUnmarshal(pportTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

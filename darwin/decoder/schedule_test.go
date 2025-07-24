@@ -132,6 +132,6 @@ var scheduleTestCases = map[string]Schedule{
 
 func TestUnmarshalSchedule(t *testing.T) {
 	if err := TestUnmarshal(scheduleTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

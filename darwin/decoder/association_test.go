@@ -49,6 +49,6 @@ var associationTestCases = map[string]Association{
 
 func TestUnmarshalAssociation(t *testing.T) {
 	if err := TestUnmarshal(associationTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

@@ -17,6 +17,7 @@ type TrainAlert struct {
 	CopiedFromSource *string `xml:"CopiedFromSource,attr"`
 	// Audience is usually "Customer", but may be other values.
 	Audience string `xml:"Audience,attr"`
+	// TODO: alerttype?
 	// All other tags are interpreted as part of the message body.
 	Message XHTMLBody `xml:",any"`
 }

@@ -107,6 +107,6 @@ var forecastTestCases = map[string]ForecastTime{
 
 func TestUnmarshalForecast(t *testing.T) {
 	if err := TestUnmarshal(forecastTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

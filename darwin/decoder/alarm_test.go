@@ -45,6 +45,6 @@ var alarmTestCases = map[string]Alarm{
 
 func TestUnmarshalAlarm(t *testing.T) {
 	if err := TestUnmarshal(alarmTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

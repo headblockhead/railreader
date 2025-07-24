@@ -38,6 +38,6 @@ var formationLoadingTestCases = map[string]FormationLoading{
 
 func TestUnmarshalFormationLoading(t *testing.T) {
 	if err := TestUnmarshal(formationLoadingTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

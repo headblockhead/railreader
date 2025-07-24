@@ -10,6 +10,6 @@ var deactivationTestCases = map[string]Deactivation{
 
 func TestUnmarshalDeactivation(t *testing.T) {
 	if err := TestUnmarshal(deactivationTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

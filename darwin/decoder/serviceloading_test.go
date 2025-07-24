@@ -46,6 +46,6 @@ var serviceLoadingTestCases = map[string]ServiceLoading{
 
 func TestUnmarshalServiceLoading(t *testing.T) {
 	if err := TestUnmarshal(serviceLoadingTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

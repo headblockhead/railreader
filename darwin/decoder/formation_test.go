@@ -59,6 +59,6 @@ var formationTestCases = map[string]FormationsOfService{
 
 func TestUnmarshalFormation(t *testing.T) {
 	if err := TestUnmarshal(formationTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }

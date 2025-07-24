@@ -19,6 +19,6 @@ var headcodeChangeTestCases = map[string]HeadcodeChange{
 
 func TestUnmarshalHeadcodeChange(t *testing.T) {
 	if err := TestUnmarshal(headcodeChangeTestCases); err != nil {
-		t.Errorf("%v", err)
+		t.Error(err)
 	}
 }
