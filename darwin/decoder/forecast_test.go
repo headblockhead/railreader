@@ -106,6 +106,20 @@ var forecastTestCases = map[string]ForecastTime{
 			},
 		},
 	},
+	// Test defaults using a nonsensical example.
+	`<TS>
+		<Location>
+		  <plat/>
+	  </Location>
+	</TS>`: {
+		Locations: []ForecastLocation{
+			{
+				PlatformData: &ForecastPlatform{
+					Source: PlatformDataSourcePlanned,
+				},
+			},
+		},
+	},
 }
 
 func TestUnmarshalForecast(t *testing.T) {

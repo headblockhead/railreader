@@ -1,6 +1,11 @@
 package decoder
 
-import "github.com/headblockhead/railreader"
+import (
+	"encoding/xml"
+	"fmt"
+
+	"github.com/headblockhead/railreader"
+)
 
 // ForecastTime contains a list of updates to predicted and actual train times at locations along a specific train's schedule.
 type ForecastTime struct {
@@ -85,6 +90,24 @@ type ForecastPlatform struct {
 	Confirmed bool `xml:"conf,attr"`
 
 	Platform string `xml:",chardata"`
+}
+
+func (f *ForecastPlatform) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// Alias type created to avoid recursion.
+	type Alias ForecastPlatform
+	var platform Alias
+
+	// Set default values.
+	platform.Source = PlatformDataSourcePlanned
+
+	if err := d.DecodeElement(&platform, &start); err != nil {
+		return fmt.Errorf("failed to decode ToiletInformation: %w", err)
+	}
+
+	// Convert the alias back to the original type.
+	*f = ForecastPlatform(platform)
+
+	return nil
 }
 
 type PlatformDataSource string

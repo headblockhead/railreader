@@ -186,10 +186,12 @@ type LocationSchedule struct {
 	// TIPLOC is the code for the location
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 	// Activities optionally provides what is happening at this location. It can be converted into a slice of railreader.ActivityCode.
+	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
 	Activities string `xml:"act,attr"`
 	// PlannedActivities optionally provides what was/is planned to happen at this location.
 	// This is only usually given if the Activity is different to the PlannedActivities.
 	// It is can be converted into a slice of railreader.ActivityCode.
+	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
 	PlannedActivities string `xml:"planAct,attr"`
 	Cancelled         bool   `xml:"can,attr"`
 	// FormationID is the ID of the train formation that is used at this location.
