@@ -4,7 +4,7 @@ import "testing"
 
 var serviceLoadingTestCases = map[string]ServiceLoading{
 	`<serviceLoading rid="012345678901234" tpl="ABCD" wta="00:01" wtd="00:02" wtp="00:03" pta="00:04" ptd="00:05">
-	<!--I have not seen any examples of the type value yet, the use of "Realtime" here is a complete guess-->
+		<!--I have not seen any examples of the type value yet, the use of "Realtime" here is a complete guess-->
 		<loadingCategory type="Realtime" src="CIS" srcInst="CIS1">A</loadingCategory>
 		<loadingPercentage type="Realtime" src="CIS" srcInst="CIS1">42</loadingPercentage>
 	</serviceLoading>`: {
@@ -30,8 +30,8 @@ var serviceLoadingTestCases = map[string]ServiceLoading{
 	},
 	// Test default values
 	`<serviceLoading>
-	<loadingCategory>B</loadingCategory>
-	<loadingPercentage>41</loadingPercentage>
+		<loadingCategory>B</loadingCategory>
+		<loadingPercentage>41</loadingPercentage>
 	</serviceLoading>`: {
 		LoadingCategory: &LoadingCategory{
 			Type:     "Typical",

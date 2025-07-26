@@ -9,7 +9,7 @@ type StationMessage struct {
 	Supressed bool `xml:"suppress,attr"`
 
 	// Stations is a list of the CRS codes of stations where the message should be displayed.
-	// It is optional, however if no stations are listed the message won't (& shouldn't) be shown.
+	// It can be empty, however if this is the case, the message shouldn't be shown.
 	Stations []StationCRS `xml:"Station"`
 
 	// All other tags are interpreted as part of the message body.
@@ -17,6 +17,7 @@ type StationMessage struct {
 }
 
 type XHTMLBody struct {
+	// Content is a basic HTML string, containing only <p> and <a> tags.
 	Content string `xml:",innerxml"`
 }
 

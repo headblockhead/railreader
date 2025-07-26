@@ -12,9 +12,9 @@ type Schedule struct {
 	RID string `xml:"rid,attr"`
 	// UID is (despite the name) a non-unique 6-character ID for this route at this time of day.
 	UID string `xml:"uid,attr"`
-	// TrainID is the 4-character headcode of the train, with the format:
+	// Headcode is the 4-character headcode of the train, with the format:
 	// [0-9][A-Z][0-9][0-9]
-	TrainID string `xml:"trainId,attr"`
+	Headcode string `xml:"trainId,attr"`
 	// RetailServiceID is the optionally provided Retail Service ID, either as an:
 	// 8 character "portion identifier" (including a leading TOC code),
 	// or a 6 character "base identifier" (without a TOC code).

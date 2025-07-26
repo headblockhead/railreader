@@ -23,7 +23,7 @@ var scheduleTestCases = map[string]Schedule{
 	</schedule>`: {
 		RID:                   "012345678901234",
 		UID:                   "A00001",
-		TrainID:               "2C04",
+		Headcode:              "2C04",
 		RetailServiceID:       "GW123456",
 		ScheduledStartDate:    "2006-01-02",
 		TrainOperatingCompany: "GW",

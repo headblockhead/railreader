@@ -4,9 +4,9 @@ import "testing"
 
 var headcodeChangeTestCases = map[string]HeadcodeChange{
 	`<trackingID>
-	<incorrectTrainID>2C04</incorrectTrainID>
-	<correctTrainID>2C05</correctTrainID>
-	<berth area="Y2">L3608</berth>
+		<incorrectTrainID>2C04</incorrectTrainID>
+		<correctTrainID>2C05</correctTrainID>
+		<berth area="Y2">L3608</berth>
 	</trackingID>`: {
 		OldHeadcode: "2C04",
 		NewHeadcode: "2C05",
