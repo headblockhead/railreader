@@ -8,13 +8,15 @@ var serviceLoadingTestCases = map[string]ServiceLoading{
 		<loadingCategory type="Realtime" src="CIS" srcInst="CIS1">A</loadingCategory>
 		<loadingPercentage type="Realtime" src="CIS" srcInst="CIS1">42</loadingPercentage>
 	</serviceLoading>`: {
-		RID:                  "012345678901234",
-		TIPLOC:               "ABCD",
-		WorkingArrivalTime:   "00:01",
-		WorkingDepartureTime: "00:02",
-		WorkingPassingTime:   "00:03",
-		PublicArrivalTime:    "00:04",
-		PublicDepartureTime:  "00:05",
+		RID:    "012345678901234",
+		TIPLOC: "ABCD",
+		LocationTimeIdentifiers: LocationTimeIdentifiers{
+			WorkingArrivalTime:   "00:01",
+			WorkingDepartureTime: "00:02",
+			WorkingPassingTime:   "00:03",
+			PublicArrivalTime:    "00:04",
+			PublicDepartureTime:  "00:05",
+		},
 		LoadingCategory: &LoadingCategory{
 			Type:         "Realtime",
 			Source:       "CIS",

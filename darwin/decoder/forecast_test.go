@@ -2,8 +2,6 @@ package decoder
 
 import (
 	"testing"
-
-	"github.com/headblockhead/railreader"
 )
 
 var forecastTestCases = map[string]ForecastTime{
@@ -24,24 +22,28 @@ var forecastTestCases = map[string]ForecastTime{
 			<affectedBy>123456</affectedBy>
 	  </Location>
 	</TS>`: {
-		RID:                "012345678901234",
-		UID:                "A00001",
-		ScheduledStartDate: "2006-01-02",
-		ReverseFormation:   true,
+		TrainIdentifiers: TrainIdentifiers{
+			RID:                "012345678901234",
+			UID:                "A00001",
+			ScheduledStartDate: "2006-01-02",
+		},
+		ReverseFormation: true,
 		LateReason: &DisruptionReason{
 			TIPLOC: "EFGH",
 			Near:   true,
 			Reason: "100",
 		},
-		Locations: []LocationForecast{
+		Locations: []ForecastLocation{
 			{
-				TIPLOC:               railreader.TIPLOC("ABCD"),
-				WorkingArrivalTime:   "00:01",
-				WorkingDepartureTime: "00:02",
-				WorkingPassingTime:   "00:03",
-				PublicArrivalTime:    "00:04",
-				PublicDepartureTime:  "00:05",
-				ArrivalData: &LocationForecastTimeData{
+				TIPLOC: "ABCD",
+				LocationTimeIdentifiers: LocationTimeIdentifiers{
+					WorkingArrivalTime:   "00:01",
+					WorkingDepartureTime: "00:02",
+					WorkingPassingTime:   "00:03",
+					PublicArrivalTime:    "00:04",
+					PublicDepartureTime:  "00:05",
+				},
+				ArrivalData: &ForecastLocationTimeData{
 					EstimatedTime:        "00:12",
 					WorkingTime:          "00:13",
 					ActualTime:           "00:14",
@@ -53,7 +55,7 @@ var forecastTestCases = map[string]ForecastTime{
 					Source:               "TRUST",
 					SourceSystem:         "Auto",
 				},
-				DepartureData: &LocationForecastTimeData{
+				DepartureData: &ForecastLocationTimeData{
 					EstimatedTime:        "00:16",
 					WorkingTime:          "00:17",
 					ActualTime:           "00:18",
@@ -65,7 +67,7 @@ var forecastTestCases = map[string]ForecastTime{
 					Source:               "TRUST",
 					SourceSystem:         "Auto",
 				},
-				PassingData: &LocationForecastTimeData{
+				PassingData: &ForecastLocationTimeData{
 					EstimatedTime:        "00:20",
 					WorkingTime:          "00:21",
 					ActualTime:           "00:22",
@@ -94,11 +96,12 @@ var forecastTestCases = map[string]ForecastTime{
 				},
 				AffectedBy: "123456",
 				Length:     3,
-				PlatformData: &PlatformData{
+				PlatformData: &ForecastPlatform{
 					Suppressed:      true,
 					SuppressedByCIS: true,
 					Source:          PlatformDataSourceManual,
 					Confirmed:       true,
+					Platform:        "2",
 				},
 			},
 		},

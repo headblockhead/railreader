@@ -27,29 +27,29 @@ var formationTestCases = map[string]FormationsOfService{
 				ID:           "012345678901234-001",
 				Source:       "CIS",
 				SourceSystem: "CIS1",
-				Coaches: []Coach{
+				Coaches: []FormationCoach{
 					{
-						CoachIdentifier: "A",
-						CoachClass:      "First",
-						Toilet: ToiletInformation{
-							ToiletStatus: ToiletStatusNotInService,
-							ToiletType:   ToiletTypeStandard,
+						Identifier: "A",
+						Class:      "First",
+						Toilet: FormationCoachToilet{
+							Status: ToiletStatusNotInService,
+							Type:   ToiletTypeStandard,
 						},
 					},
 					{
-						CoachIdentifier: "B",
-						Toilet: ToiletInformation{
-							ToiletStatus: ToiletStatusInService,
-							ToiletType:   ToiletTypeUnknown,
+						Identifier: "B",
+						Toilet: FormationCoachToilet{
+							Status: ToiletStatusInService,
+							Type:   ToiletTypeUnknown,
 						},
 					},
 				},
 			},
 			{
 				ID: "012345678901234-002",
-				Coaches: []Coach{
+				Coaches: []FormationCoach{
 					{
-						CoachIdentifier: "1",
+						Identifier: "1",
 					},
 				},
 			},

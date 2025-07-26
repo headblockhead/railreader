@@ -2,91 +2,44 @@ package decoder
 
 import "github.com/headblockhead/railreader"
 
+// ForecastTime contains a list of updates to predicted and actual train times at locations along a specific train's schedule.
 type ForecastTime struct {
-	// RID is the unique 16-character ID for a specific train.
-	RID string `xml:"rid,attr"`
-	// UID is (despite the name) a non-unique 6-character ID for a route at a time of day.
-	UID string `xml:"uid,attr"`
-	// ScheduledStartDate is in YYYY-MM-DD format.
-	ScheduledStartDate string `xml:"ssd,attr"`
-	// ReverseFormation indicates whether a train that divides will run in reverse formation after the dividing location.
+	TrainIdentifiers
+	// ReverseFormation indicates whether the remaining service after a train divides will run in reverse formation after the dividing location.
+	// I don't know why this is here.
 	ReverseFormation bool `xml:"isReverseFormation,attr"`
 
 	// LateReason is optional.
 	LateReason *DisruptionReason  `xml:"LateReason"`
-	Locations  []LocationForecast `xml:"Location"`
+	Locations  []ForecastLocation `xml:"Location"`
 }
 
-type LocationForecast struct {
+type ForecastLocation struct {
+	LocationTimeIdentifiers
 	// TIPLOC is the code for the location
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 
-	// at least one of:
-	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
-
 	// zero or one of:
-	ArrivalData   *LocationForecastTimeData `xml:"arr"`
-	DepartureData *LocationForecastTimeData `xml:"dep"`
-	PassingData   *LocationForecastTimeData `xml:"pass"`
+	ArrivalData   *ForecastLocationTimeData `xml:"arr"`
+	DepartureData *ForecastLocationTimeData `xml:"dep"`
+	PassingData   *ForecastLocationTimeData `xml:"pass"`
 
 	LateReason *DisruptionReason `xml:"LateReason"`
-	// Uncertainty may be provided to indicate when there is a risk that this service may be disrupted at this location.
+	// Uncertainty data may be provided to indicate there is a risk that this service may be disrupted at this location, along with how and why.
 	Uncertainty *Uncertainty `xml:"uncertainty"`
 	// AffectedBy is expected to contain a National Rail Enquires incident number, to link multiple services disrupted by the same incident together.
 	AffectedBy string `xml:"affectedBy"`
 	// Length may or may not match the Formation data. If it is 0, it is unknown.
-	Length       int           `xml:"length"`
-	PlatformData *PlatformData `xml:"plat"`
+	Length       int               `xml:"length"`
+	PlatformData *ForecastPlatform `xml:"plat"`
 	// Suppressed indicates that this service should not be shown to users at this location.
 	Suppressed bool `xml:"suppr"`
 	// DetachesFromFront is true (at a location where train stock is detached) if train stock will be detached from the front of the train at this location, and false if it will be detached from the rear.
 	DetachesFromFront bool `xml:"detachFront"`
 }
 
-type Uncertainty struct {
-	// Status indicates the predicted effect of the uncertainty (eg, delay, cancellation, etc).
-	// TODO: find examples of Status values.
-	Status string            `xml:"status,attr"`
-	Reason *DisruptionReason `xml:"reason"`
-}
-
-type PlatformDataSource string
-
-const (
-	PlatformDataSourcePlanned   PlatformDataSource = "P"
-	PlatformDataSourceAutomatic PlatformDataSource = "A"
-	PlatformDataSourceManual    PlatformDataSource = "M"
-)
-
-var PlatformDataSourceStrings = map[PlatformDataSource]string{
-	PlatformDataSourcePlanned:   "Planned",
-	PlatformDataSourceAutomatic: "Automatic",
-	PlatformDataSourceManual:    "Manual",
-}
-
-func (p PlatformDataSource) String() string {
-	if str, ok := PlatformDataSourceStrings[p]; ok {
-		return str
-	}
-	return string(p)
-}
-
-type PlatformData struct {
-	// Suppressed indicates that the provided platform data should not be shown to the user.
-	Suppressed bool `xml:"platsup,attr"`
-	// SuppressedByCIS indicates that the platform data should not be shown to the user, and that this was requested by a CIS or Darwin Workstation.
-	SuppressedByCIS bool `xml:"cisPlatsup,attr"`
-	// Source is the optionally provided source of the platform data.
-	Source    PlatformDataSource `xml:"platsrc,attr"`
-	Confirmed bool               `xml:"conf,attr"`
-}
-
-// LocationForecastTimeData contains the time data for arrival, departure, or passing a location.
-type LocationForecastTimeData struct {
+// ForecastLocationTimeData contains the time data for arrival, departure, or passing a location.
+type ForecastLocationTimeData struct {
 	// EstimatedTime is optional, generated from the public time table (or the Working Time Table if the location does not have public times).
 	EstimatedTime railreader.TrainTime `xml:"et,attr"`
 	// WorkingTime is optional, generated from the Working Time Table.
@@ -109,4 +62,48 @@ type LocationForecastTimeData struct {
 	Source string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it may be a CISCode. If Source is "TRUST", it may be something like "Auto" or "Manu"
 	SourceSystem string `xml:"srcInst,attr"`
+}
+
+// Uncertainty contains information about a potential future disruption to a service.
+type Uncertainty struct {
+	// Status indicates the predicted effect of the uncertainty (eg, delay, cancellation, etc).
+	// TODO: find examples of Status values.
+	Status string `xml:"status,attr"`
+
+	Reason *DisruptionReason `xml:"reason"`
+}
+
+// ForecastPlatform provides the platform a train will be at.
+type ForecastPlatform struct {
+	// Suppressed indicates that the provided platform data should not be shown to the user.
+	Suppressed bool `xml:"platsup,attr"`
+	// SuppressedByCIS indicates that the platform data should not be shown to the user, and that this was requested manually.
+	SuppressedByCIS bool `xml:"cisPlatsup,attr"`
+	// Source is the optionally provided source of the platform data.
+	Source PlatformDataSource `xml:"platsrc,attr"`
+	// Confirmed indicates the platform is almost certain to be correct.
+	Confirmed bool `xml:"conf,attr"`
+
+	Platform string `xml:",chardata"`
+}
+
+type PlatformDataSource string
+
+const (
+	PlatformDataSourcePlanned   PlatformDataSource = "P"
+	PlatformDataSourceAutomatic PlatformDataSource = "A"
+	PlatformDataSourceManual    PlatformDataSource = "M"
+)
+
+var PlatformDataSourceStrings = map[PlatformDataSource]string{
+	PlatformDataSourcePlanned:   "Planned",
+	PlatformDataSourceAutomatic: "Automatic",
+	PlatformDataSourceManual:    "Manual",
+}
+
+func (p PlatformDataSource) String() string {
+	if str, ok := PlatformDataSourceStrings[p]; ok {
+		return str
+	}
+	return string(p)
 }

@@ -21,13 +21,15 @@ var trainOrderTestCases = map[string]TrainOrder{
 		Platform: "17a",
 		Services: TrainOrderServices{
 			First: TrainOrderService{
-				RIDAndTime: RIDWithTime{
-					RID:                  "012345678901234",
-					WorkingArrivalTime:   "00:01",
-					WorkingDepartureTime: "00:02",
-					WorkingPassingTime:   "00:03",
-					PublicArrivalTime:    "00:04",
-					PublicDepartureTime:  "00:05",
+				RIDAndTime: OrderedService{
+					RID: "012345678901234",
+					LocationTimeIdentifiers: LocationTimeIdentifiers{
+						WorkingArrivalTime:   "00:01",
+						WorkingDepartureTime: "00:02",
+						WorkingPassingTime:   "00:03",
+						PublicArrivalTime:    "00:04",
+						PublicDepartureTime:  "00:05",
+					},
 				},
 			},
 			Second: TrainOrderService{
@@ -41,10 +43,10 @@ var trainOrderTestCases = map[string]TrainOrder{
 	`<trainOrder tiploc="EFGH" crs="MAN" platform="1">
 		<clear/>
 	</trainOrder>`: {
-		TIPLOC:   "EFGH",
-		CRS:      "MAN",
-		Platform: "1",
-		Clear:    true,
+		TIPLOC:     "EFGH",
+		CRS:        "MAN",
+		Platform:   "1",
+		ClearOrder: true,
 	},
 }
 

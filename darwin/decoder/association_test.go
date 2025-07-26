@@ -14,21 +14,25 @@ var associationTestCases = map[string]Association{
 		Category:  "NP",
 		Cancelled: true,
 		Deleted:   true,
-		Main: AssociatedService{
-			RID:                  "012345678901234",
-			WorkingArrivalTime:   "00:01",
-			WorkingDepartureTime: "00:02",
-			WorkingPassingTime:   "00:03",
-			PublicArrivalTime:    "00:04",
-			PublicDepartureTime:  "00:05",
+		MainService: AssociatedService{
+			RID: "012345678901234",
+			LocationTimeIdentifiers: LocationTimeIdentifiers{
+				WorkingArrivalTime:   "00:01",
+				WorkingDepartureTime: "00:02",
+				WorkingPassingTime:   "00:03",
+				PublicArrivalTime:    "00:04",
+				PublicDepartureTime:  "00:05",
+			},
 		},
-		Associated: AssociatedService{
-			RID:                  "012345678901235",
-			WorkingArrivalTime:   "00:06",
-			WorkingDepartureTime: "00:07",
-			WorkingPassingTime:   "00:08",
-			PublicArrivalTime:    "00:09",
-			PublicDepartureTime:  "00:10",
+		AssociatedService: AssociatedService{
+			RID: "012345678901235",
+			LocationTimeIdentifiers: LocationTimeIdentifiers{
+				WorkingArrivalTime:   "00:06",
+				WorkingDepartureTime: "00:07",
+				WorkingPassingTime:   "00:08",
+				PublicArrivalTime:    "00:09",
+				PublicDepartureTime:  "00:10",
+			},
 		},
 	},
 	// Test that unspceified fields are handled correctly.
@@ -38,10 +42,10 @@ var associationTestCases = map[string]Association{
 	</association>`: {
 		TIPLOC:   "EFGH",
 		Category: "NP",
-		Main: AssociatedService{
+		MainService: AssociatedService{
 			RID: "012345678901236",
 		},
-		Associated: AssociatedService{
+		AssociatedService: AssociatedService{
 			RID: "012345678901237",
 		},
 	},

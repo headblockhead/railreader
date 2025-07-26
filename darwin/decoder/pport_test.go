@@ -8,10 +8,10 @@ var pportTestCases = map[string]PushPortMessage{
 	</Pport>`: {
 		Timestamp: "2006-01-02T15:04:05.999999999-07:00",
 		Version:   "18.0",
-		TimeTableID: &TimeTableId{
-			TTfile:      "20060102150405_v8.xml.gz",
-			TTRefFile:   "20060102150405_ref_v99.xml.gz",
-			TimeTableId: "20060102150405",
+		NewTimetableFiles: &TimetableFiles{
+			TimetableFile:          "20060102150405_v8.xml.gz",
+			TimetableReferenceFile: "20060102150405_ref_v99.xml.gz",
+			TimeTableId:            "20060102150405",
 		},
 	},
 	`<Pport ts="2006-01-02T15:04:05.999999999-07:00" version="18.0">
@@ -19,7 +19,7 @@ var pportTestCases = map[string]PushPortMessage{
 	</Pport>`: {
 		Timestamp: "2006-01-02T15:04:05.999999999-07:00",
 		Version:   "18.0",
-		StatusResponse: &Status{
+		StatusUpdate: &Status{
 			RequestSourceSystem: "CIS1",
 			RequestID:           "01234567",
 			Code:                StatusCodeOK,

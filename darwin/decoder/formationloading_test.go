@@ -8,15 +8,17 @@ var formationLoadingTestCases = map[string]FormationLoading{
 		<loading coachNumber="B" src="CIS" srcInst="CIS1">23</loading>
 		<loading coachNumber="C"/>
 	</formationLoading>`: {
-		FormationID:          "012345678901234-001",
-		RID:                  "012345678901234",
-		TIPLOC:               "ABCD",
-		PublicArrivalTime:    "00:04",
-		PublicDepartureTime:  "00:05",
-		WorkingArrivalTime:   "00:01",
-		WorkingDepartureTime: "00:02",
-		WorkingPassingTime:   "00:03",
-		Loading: []CoachLoadingData{
+		FormationID: "012345678901234-001",
+		RID:         "012345678901234",
+		TIPLOC:      "ABCD",
+		LocationTimeIdentifiers: LocationTimeIdentifiers{
+			PublicArrivalTime:    "00:04",
+			PublicDepartureTime:  "00:05",
+			WorkingArrivalTime:   "00:01",
+			WorkingDepartureTime: "00:02",
+			WorkingPassingTime:   "00:03",
+		},
+		Loading: []CoachLoading{
 			{
 				CoachIdentifier: "A",
 				Source:          "CIS",

@@ -9,17 +9,11 @@ import (
 
 // ServiceLoading contains the estimated percentage loading for an entire service at a specific location.
 type ServiceLoading struct {
+	LocationTimeIdentifiers
 	// RID is the unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
 	// TIPLOC is the code for the location where the loading information applies.
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
-
-	// at least one of:
-	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
 
 	// zero or one of:
 	LoadingCategory   *LoadingCategory   `xml:"loadingCategory"`
@@ -38,6 +32,7 @@ type LoadingCategory struct {
 	Source string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
 	SourceSystem string `xml:"srcInst,attr"`
+
 	// Category is between 1 and 4 characters, and can be looked up in the reference data.
 	Category LoadingCategoryCode `xml:",chardata"`
 }
@@ -67,6 +62,7 @@ type LoadingPercentage struct {
 	Source string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
 	SourceSystem string `xml:"srcInst,attr"`
+
 	// Percentage is between 0 and 100, inclusive.
 	Percentage int `xml:",chardata"`
 }

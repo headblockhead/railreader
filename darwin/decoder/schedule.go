@@ -8,10 +8,7 @@ import (
 )
 
 type Schedule struct {
-	// RID is the unique 16-character ID for a specific train, running this schedule, at this time.
-	RID string `xml:"rid,attr"`
-	// UID is (despite the name) a non-unique 6-character ID for this route at this time of day.
-	UID string `xml:"uid,attr"`
+	TrainIdentifiers
 	// Headcode is the 4-character headcode of the train, with the format:
 	// [0-9][A-Z][0-9][0-9]
 	Headcode string `xml:"trainId,attr"`
@@ -19,19 +16,17 @@ type Schedule struct {
 	// 8 character "portion identifier" (including a leading TOC code),
 	// or a 6 character "base identifier" (without a TOC code).
 	RetailServiceID string `xml:"rsid,attr"`
-	// ScheduledStartDate in YYYY-MM-DD format.
-	ScheduledStartDate string `xml:"ssd,attr"`
 	// TrainOperatingCompany is the Rail Delivery Group's 2-character code for the train operating company.
 	TrainOperatingCompany string `xml:"toc,attr"`
 	// Service is the 1-character code for the type of transport.
-	// If not provided, it defaults to P (Passenger and Parcel Train).
+	// If not provided, it defaults to a Passenger and Parcel Train.
 	Service railreader.ServiceType `xml:"status,attr"`
 	// Category is a 2-character code for the load of the service.
 	// If not provided, it defaults to OO.
 	Category railreader.ServiceCategory `xml:"trainCat,attr"`
-	// PassengerService is true if not provided. This will sometimes be false, based on the value of the TrainCategory.
+	// PassengerService is true if not provided. This will sometimes be false, based on the Category.
 	PassengerService bool `xml:"isPassengerSvc,attr"`
-	// Active is true if not provided. It is only present in snapshots, used to indicate a service has been deactivated by a DeactivationInformation element.
+	// Active is false when service has been deactivated by a DeactivationInformation element, and is only set in snapshots.
 	Active bool `xml:"isActive,attr"`
 	// Deleted means you should not use or display this schedule.
 	Deleted bool `xml:"deleted,attr"`
@@ -80,7 +75,8 @@ type DisruptionReason struct {
 
 // LocationGeneric is a generic struct that contains (nullable pointers to) all the possible location types.
 type LocationGeneric struct {
-	Type                            LocationType
+	Type LocationType
+
 	OriginLocation                  *OriginLocation                  `xml:"OR"`
 	OperationalOriginLocation       *OperationalOriginLocation       `xml:"OPOR"`
 	IntermediateLocation            *IntermediateLocation            `xml:"IP"`

@@ -14,10 +14,10 @@ var alarmTestCases = map[string]Alarm{
 	</alarm>`: {
 		ClearedAlarm: "132",
 		NewAlarm: &NewAlarm{
-			ID:                         "325",
-			TrainDescriptorAreaFailure: "Y2",
-			TrainDescriptorFeedFailure: false,
-			TyrellFeedFailure:          false,
+			ID:                              "325",
+			TrainDescriptorAreaFailure:      "Y2",
+			TrainDescriptorTotalFeedFailure: false,
+			TyrellTotalFeedFailure:          false,
 		},
 	},
 	// Test that the absence of a failure element is treated as false.
@@ -28,10 +28,10 @@ var alarmTestCases = map[string]Alarm{
 	</alarm>`: {
 		ClearedAlarm: "",
 		NewAlarm: &NewAlarm{
-			ID:                         "329",
-			TrainDescriptorAreaFailure: "",
-			TrainDescriptorFeedFailure: false,
-			TyrellFeedFailure:          true,
+			ID:                              "329",
+			TrainDescriptorAreaFailure:      "",
+			TrainDescriptorTotalFeedFailure: false,
+			TyrellTotalFeedFailure:          true,
 		},
 	},
 	// Test that the absence of a set element creates a nil pointer.

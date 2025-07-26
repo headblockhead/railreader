@@ -7,14 +7,14 @@ import "github.com/headblockhead/railreader"
 type TrainOrder struct {
 	// TIPLOC is the location code for the station with the platform.
 	TIPLOC railreader.TIPLOC `xml:"tiploc,attr"`
-	// CRS is the passenger-facing 3-letter 'CRS code' for this station.
+	// CRS is the passenger-facing 3-letter code for this station.
 	CRS      string `xml:"crs,attr"`
 	Platform string `xml:"platform,attr"`
 
 	// only one of:
-	// Clear is true when the current train order should be cleared from the platform.
-	Clear    trueIfPresent      `xml:"clear"`
-	Services TrainOrderServices `xml:"set"`
+	// ClearOrder is true when the current train order should be cleared from the platform.
+	ClearOrder trueIfPresent      `xml:"clear"`
+	Services   TrainOrderServices `xml:"set"`
 }
 
 type TrainOrderServices struct {
@@ -24,20 +24,16 @@ type TrainOrderServices struct {
 	Third *TrainOrderService `xml:"third"`
 }
 
-// TrainOrderService can describe a service by RID + time(s), or by its headcode (TrainID).
+// TrainOrderService can describe a service at a specific point on its route by RID, time(s), and a seperatly provided TIPLOC,
+// or (if it is not included in Darwin) by its headcode.
 type TrainOrderService struct {
 	// only one of:
-	RIDAndTime RIDWithTime `xml:"rid"`
-	Headcode   string      `xml:"trainID"`
+	RIDAndTime OrderedService `xml:"rid"`
+	Headcode   string         `xml:"trainID"`
 }
 
-type RIDWithTime struct {
+type OrderedService struct {
+	LocationTimeIdentifiers
+	// RID is a unique 16-character ID for a specific train.
 	RID string `xml:",chardata"`
-
-	// at least one of:
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
-	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
 }

@@ -2,26 +2,20 @@ package decoder
 
 import "github.com/headblockhead/railreader"
 
-// FormationLoading contains the estimated percentage loading per coach for a specific formation, location, and service.
+// FormationLoading contains the estimated percentage loading per coach for a specific formation+location+service.
 type FormationLoading struct {
-	// FormationID is used to link this information to a specific train formation.
-	FormationID string `xml:"fid,attr"`
+	LocationTimeIdentifiers
 	// RID is the unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
+	// FormationID is used to link this information to a specific train formation.
+	FormationID string `xml:"fid,attr"`
 	// TIPLOC is the code for the location where the loading information applies.
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
 
-	// at least one of:
-	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
-
-	Loading []CoachLoadingData `xml:"loading"`
+	Loading []CoachLoading `xml:"loading"`
 }
 
-type CoachLoadingData struct {
+type CoachLoading struct {
 	// CoachIdentifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
 	CoachIdentifier string `xml:"coachNumber,attr"`
 	// Source is optional.

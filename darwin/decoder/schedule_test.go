@@ -21,11 +21,13 @@ var scheduleTestCases = map[string]Schedule{
 		<divertedVia>EFGH</divertedVia>
 		<diversionReason tiploc="IJKL" near="true">101</diversionReason>
 	</schedule>`: {
-		RID:                   "012345678901234",
-		UID:                   "A00001",
+		TrainIdentifiers: TrainIdentifiers{
+			RID:                "012345678901234",
+			UID:                "A00001",
+			ScheduledStartDate: "2006-01-02",
+		},
 		Headcode:              "2C04",
 		RetailServiceID:       "GW123456",
-		ScheduledStartDate:    "2006-01-02",
 		TrainOperatingCompany: "GW",
 		Service:               railreader.ServiceBus,
 		Category:              railreader.CategoryBusReplacement,

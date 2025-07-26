@@ -20,42 +20,42 @@ type Formation struct {
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
 	SourceSystem CISCode `xml:"srcInst,attr"`
 
-	Coaches []Coach `xml:"coaches>coach"`
+	Coaches []FormationCoach `xml:"coaches>coach"`
 }
 
-type Coach struct {
-	// CoachIdentifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
-	CoachIdentifier string `xml:"coachNumber,attr"`
-	// CoachClass is the optionally provided class of the coach (eg "First", "Standard")
-	CoachClass string `xml:"coachClass,attr"`
+type FormationCoach struct {
+	// Identifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
+	Identifier string `xml:"coachNumber,attr"`
+	// Class is the optionally provided class of the coach (eg "First", "Standard")
+	Class string `xml:"coachClass,attr"`
 
-	Toilet ToiletInformation `xml:"toilet"`
+	Toilet FormationCoachToilet `xml:"toilet"`
 }
 
-type ToiletInformation struct {
-	ToiletStatus ToiletStatus `xml:"status,attr"`
-	ToiletType   ToiletType   `xml:",chardata"`
+type FormationCoachToilet struct {
+	Status ToiletStatus `xml:"status,attr"`
+	Type   ToiletType   `xml:",chardata"`
 }
 
-func (ti *ToiletInformation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (ti *FormationCoachToilet) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// Alias type created to avoid recursion.
-	type Alias ToiletInformation
+	type Alias FormationCoachToilet
 	var toiletinfo Alias
 
 	// Set default values.
-	toiletinfo.ToiletStatus = ToiletStatusInService
+	toiletinfo.Status = ToiletStatusInService
 
 	if err := d.DecodeElement(&toiletinfo, &start); err != nil {
 		return fmt.Errorf("failed to decode ToiletInformation: %w", err)
 	}
 
 	// If the ToiletType is empty, set it to the default value.
-	if toiletinfo.ToiletType == "" {
-		toiletinfo.ToiletType = ToiletTypeUnknown
+	if toiletinfo.Type == "" {
+		toiletinfo.Type = ToiletTypeUnknown
 	}
 
 	// Convert the alias back to the original type.
-	*ti = ToiletInformation(toiletinfo)
+	*ti = FormationCoachToilet(toiletinfo)
 
 	return nil
 }

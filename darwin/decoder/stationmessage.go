@@ -16,12 +16,12 @@ type StationMessage struct {
 	Message XHTMLBody `xml:",any"`
 }
 
-type XHTMLBody struct {
-	// Content is a basic HTML string, containing only <p> and <a> tags.
-	Content string `xml:",innerxml"`
-}
-
 type StationCRS struct {
 	// CRS is the passenger-facing 3-letter code for this station.
 	CRS string `xml:"crs,attr"`
+}
+
+type XHTMLBody struct {
+	// Content is a basic HTML string, containing only <p> and <a> tags.
+	Content string `xml:",innerxml"`
 }

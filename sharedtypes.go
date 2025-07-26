@@ -283,10 +283,18 @@ type TrainTime string
 type AssociationCategory string
 
 const (
-	AssociationJoin   AssociationCategory = "JJ"
+	// AssociationJoin indicates that two services join together into a single train.
+	AssociationJoin AssociationCategory = "JJ"
+	// AssociationDivide indicates a single train divides into two services, and one of them terminates.
 	AssociationDivide AssociationCategory = "VV"
-	AssociationLink   AssociationCategory = "LK"
-	AssociationNext   AssociationCategory = "NP"
+	// AssociationLink indicates two services are linked together into a single service.
+	// For example, a train that terminates halfway through its schedule, and a bus replacement that continues the service.
+	// Services are not necessarily linked at their termini, and links may create branching paths.
+	// This is different from a join/divide as links may involve a change of service type.
+	// In Darwin, passengers transfer from the MainService to the AssociatedService.
+	AssociationLink AssociationCategory = "LK"
+	// AssociationNext indicates the next service to be run using the same rolling stock.
+	AssociationNext AssociationCategory = "NP"
 )
 
-type TrainDescriptorArea string
+type TrainDescriberArea string

@@ -21,19 +21,20 @@ type TrainAlert struct {
 	Audience string `xml:"Audience"`
 	// Type is either "Normal" or "Forced". This can be interpreted however you want.
 	Type TrainAlertType `xml:"AlertType"`
-
-	// Message is a basic HTML string, containing only <p> and <a> tags.
+	// Message is a basic HTML string. (containing only <p> and <a> tags)
 	Message string `xml:"AlertText"`
 }
 
 type TrainAlertService struct {
+	// TrainIdentifiers is not used here, because for some reason the RID UID and SSD attributes are uniquely capitalised here.
+
 	// (most likely) at least one of:
 	RID                string `xml:"RID,attr"`
 	UID                string `xml:"UID,attr"`
 	ScheduledStartDate string `xml:"SSD,attr"`
 	// to identify a specific service.
 
-	// Locations is the list of locations that this alert applies to.
+	// Locations is the list of TIPLOCs that this alert applies to.
 	Locations []railreader.TIPLOC `xml:"Location"`
 }
 
