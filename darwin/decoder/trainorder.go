@@ -13,7 +13,7 @@ type TrainOrder struct {
 
 	// only one of:
 	// ClearOrder is true when the current train order should be cleared from the platform.
-	ClearOrder trueIfPresent      `xml:"clear"`
+	ClearOrder TrueIfPresent      `xml:"clear"`
 	Services   TrainOrderServices `xml:"set"`
 }
 

@@ -6,11 +6,11 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
-// trueIfPresent implements xml.Unmarshaler.
+// TrueIfPresent implements xml.Unmarshaler.
 // It unmarshals to true if the element of this type exists.
-type trueIfPresent bool
+type TrueIfPresent bool
 
-func (p *trueIfPresent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (p *TrueIfPresent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	if start.Name.Local != "" {
 		*p = true
 	}

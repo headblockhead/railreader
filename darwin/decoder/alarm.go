@@ -17,6 +17,6 @@ type NewAlarm struct {
 
 	// only one of:
 	TrainDescriptorAreaFailure      railreader.TrainDescriberArea `xml:"tdAreaFail"`
-	TrainDescriptorTotalFeedFailure trueIfPresent                 `xml:"tdFeedFail"`
-	TyrellTotalFeedFailure          trueIfPresent                 `xml:"tyrellFeedFail"`
+	TrainDescriptorTotalFeedFailure TrueIfPresent                 `xml:"tdFeedFail"`
+	TyrellTotalFeedFailure          TrueIfPresent                 `xml:"tyrellFeedFail"`
 }
