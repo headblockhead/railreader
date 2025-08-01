@@ -1,6 +1,7 @@
 package darwin
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -123,15 +124,15 @@ func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 	}
 
 	var pport decoder.PushPortMessage
-	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
+
+	d := xml.NewDecoder(bytes.NewReader([]byte(msg.Bytes)))
+	d.Entity = xml.HTMLEntity
+	if err := d.Decode(&pport); err != nil {
 		return fmt.Errorf("failed to unmarshal message XML: %w", err)
 	}
 	log.Debug("unmarshaled PushPortMessage")
 
-
 	// TODO: check common fields are always as we expect
-
-
 
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
-// ServiceLoading contains the estimated percentage loading for an entire service at a specific location.
+// ServiceLoading contains the average percentage loading (or LoadingCategory) for an entire service at a specific location. It does not vary based on real-time data.
 type ServiceLoading struct {
 	LocationTimeIdentifiers
 	// RID is the unique 16-character ID for a specific train.

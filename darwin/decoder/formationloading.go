@@ -2,7 +2,7 @@ package decoder
 
 import "github.com/headblockhead/railreader"
 
-// FormationLoading contains the estimated percentage loading per coach for a specific formation+location+service.
+// FormationLoading contains the real-time estimated percentage loading per coach for a specific formation+location+service.
 type FormationLoading struct {
 	LocationTimeIdentifiers
 	// RID is the unique 16-character ID for a specific train.

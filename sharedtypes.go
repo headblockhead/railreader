@@ -20,13 +20,13 @@ var ServiceTypeStrings = map[ServiceType]string{
 	ServicePassengerOrParcelTrain:     "Train",
 	ServiceBus:                        "Bus",
 	ServiceShip:                       "Ship",
-	ServiceTrip:                       "Trip",
-	ServiceFreight:                    "Freight",
+	ServiceTrip:                       "Trip",    // not included in Darwin
+	ServiceFreight:                    "Freight", // not included in Darwin
 	ServicePassengerOrParcelShortTerm: "Train",
 	ServiceBusShortTerm:               "Bus",
 	ServiceShipShortTerm:              "Ship",
-	ServiceTripShortTerm:              "Trip",
-	ServiceFreightShortTerm:           "Freight",
+	ServiceTripShortTerm:              "Trip",    // not included in Darwin
+	ServiceFreightShortTerm:           "Freight", // not included in Darwin
 }
 
 func (tt ServiceType) String() string {

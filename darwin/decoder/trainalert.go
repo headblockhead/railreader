@@ -16,12 +16,11 @@ type TrainAlert struct {
 	// Source is usually a TOC code, but can also be "NRCC" (the National Rail Communications Centre?).
 	Source string `xml:"Source"`
 	// CopiedFromSource is the (optionally provided) Source value of the alert that this alert was copied from.
-	CopiedFromSource string `xml:"CopiedFromSource"`
-	// Audience is usually "Customer", but may be other values.
-	Audience string `xml:"Audience"`
-	// Type is either "Normal" or "Forced". This can be interpreted however you want.
-	Type TrainAlertType `xml:"AlertType"`
-	// Message is a basic HTML string. (containing only <p> and <a> tags)
+	CopiedFromSource string             `xml:"CopiedFromSource"`
+	Audience         TrainAlertAudience `xml:"Audience"`
+	Type             TrainAlertType     `xml:"AlertType"`
+	// Message is a basic HTML string. (containing only <p> and <a> tags).
+	// WARNING: This is not output in the same format as StationMessages, character entities inside of elements (like &nbsp;) ARE decoded! See trainalert_test.go for an example.
 	Message string `xml:"AlertText"`
 }
 
@@ -43,4 +42,12 @@ type TrainAlertType string
 const (
 	TrainAlertTypeNormal TrainAlertType = "Normal"
 	TrainAlertTypeForced TrainAlertType = "Forced"
+)
+
+type TrainAlertAudience string
+
+const (
+	TrainAlertAudienceCustomer   TrainAlertAudience = "Customer"
+	TrainAlertAudienceStaff      TrainAlertAudience = "Staff"
+	TrainAlertAudienceOperations TrainAlertAudience = "Operations"
 )
