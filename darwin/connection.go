@@ -73,7 +73,7 @@ func (dc *Connection) FetchKafkaMessage() (msg kafka.Message, err error) {
 	if err := json.Unmarshal(msg.Key, &key); err != nil {
 		return msg, fmt.Errorf("failed to unmarshal kafka message key: %w", err)
 	}
-	dc.log.Debug("received Kafka message", slog.String("messageID", key.MessageID))
+	dc.log.Debug("received message from Kafka", slog.String("messageID", key.MessageID))
 	return msg, nil
 }
 
@@ -91,12 +91,11 @@ func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
 
 	log := dc.log.With(slog.String("messageID", string(key.MessageID)))
 
-	log.Debug("unmarshaling Kafka message...")
 	var c MessageCapsule
 	if err := json.Unmarshal(msg.Value, &c); err != nil {
 		return fmt.Errorf("failed to unmarshal kafka message: %w", err)
 	}
-	log.Debug("unmarshaled Kafka message")
+	log.Debug("unmarshaled message capsule")
 
 	if err := dc.connectionContext.Err(); err != nil {
 		return fmt.Errorf("context error: %w", err)
@@ -105,12 +104,12 @@ func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
 	if err := dc.ProcessMessageCapsule(c); err != nil {
 		return fmt.Errorf("failed to process message capsule: %w", err)
 	}
+	log.Debug("processed message capsule")
 
 	if err := dc.reader.CommitMessages(dc.connectionContext, msg); err != nil {
-		return fmt.Errorf("failed to commit message: %w", err)
+		return fmt.Errorf("failed to commit Kafka message: %w", err)
 	}
-
-	log.Debug("processed a message")
+	log.Debug("committed to Kafka")
 
 	return nil
 }
@@ -118,6 +117,7 @@ func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
 func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 	log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
 
+	// TODO: remove this
 	if err := os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644); err != nil {
 		return fmt.Errorf("failed to write message capsule to file: %w", err)
 	}
@@ -126,19 +126,12 @@ func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 	if err := xml.Unmarshal([]byte(msg.Bytes), &pport); err != nil {
 		return fmt.Errorf("failed to unmarshal message XML: %w", err)
 	}
+	log.Debug("unmarshaled PushPortMessage")
 
-	reXML, err := xml.MarshalIndent(pport, "", "	")
-	if err != nil {
-		return fmt.Errorf("failed to marshal message XML: %w", err)
-	}
-
-	if err := os.WriteFile(filepath.Join("output", msg.MessageID+".xml"), reXML, 0644); err != nil {
-		return fmt.Errorf("failed to write processed message XML to file: %w", err)
-	}
 
 	// TODO: check common fields are always as we expect
 
-	log.Debug("Processed message capsule")
+
 
 	return nil
 }
