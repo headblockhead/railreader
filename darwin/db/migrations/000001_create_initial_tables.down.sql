@@ -1,0 +1,13 @@
+BEGIN;
+
+-- SCHEDULES
+
+DROP TABLE IF EXISTS schedules;
+DROP TYPE IF EXISTS schedule_location;
+DROP TYPE IF EXISTS disruption_reason;
+
+-- ALARMS
+
+DROP TABLE IF EXISTS alarms;
+
+COMMIT;

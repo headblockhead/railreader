@@ -144,43 +144,6 @@ func (lg *LocationGeneric) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	return nil
 }
 
-func (lg LocationGeneric) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	switch lg.Type {
-	case LocationTypeOrigin:
-		if lg.OriginLocation != nil {
-			return e.EncodeElement(lg.OriginLocation, start)
-		}
-	case LocationTypeOperationalOrigin:
-		if lg.OperationalOriginLocation != nil {
-			return e.EncodeElement(lg.OperationalOriginLocation, start)
-		}
-	case LocationTypeIntermediate:
-		if lg.IntermediateLocation != nil {
-			return e.EncodeElement(lg.IntermediateLocation, start)
-		}
-	case LocationTypeOperationalIntermediate:
-		if lg.OperationalIntermediateLocation != nil {
-			return e.EncodeElement(lg.OperationalIntermediateLocation, start)
-		}
-	case LocationTypeIntermediatePassing:
-		if lg.IntermediatePassingLocation != nil {
-			return e.EncodeElement(lg.IntermediatePassingLocation, start)
-		}
-	case LocationTypeDestination:
-		if lg.DestinationLocation != nil {
-			return e.EncodeElement(lg.DestinationLocation, start)
-		}
-	case LocationTypeOperationalDestination:
-		if lg.OperationalDestinationLocation != nil {
-			return e.EncodeElement(lg.OperationalDestinationLocation, start)
-		}
-	default:
-		return fmt.Errorf("unknown location type: %s", lg.Type)
-	}
-
-	return nil
-}
-
 // LocationSchedule is the base struct for all location types.
 type LocationSchedule struct {
 	// TIPLOC is the code for the location
