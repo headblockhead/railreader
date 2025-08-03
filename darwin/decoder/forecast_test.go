@@ -87,7 +87,7 @@ var forecastTestCases = map[string]ForecastTime{
 					Reason: "101",
 				},
 				Uncertainty: &Uncertainty{
-					Status: "delay",
+					Effect: "delay",
 					Reason: &DisruptionReason{
 						TIPLOC: "MNOP",
 						Near:   true,

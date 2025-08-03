@@ -2,12 +2,14 @@ BEGIN;
 
 -- SCHEDULES
 
-DROP TABLE IF EXISTS schedules;
-DROP TYPE IF EXISTS schedule_location;
+DROP TABLE IF EXISTS services;
+DROP TYPE IF EXISTS service_location;
 DROP TYPE IF EXISTS disruption_reason;
 
 -- ALARMS
 
 DROP TABLE IF EXISTS alarms;
+
+-- TODO
 
 COMMIT;

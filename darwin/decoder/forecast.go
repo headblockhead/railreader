@@ -71,9 +71,9 @@ type ForecastLocationTimeData struct {
 
 // Uncertainty contains information about a potential future disruption to a service.
 type Uncertainty struct {
-	// Status indicates the predicted effect of the uncertainty (eg, delay, cancellation, etc).
-	// TODO: find examples of Status values.
-	Status string `xml:"status,attr"`
+	// Effect indicates the predicted effect of the uncertainty (eg, delay, cancellation, etc).
+	// TODO: find examples of Effect values.
+	Effect string `xml:"status,attr"`
 
 	Reason *DisruptionReason `xml:"reason"`
 }
