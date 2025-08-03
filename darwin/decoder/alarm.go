@@ -8,15 +8,15 @@ import (
 type Alarm struct {
 	// only one of:
 	// ClearedAlarm may contain the ID of an alarm that has been cleared.
-	ClearedAlarm string    `xml:"clear"`
+	ClearedAlarm int       `xml:"clear"`
 	NewAlarm     *NewAlarm `xml:"set"`
 }
 
 type NewAlarm struct {
-	ID string `xml:"id,attr"`
+	ID int `xml:"id,attr"`
 
 	// only one of:
-	TrainDescriptorAreaFailure      railreader.TrainDescriberArea `xml:"tdAreaFail"`
-	TrainDescriptorTotalFeedFailure TrueIfPresent                 `xml:"tdFeedFail"`
-	TyrellTotalFeedFailure          TrueIfPresent                 `xml:"tyrellFeedFail"`
+	TrainDescriberAreaFailure      railreader.TrainDescriberArea `xml:"tdAreaFail"`
+	TrainDescriberTotalFeedFailure TrueIfPresent                 `xml:"tdFeedFail"`
+	TyrellTotalFeedFailure         TrueIfPresent                 `xml:"tyrellFeedFail"`
 }
