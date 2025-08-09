@@ -1,143 +1,103 @@
 BEGIN;
 
--- SCHEDULES
+CREATE TABLE IF NOT EXISTS train_operating_companies (
+				train_operating_company_id text PRIMARY KEY,
+				name text NOT NULL,
+				url text
+);
 
-DO $$ BEGIN
-	CREATE TYPE disruption_reason AS (
-		reason text,
-		is_near_tiploc boolean,
-		tiploc text
-	);
-	
-	CREATE TYPE uncertainty AS (
-		effect text,
-		reason disruption_reason
-	);
-	
-	CREATE TYPE service_location_platform AS (
-		suppressed boolean,
-		suppressed_by_cis boolean,
-		source text,
-		confirmed boolean,
-		platform_number text
-	);
-	
-	CREATE TYPE service_location_forecast AS (
-		estimated_time text,
-		actual_time text,
-		actual_time_source text,
-		estimated_time_minimum text,
-		estimated_time_unknown boolean,
-		delayed boolean,
-		source text,
-		source_system text
-	);
-	
-	CREATE TYPE service_location AS (
-		location_type text,
-		tiploc text,
-		activities text,
-		planned_activities text,
-		cancelled boolean,
-		formation_id text,
-		is_affected_by_diversion boolean,
-		late_reason disruption_reason,
-		cancellation_reason disruption_reason,
-		public_arrival_time text,
-		public_departure_time text,
-		working_arrival_time text,
-		working_departure_time text,
-		working_passing_time text,
-		routing_delay text,
-		false_destination text,
-		uncertainty uncertainty,
-		affected_by text,
-		length integer,
-		platform service_location_platform,
-		suppressed boolean,
-		detaches_from_front boolean,
-		arrival_forecast service_location_forecast,
-		departure_forecast service_location_forecast,
-		passing_forecast service_location_forecast
-	);
-EXCEPTION
-	WHEN duplicate_object THEN null;
-END $$;
+CREATE TABLE IF NOT EXISTS late_reasons (
+				late_reason_id int PRIMARY KEY,
+				description text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS cancellation_reasons (
+				cancellation_reason_id int PRIMARY KEY,
+				description text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS locations (
+				location_id text PRIMARY KEY, -- this is the TIPLOC, renamed to be consistent with other tables
+				name text NOT NULL,
+				CRS text
+);
 
 CREATE TABLE IF NOT EXISTS services (
-	rid text PRIMARY KEY,
-	uid text NOT NULL,
-	start_date date NOT NULL,
-	headcode text NOT NULL,
-	retail_service_id text,
-	train_operating_company text NOT NULL,
-	service text NOT NULL,
-	category text NOT NULL,
-	is_passenger_service boolean NOT NULL,
-	is_deactivated boolean NOT NULL,
-	is_deleted boolean NOT NULL,
-	is_charter boolean NOT NULL,
-	cancellation_reason disruption_reason,
-	diversion_reason disruption_reason,
-	diverted_via text,
-	is_reverse_formation boolean NOT NULL,
-	late_reason disruption_reason,
-	locations service_location[] NOT NULL
+				--  TrainIdentifiers
+				service_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
+				UID text NOT NULL,
+				scheduled_start_date date NOT NULL,
+				-- Schedule
+				headcode text NOT NULL,
+				retail_service_id text,
+				train_operating_company_id text NOT NULL,
+				CONSTRAINT fk_train_operating_company FOREIGN KEY(train_operating_company_id) REFERENCES train_operating_companies(train_operating_company_id) ON DELETE CASCADE,
+				service text NOT NULL,
+				category text NOT NULL,
+				active boolean NOT NULL,
+				charter boolean NOT NULL,
+				cancellation_reason_id int,
+				CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id) ON DELETE SET NULL,
+				late_reason_id int,
+				CONSTRAINT fk_late_reason FOREIGN KEY(late_reason_id) REFERENCES late_reasons(late_reason_id) ON DELETE SET NULL,
+				diverted_via_location_id text,
+				CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id) ON DELETE SET NULL
 );
 
--- ALARMS
-
-CREATE TABLE IF NOT EXISTS alarms (
-	alarm_id bigint PRIMARY KEY,
-	is_cleared boolean NOT NULL,
-	train_describer_failed_area text,
-	train_describer_total_feed_failure boolean,
-	tyrell_total_feed_failure boolean
+CREATE TABLE IF NOT EXISTS services_locations (
+				service_id text,
+				CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES services(service_id) ON DELETE CASCADE,
+				location_id text,
+				CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id) ON DELETE CASCADE,
+				sequence int,
+				PRIMARY KEY (service_id, location_id, sequence),
+				-- Schedule
+				activities text NOT NULL,
+				planned_activities text,
+				cancelled boolean NOT NULL,
+				affected_by_diversion boolean NOT NULL,
+				type text NOT NULL,
+				-- The elements which are not null depends on the location type
+				public_arrival_time timestamp,
+				public_departure_time timestamp,
+				working_arrival_time timestamp,
+				working_passing_time timestamp,
+				working_departure_time timestamp,
+				false_destination text,
+				CONSTRAINT fk_false_destination FOREIGN KEY(false_destination) REFERENCES locations(location_id) ON DELETE SET NULL,
+				routing_delay int
 );
 
--- ASSOCIATIONS
-
-DO $$ BEGIN
-	CREATE TYPE associated_service AS (
-		rid text,
-		public_arrival_time text,
-		public_departure_time text,
-		working_arrival_time text,
-		working_departure_time text,
-		working_passing_time text
-	);
-EXCEPTION
-	WHEN duplicate_object THEN null;
-END $$;
-
-CREATE TABLE IF NOT EXISTS associations (
-	association_id bigint PRIMARY KEY GENERATED BY DEFAULT AS IDENTITY,
-	tiploc text NOT NULL,
-	category text NOT NULL,
-	is_cancelled boolean NOT NULL,
-	main_service associated_service NOT NULL,
-	associated_service associated_service NOT NULL
+CREATE TABLE IF NOT EXISTS services_diversion_reasons (
+				service_id text,
+				CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES services(service_id) ON DELETE CASCADE,
+				late_reason_id int NOT NULL,
+				CONSTRAINT fk_late_reason FOREIGN KEY(late_reason_id) REFERENCES late_reasons(late_reason_id) ON DELETE CASCADE,
+				PRIMARY KEY (service_id, late_reason_id),
+				locaion_id text,
+				CONSTRAINT fk_location FOREIGN KEY(locaion_id) REFERENCES locations(location_id) ON DELETE SET NULL,
+				near_location boolean NOT NULL
 );
 
--- FORMATIONS
+CREATE TABLE IF NOT EXISTS services_cancellation_reasons (
+				service_id text,
+				CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES services(service_id) ON DELETE CASCADE,
+				cancellation_reason_id int NOT NULL,
+				CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id) ON DELETE CASCADE,
+				PRIMARY KEY (service_id, cancellation_reason_id),
+				locaion_id text,
+				CONSTRAINT fk_location FOREIGN KEY(locaion_id) REFERENCES locations(location_id) ON DELETE SET NULL,
+				near_location boolean NOT NULL
+);
 
-DO $$ BEGIN
-	CREATE TYPE formation_coach AS (
-		identifier text,
-		class text,
-		toilet_status text,
-		toilet_type text,
-	);
-EXCEPTION
-	WHEN duplicate_object THEN null;
-END $$;
-
-CREATE TABLE IF NOT EXISTS formations (
-	formation_id text PRIMARY KEY,
-	rid text NOT NULL,
-	source text,
-	source_system text,
-	coaches formation_coach[] NOT NULL,
+CREATE TABLE IF NOT EXISTS services_locations_cancellation_reasons (
+				service_id text,
+				CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES services(service_id) ON DELETE CASCADE,
+				location_id text,
+				CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id) ON DELETE CASCADE,
+				cancellation_reason_id int NOT NULL,
+				CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id) ON DELETE CASCADE,
+				PRIMARY KEY (service_id, location_id, cancellation_reason_id)
 );
 
 COMMIT;
