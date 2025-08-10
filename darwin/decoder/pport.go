@@ -1,5 +1,11 @@
 package decoder
 
+import (
+	"bytes"
+	"encoding/xml"
+	"fmt"
+)
+
 // PushPortMessage is the root node of Darwin messages.
 type PushPortMessage struct {
 	// Timestamp is in the ISO 8601 YYYY-MM-DDTHH:MM:SS.sssssssss±HH:MM format.
@@ -12,6 +18,16 @@ type PushPortMessage struct {
 	StatusUpdate      *Status         `xml:"FailureResp"`
 	UpdateResponse    *Response       `xml:"uR"`
 	SnapshotResponse  *Response       `xml:"sR"`
+}
+
+func NewPushPortMessage(reader *bytes.Reader) (*PushPortMessage, error) {
+	d := xml.NewDecoder(reader)
+	d.Entity = xml.HTMLEntity
+	var pport PushPortMessage
+	if err := d.Decode(&pport); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal message XML: %w", err)
+	}
+	return &pport, nil
 }
 
 // TimetableFiles is sent when there is an update to the timetable reference data, and includes the filenames of the latest versions to be used.

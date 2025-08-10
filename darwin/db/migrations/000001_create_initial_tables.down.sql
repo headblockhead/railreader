@@ -1,8 +1,5 @@
 BEGIN;
 
-DROP TABLE IF EXISTS services_locations_cancellation_reasons;
-DROP TABLE IF EXISTS services_cancellation_reasons;
-DROP TABLE IF EXISTS services_diversion_reasons;
 DROP TABLE IF EXISTS services_locations;
 DROP TABLE IF EXISTS services;
 DROP TABLE IF EXISTS locations;

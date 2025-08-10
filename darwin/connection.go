@@ -5,11 +5,8 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/segmentio/kafka-go"
@@ -20,23 +17,14 @@ import (
 )
 
 type Connection struct {
-	log                *slog.Logger
 	connectionContext  context.Context
 	fetcherContext     context.Context
 	reader             *kafka.Reader
 	databaseConnection *db.Connection
 }
 
-// MessageCapsule is the raw JSON structure as received from the Rail Data Marketplace's Kafka topic.
-// It contains a ridiculous amount of completely useless data and is practically fully undocumented, so I ignore everything but the message data inside, and the message's ID.
-type MessageCapsule struct {
-	MessageID string `json:"messageID"`
-	Bytes     string `json:"bytes"`
-}
-
-func NewConnection(connectionContext context.Context, fetcherContext context.Context, log *slog.Logger, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
+func NewConnection(connectionContext context.Context, fetcherContext context.Context, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
 	return &Connection{
-		log:               log,
 		connectionContext: connectionContext,
 		fetcherContext:    fetcherContext,
 		reader: kafka.NewReader(kafka.ReaderConfig{
@@ -58,86 +46,65 @@ func NewConnection(connectionContext context.Context, fetcherContext context.Con
 }
 
 func (dc *Connection) Close() error {
-	dc.log.Info("closing connection...")
 	return dc.reader.Close()
 }
 
-func (dc *Connection) FetchKafkaMessage() (msg kafka.Message, err error) {
-	dc.log.Debug("waiting for a Kafka message to fetch...")
+// FetchKafkaMessage blocks until a message is available, or the fetcherContext is cancelled.
+func (dc *Connection) FetchKafkaMessage(log *slog.Logger) (msg kafka.Message, err error) {
 	if err := dc.fetcherContext.Err(); err != nil {
 		return msg, fmt.Errorf("context error: %w", err)
 	}
+	log.Debug("blocking until Kafka message fetched")
 	msg, err = dc.reader.FetchMessage(dc.fetcherContext)
 	if err != nil {
-		return msg, fmt.Errorf("failed to fetch kafka message: %w", err)
+		return msg, fmt.Errorf("failed to fetch a Kafka message: %w", err)
 	}
-	var key struct {
-		MessageID string `json:"messageID"`
-	}
-	if err := json.Unmarshal(msg.Key, &key); err != nil {
-		return msg, fmt.Errorf("failed to unmarshal kafka message key: %w", err)
-	}
-	dc.log.Debug("received message from Kafka", slog.String("messageID", key.MessageID))
+	log.Debug("fetched a Kafka message")
 	return msg, nil
 }
 
-func (dc *Connection) ProcessKafkaMessage(msg kafka.Message) error {
-	if err := dc.connectionContext.Err(); err != nil {
-		return fmt.Errorf("context error: %w", err)
+func (dc *Connection) ProcessKafkaMessage(log *slog.Logger, msg kafka.Message) error {
+	capsule, err := newMessageCapsule(log, msg)
+	if err != nil {
+		return fmt.Errorf("failed to create message capsule: %w", err)
 	}
+	log = log.With(slog.String("messageID", capsule.MessageID))
 
-	var key struct {
-		MessageID string `json:"messageID"`
+	pport, err := decoder.NewPushPortMessage(bytes.NewReader([]byte(capsule.Bytes)))
+	if err != nil {
+		return fmt.Errorf("failed to decode message bytes: %w", err)
 	}
-	if err := json.Unmarshal(msg.Key, &key); err != nil {
-		return fmt.Errorf("failed to unmarshal kafka message key: %w", err)
+	log.Debug("unmarshalled into a PushPort message")
+
+	// TODO: move somewhere else?
+
+	if err := dc.commitKafkaMessage(log, msg); err != nil {
+		return fmt.Errorf("failed to commit Kafka message: %w", err)
 	}
+	log.Debug("processed Kafka message")
+	return nil
+}
 
-	log := dc.log.With(slog.String("messageID", string(key.MessageID)))
+// messageCapsule is the raw JSON structure as received from the Rail Data Marketplace's Kafka topic.
+// It contains a ridiculous amount of completely useless data and is practically fully undocumented, so I ignore everything but the message data inside, and the message's ID.
+type messageCapsule struct {
+	MessageID string `json:"messageID"`
+	Bytes     string `json:"bytes"`
+}
 
-	var c MessageCapsule
+func newMessageCapsule(log *slog.Logger, msg kafka.Message) (*messageCapsule, error) {
+	var c messageCapsule
 	if err := json.Unmarshal(msg.Value, &c); err != nil {
-		return fmt.Errorf("failed to unmarshal kafka message: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal kafka message: %w", err)
 	}
-	log.Debug("unmarshaled message capsule")
+	log.Debug("unmarshaled message capsule", slog.String("messageID", c.MessageID))
+	return &c, nil
+}
 
-	if err := dc.connectionContext.Err(); err != nil {
-		return fmt.Errorf("context error: %w", err)
-	}
-
-	if err := dc.ProcessMessageCapsule(c); err != nil {
-		return fmt.Errorf("failed to process message capsule: %w", err)
-	}
-	log.Debug("processed message capsule")
-
+func (dc *Connection) commitKafkaMessage(log *slog.Logger, msg kafka.Message) error {
 	if err := dc.reader.CommitMessages(dc.connectionContext, msg); err != nil {
 		return fmt.Errorf("failed to commit Kafka message: %w", err)
 	}
 	log.Debug("committed to Kafka")
-
-	return nil
-}
-
-func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
-	log := dc.log.With(slog.String("messageID", string(msg.MessageID)))
-
-	// TODO: remove this
-	if err := os.WriteFile(filepath.Join("capture", msg.MessageID+".xml"), []byte(msg.Bytes), 0644); err != nil {
-		return fmt.Errorf("failed to write message capsule to file: %w", err)
-	}
-
-	var pport decoder.PushPortMessage
-
-	d := xml.NewDecoder(bytes.NewReader([]byte(msg.Bytes)))
-	d.Entity = xml.HTMLEntity
-	if err := d.Decode(&pport); err != nil {
-		return fmt.Errorf("failed to unmarshal message XML: %w", err)
-	}
-	log.Debug("unmarshaled PushPortMessage")
-
-	// TODO: check common fields are always as we expect
-
-	// write to db
-
 	return nil
 }
