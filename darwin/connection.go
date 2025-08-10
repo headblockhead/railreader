@@ -15,14 +15,16 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
 
+	"github.com/headblockhead/railreader/darwin/db"
 	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
 type Connection struct {
-	log               *slog.Logger
-	connectionContext context.Context
-	fetcherContext    context.Context
-	reader            *kafka.Reader
+	log                *slog.Logger
+	connectionContext  context.Context
+	fetcherContext     context.Context
+	reader             *kafka.Reader
+	databaseConnection *db.Connection
 }
 
 // MessageCapsule is the raw JSON structure as received from the Rail Data Marketplace's Kafka topic.
@@ -32,7 +34,7 @@ type MessageCapsule struct {
 	Bytes     string `json:"bytes"`
 }
 
-func NewConnection(connectionContext context.Context, fetcherContext context.Context, log *slog.Logger, bootstrapServer string, groupID string, username string, password string) *Connection {
+func NewConnection(connectionContext context.Context, fetcherContext context.Context, log *slog.Logger, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
 	return &Connection{
 		log:               log,
 		connectionContext: connectionContext,
@@ -51,6 +53,7 @@ func NewConnection(connectionContext context.Context, fetcherContext context.Con
 				TLS: &tls.Config{},
 			},
 		}),
+		databaseConnection: dbConnection,
 	}
 }
 
@@ -133,6 +136,8 @@ func (dc *Connection) ProcessMessageCapsule(msg MessageCapsule) error {
 	log.Debug("unmarshaled PushPortMessage")
 
 	// TODO: check common fields are always as we expect
+
+	// write to db
 
 	return nil
 }
