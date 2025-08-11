@@ -100,8 +100,8 @@ func (c ServeCommand) Run() error {
 	if err != nil {
 		darwinDatabaseLog.Error("error connecting", slog.Any("error", err))
 	}
-	darwinConnection := darwin.NewConnection(connectionContext, fetcherContext, darwinLog, darwinDatabaseConnection, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Username, c.Darwin.Password)
-	darwinKafkaMessages := make(chan kafka.Message, 32)
+	darwinConnection := darwin.NewConnection(darwinLog, connectionContext, fetcherContext, darwinDatabaseConnection, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Username, c.Darwin.Password)
+	darwinKafkaMessages := make(chan *kafka.Message, 32)
 
 	var darwinProcessorGroup sync.WaitGroup
 
@@ -134,11 +134,11 @@ func (c ServeCommand) Run() error {
 }
 
 type connectionWithKafka interface {
-	FetchKafkaMessage() (kafka.Message, error)
-	ProcessKafkaMessage(msg kafka.Message) error
+	FetchKafkaMessage() (*kafka.Message, error)
+	ProcessAndCommitKafkaMessage(msg *kafka.Message) error
 }
 
-func fetchKafkaMessages(log *slog.Logger, c connectionWithKafka, darwinKafkaMessages chan kafka.Message) {
+func fetchKafkaMessages(log *slog.Logger, c connectionWithKafka, messageChannel chan *kafka.Message) {
 	for {
 		msg, err := c.FetchKafkaMessage()
 		if err != nil {
@@ -149,16 +149,16 @@ func fetchKafkaMessages(log *slog.Logger, c connectionWithKafka, darwinKafkaMess
 			log.Error("error fetching Kafka message", slog.Any("error", err))
 			continue
 		}
-		darwinKafkaMessages <- msg
+		messageChannel <- msg
 	}
 }
 
-func processKafkaMessages(log *slog.Logger, c connectionWithKafka, darwinKafkaMessages chan kafka.Message) {
-	for msg := range darwinKafkaMessages {
+func processKafkaMessages(log *slog.Logger, c connectionWithKafka, messageChannel chan *kafka.Message) {
+	for msg := range messageChannel {
 		if serverTerminating {
-			log.Debug("program terminating, processing remaining Kafka messages", slog.Int("remaining", len(darwinKafkaMessages)))
+			log.Debug("program terminating, processing remaining Kafka messages", slog.Int("remaining", len(messageChannel)))
 		}
-		err := c.ProcessKafkaMessage(msg)
+		err := c.ProcessAndCommitKafkaMessage(msg)
 		if err != nil {
 			log.Error("error processing Kafka message", slog.Any("error", err))
 			continue

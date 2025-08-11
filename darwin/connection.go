@@ -1,10 +1,8 @@
 package darwin
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -13,18 +11,19 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 
 	"github.com/headblockhead/railreader/darwin/db"
-	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
 type Connection struct {
+	log                *slog.Logger
 	connectionContext  context.Context
 	fetcherContext     context.Context
 	reader             *kafka.Reader
 	databaseConnection *db.Connection
 }
 
-func NewConnection(connectionContext context.Context, fetcherContext context.Context, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
+func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherContext context.Context, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
 	return &Connection{
+		log:               log,
 		connectionContext: connectionContext,
 		fetcherContext:    fetcherContext,
 		reader: kafka.NewReader(kafka.ReaderConfig{
@@ -46,65 +45,37 @@ func NewConnection(connectionContext context.Context, fetcherContext context.Con
 }
 
 func (dc *Connection) Close() error {
+	dc.log.Info("closing connection...")
 	return dc.reader.Close()
 }
 
-// FetchKafkaMessage blocks until a message is available, or the fetcherContext is cancelled.
-func (dc *Connection) FetchKafkaMessage(log *slog.Logger) (msg kafka.Message, err error) {
-	if err := dc.fetcherContext.Err(); err != nil {
-		return msg, fmt.Errorf("context error: %w", err)
-	}
-	log.Debug("blocking until Kafka message fetched")
-	msg, err = dc.reader.FetchMessage(dc.fetcherContext)
-	if err != nil {
-		return msg, fmt.Errorf("failed to fetch a Kafka message: %w", err)
-	}
-	log.Debug("fetched a Kafka message")
-	return msg, nil
-}
-
-func (dc *Connection) ProcessKafkaMessage(log *slog.Logger, msg kafka.Message) error {
-	capsule, err := newMessageCapsule(log, msg)
-	if err != nil {
-		return fmt.Errorf("failed to create message capsule: %w", err)
-	}
-	log = log.With(slog.String("messageID", capsule.MessageID))
-
-	pport, err := decoder.NewPushPortMessage(bytes.NewReader([]byte(capsule.Bytes)))
-	if err != nil {
-		return fmt.Errorf("failed to decode message bytes: %w", err)
-	}
-	log.Debug("unmarshalled into a PushPort message")
-
-	// TODO: move somewhere else?
-
-	if err := dc.commitKafkaMessage(log, msg); err != nil {
-		return fmt.Errorf("failed to commit Kafka message: %w", err)
-	}
-	log.Debug("processed Kafka message")
-	return nil
-}
-
-// messageCapsule is the raw JSON structure as received from the Rail Data Marketplace's Kafka topic.
-// It contains a ridiculous amount of completely useless data and is practically fully undocumented, so I ignore everything but the message data inside, and the message's ID.
-type messageCapsule struct {
+type messageKey struct {
 	MessageID string `json:"messageID"`
-	Bytes     string `json:"bytes"`
 }
 
-func newMessageCapsule(log *slog.Logger, msg kafka.Message) (*messageCapsule, error) {
-	var c messageCapsule
-	if err := json.Unmarshal(msg.Value, &c); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal kafka message: %w", err)
+// FetchKafkaMessage blocks until a message is available, or the fetcherContext is cancelled.
+func (dc *Connection) FetchKafkaMessage() (*kafka.Message, error) {
+	if err := dc.fetcherContext.Err(); err != nil {
+		return nil, fmt.Errorf("context error: %w", err)
 	}
-	log.Debug("unmarshaled message capsule", slog.String("messageID", c.MessageID))
-	return &c, nil
+	dc.log.Debug("blocking until Kafka message fetched")
+	msg, err := dc.reader.FetchMessage(dc.fetcherContext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch a Kafka message: %w", err)
+	}
+	dc.log.Debug("fetched Kafka message")
+	return &msg, nil
 }
 
-func (dc *Connection) commitKafkaMessage(log *slog.Logger, msg kafka.Message) error {
-	if err := dc.reader.CommitMessages(dc.connectionContext, msg); err != nil {
+func (dc *Connection) ProcessAndCommitKafkaMessage(msg *kafka.Message) error {
+	dc.log.Debug("processing Kafka message")
+	if err := processKafkaMessage(dc.log, msg); err != nil {
+		return fmt.Errorf("failed to process Kafka message: %w", err)
+	}
+	dc.log.Debug("processed Kafka message")
+	if err := dc.reader.CommitMessages(dc.connectionContext, *msg); err != nil {
 		return fmt.Errorf("failed to commit Kafka message: %w", err)
 	}
-	log.Debug("committed to Kafka")
+	dc.log.Debug("committed Kafka message")
 	return nil
 }
