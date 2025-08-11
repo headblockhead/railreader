@@ -11,13 +11,13 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-func processKafkaMessage(log *slog.Logger, msg *kafka.Message) error {
-	log.Debug("processing Kafka message")
-	capsule, err := newMessageCapsule(log, msg)
+func (dc *Connection) processKafkaMessage(msg *kafka.Message) error {
+	dc.log.Debug("processing Kafka message")
+	capsule, err := newMessageCapsule(dc.log, msg)
 	if err != nil {
 		return fmt.Errorf("failed to create message capsule: %w", err)
 	}
-	messageLog := log.With(slog.String("messageID", capsule.MessageID))
+	messageLog := dc.log.With(slog.String("messageID", capsule.MessageID))
 
 	pport, err := decoder.NewPushPortMessage(bytes.NewReader([]byte(capsule.Bytes)))
 	if err != nil {
@@ -29,7 +29,7 @@ func processKafkaMessage(log *slog.Logger, msg *kafka.Message) error {
 		return errors.New("unmarshalled PushPort message is nil")
 	}
 
-	if err := processPushPortMessage(messageLog, pport); err != nil {
+	if err := dc.processPushPortMessage(messageLog, pport); err != nil {
 		return fmt.Errorf("failed to process PushPortMessage: %w", err)
 	}
 	return nil
@@ -47,6 +47,6 @@ func newMessageCapsule(log *slog.Logger, msg *kafka.Message) (*messageCapsule, e
 	if err := json.Unmarshal(msg.Value, &c); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal kafka message: %w", err)
 	}
-	log.Debug("unmarshaled message capsule", slog.String("messageID", c.MessageID))
+	log.Debug("unmarshalled message capsule", slog.String("messageID", c.MessageID))
 	return &c, nil
 }

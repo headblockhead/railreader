@@ -14,7 +14,9 @@ func (p *TrueIfPresent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 	if start.Name.Local != "" {
 		*p = true
 	}
-	d.Skip()
+	if err := d.Skip(); err != nil {
+		return err
+	}
 	return nil
 }
 

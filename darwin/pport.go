@@ -8,7 +8,7 @@ import (
 	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
-func processPushPortMessage(log *slog.Logger, msg *decoder.PushPortMessage) error {
+func (dc *Connection) processPushPortMessage(log *slog.Logger, msg *decoder.PushPortMessage) error {
 	log.Debug("processing PushPortMessage")
 	if msg.NewTimetableFiles != nil {
 		// TODO
@@ -19,13 +19,13 @@ func processPushPortMessage(log *slog.Logger, msg *decoder.PushPortMessage) erro
 		return errors.New("unimplemented: StatusUpdate")
 	}
 	if msg.UpdateResponse != nil {
-		if err := processResponse(log, msg.UpdateResponse); err != nil {
+		if err := dc.processResponse(log, msg.UpdateResponse); err != nil {
 			return fmt.Errorf("failed to process UpdateResponse: %w", err)
 		}
 		return nil
 	}
 	if msg.SnapshotResponse != nil {
-		if err := processResponse(log, msg.SnapshotResponse); err != nil {
+		if err := dc.processResponse(log, msg.SnapshotResponse); err != nil {
 			return fmt.Errorf("failed to process SnapshotResponse: %w", err)
 		}
 		return nil
@@ -33,10 +33,10 @@ func processPushPortMessage(log *slog.Logger, msg *decoder.PushPortMessage) erro
 	return errors.New("PushPortMessage does not contain any data")
 }
 
-func processResponse(log *slog.Logger, resp *decoder.Response) error {
-	log.Debug("processing Response")
+func (dc *Connection) processResponse(log *slog.Logger, resp *decoder.Response) error {
+	log.Debug("processing Response", slog.String("updateOrigin", resp.UpdateOrigin), slog.String("requestSourceSystem", resp.RequestSourceSystem))
 	for _, schedule := range resp.Schedules {
-		if err := processSchedule(log, &schedule); err != nil {
+		if err := dc.processSchedule(log, &schedule); err != nil {
 			return fmt.Errorf("failed to process schedule: %w", err)
 		}
 	}

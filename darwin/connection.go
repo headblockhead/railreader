@@ -49,10 +49,6 @@ func (dc *Connection) Close() error {
 	return dc.reader.Close()
 }
 
-type messageKey struct {
-	MessageID string `json:"messageID"`
-}
-
 // FetchKafkaMessage blocks until a message is available, or the fetcherContext is cancelled.
 func (dc *Connection) FetchKafkaMessage() (*kafka.Message, error) {
 	if err := dc.fetcherContext.Err(); err != nil {
@@ -68,8 +64,7 @@ func (dc *Connection) FetchKafkaMessage() (*kafka.Message, error) {
 }
 
 func (dc *Connection) ProcessAndCommitKafkaMessage(msg *kafka.Message) error {
-	dc.log.Debug("processing Kafka message")
-	if err := processKafkaMessage(dc.log, msg); err != nil {
+	if err := dc.processKafkaMessage(msg); err != nil {
 		return fmt.Errorf("failed to process Kafka message: %w", err)
 	}
 	dc.log.Debug("processed Kafka message")

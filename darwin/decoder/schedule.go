@@ -26,7 +26,7 @@ type Schedule struct {
 	Category railreader.ServiceCategory `xml:"trainCat,attr"`
 	// PassengerService is true if not provided. This will sometimes be false, based on the Category.
 	PassengerService bool `xml:"isPassengerSvc,attr"`
-	// Active is false when service has been deactivated by a DeactivationInformation element, and is only set in snapshots.
+	// Active is true if not provided. Active is sometimes set to false when a service has been deactivated by a DeactivationInformation element, but Active is only set in snapshots.
 	Active bool `xml:"isActive,attr"`
 	// Deleted means you should not use or display this schedule.
 	Deleted bool `xml:"deleted,attr"`
@@ -34,12 +34,12 @@ type Schedule struct {
 
 	// Locations is a slice of at least 2 location elements that describe the train's schedule.
 	Locations []LocationGeneric `xml:",any"` // Any other provided XML elements will be interpreted as locations.
-	// CancellationReason is the reason why this service was cancelled.
+	// CancellationReason is the optionally provided reason why this service was cancelled.
 	// This is provided at the service level, and/or the location level.
 	CancellationReason *DisruptionReason `xml:"cancelReason"`
-	// DivertedVia is the TIPLOC that this service has been diverted via (which may or may not be on the timetable).
+	// DivertedVia is the optionally provided TIPLOC that this service has been diverted via (which may or may not be on the timetable).
 	DivertedVia railreader.TIPLOC `xml:"divertedVia"`
-	// DiversionReason is the reason why this service has been diverted.
+	// DiversionReason is the optionally provided reason why this service has been diverted.
 	DiversionReason *DisruptionReason `xml:"diversionReason"`
 }
 
@@ -148,12 +148,13 @@ func (lg *LocationGeneric) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 type LocationSchedule struct {
 	// TIPLOC is the code for the location
 	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
-	// Activities optionally provides what is happening at this location. It can be converted into a slice of railreader.ActivityCode.
+	// Activities optionally provides what is happening at this location.
+	// Activities can be converted into a slice of railreader.ActivityCode.
 	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
 	Activities string `xml:"act,attr"`
 	// PlannedActivities optionally provides what was/is planned to happen at this location.
 	// This is only usually given if the Activity is different to the PlannedActivities.
-	// It is can be converted into a slice of railreader.ActivityCode.
+	// PlannedActivities can be converted into a slice of railreader.ActivityCode.
 	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
 	PlannedActivities string `xml:"planAct,attr"`
 	Cancelled         bool   `xml:"can,attr"`

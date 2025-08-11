@@ -22,9 +22,9 @@ CREATE TABLE IF NOT EXISTS locations (
 				CRS text
 );
 
-CREATE TABLE IF NOT EXISTS services (
+CREATE TABLE IF NOT EXISTS schedules (
 				--  TrainIdentifiers
-				service_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
+				schedule_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
 
 				UID text NOT NULL,
 				scheduled_start_date date NOT NULL,
@@ -55,13 +55,13 @@ CREATE TABLE IF NOT EXISTS services (
 				CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS services_locations (
-				service_id text,
-				CONSTRAINT fk_service FOREIGN KEY(service_id) REFERENCES services(service_id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS schedules_locations (
+				schedule_id text,
+				CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE,
 				location_id text,
 				CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id) ON DELETE CASCADE,
 				sequence int,
-				PRIMARY KEY (service_id, location_id, sequence),
+				PRIMARY KEY (schedule_id, location_id, sequence),
 
 				-- Schedule
 				activities text NOT NULL,
