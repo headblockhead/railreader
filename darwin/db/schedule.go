@@ -39,16 +39,16 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		train_operating_company_id = EXCLUDED.train_operating_company_id,
 		service = EXCLUDED.service,
 		category = EXCLUDED.category,
-		active = EXCLUDED.active,
-		deleted = EXCLUDED.deleted,
-		charter = EXCLUDED.charter,
+		is_active = EXCLUDED.is_active,
+		is_deleted = EXCLUDED.is_deleted,
+		is_charter = EXCLUDED.is_charter,
 		cancellation_reason_id = EXCLUDED.cancellation_reason_id,
 		cancellation_reason_location_id = EXCLUDED.cancellation_reason_location_id,
-		cancellation_reason_near_location = EXCLUDED.cancellation_reason_near_location,
+		cancellation_reason_is_near_location = EXCLUDED.cancellation_reason_is_near_location,
 		late_reason_id = EXCLUDED.late_reason_id,
 		late_reason_location_id = EXCLUDED.late_reason_location_id,
-		late_reason_near_location = EXCLUDED.late_reason_near_location,
-		diverted_via_location_id = EXCLUDED.diverted_via_location_id
+		late_reason_is_near_location = EXCLUDED.late_reason_is_near_location,
+		diverted_via_location_id = EXCLUDED.diverted_via_location_id;
 	`, pgx.NamedArgs{
 		"schedule_id":                       s.ScheduleID,
 		"uid":                               s.UID,
