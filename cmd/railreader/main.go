@@ -13,6 +13,7 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/headblockhead/railreader/darwin"
 	darwindb "github.com/headblockhead/railreader/darwin/db"
+	darwinprocessor "github.com/headblockhead/railreader/darwin/processor"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -24,6 +25,7 @@ type ServeCommand struct {
 	Darwin struct {
 		Server      string `group:"Darwin Push Port connection:" env:"DARWIN_SERVER" required:"" help:"Kafka server hostname and port."`
 		GroupID     string `group:"Darwin Push Port connection:" env:"DARWIN_GROUPID" required:"" help:"Kafka consumer group ID." name:"group"`
+		Topic       string `group:"Darwin Push Port connection:" env:"DARWIN_TOPIC" required:"" help:"Kafka topic to consume from." name:"topic"`
 		Username    string `group:"Darwin Push Port connection:" env:"DARWIN_USERNAME" required:"" help:"Kafka username."`
 		Password    string `group:"Darwin Push Port connection:" env:"DARWIN_PASSWORD" required:"" help:"Kafka password."`
 		DatabaseURL string `group:"Darwin Push Port connection:" env:"DARWIN_DATABASE_URL" required:"" help:"PostgreSQL database URL."`
@@ -98,12 +100,12 @@ func (c ServeCommand) Run() error {
 		}
 	}()
 
-	darwinLog := log.With(slog.String("source", "darwin"))
+	darwinConnectionLog := log.With(slog.String("source", "darwin.connection"))
 	darwinDBLog := log.With(slog.String("source", "darwin.db"))
+	darwinProcessorLog := log.With(slog.String("source", "darwin.processor"))
 
 	var darwinConnection connectionWithKafka
 
-	darwinDBLog.Debug("connecting")
 	darwinDBContext, darwinDBCancel := context.WithCancel(context.Background())
 	darwinDBConnection, err := darwindb.NewConnection(darwinDBContext, darwinDBLog, c.Darwin.DatabaseURL)
 	if err != nil {
@@ -111,10 +113,11 @@ func (c ServeCommand) Run() error {
 		darwinDBLog.Error("error connecting", slog.Any("error", err))
 		return err
 	}
-	darwinDBLog.Debug("connected")
+
+	darwinProcessor := darwinprocessor.NewProcessor(darwinProcessorLog, darwinDBConnection)
 
 	connectionContext, connectionCancel := context.WithCancel(context.Background())
-	darwinConnection = darwin.NewConnection(darwinLog, connectionContext, fetcherContext, darwinDBConnection, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Username, c.Darwin.Password)
+	darwinConnection = darwin.NewConnection(darwinConnectionLog, connectionContext, fetcherContext, darwinProcessor, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Topic, c.Darwin.Username, c.Darwin.Password)
 
 	darwinKafkaMessages := make(chan *kafka.Message, 32)
 	var darwinProcessorGroup sync.WaitGroup
@@ -124,12 +127,12 @@ func (c ServeCommand) Run() error {
 		darwinProcessorGroup.Add(1)
 		go func() {
 			defer darwinProcessorGroup.Done()
-			processKafkaMessages(darwinLog, darwinConnection, darwinKafkaMessages)
+			processKafkaMessages(darwinConnectionLog, darwinConnection, darwinKafkaMessages)
 		}()
 	}
 
 	// FetchKafkaMessages will run forever until the fetcherContext is canceled.
-	fetchKafkaMessages(darwinLog, darwinConnection, darwinKafkaMessages)
+	fetchKafkaMessages(darwinConnectionLog, darwinConnection, darwinKafkaMessages)
 
 	// Close the channel to indicate no more messages will be added by the fetchers.
 	close(darwinKafkaMessages)
@@ -140,7 +143,7 @@ func (c ServeCommand) Run() error {
 
 	connectionCancel()
 	if err := darwinConnection.Close(); err != nil {
-		darwinLog.Error("error closing connection", slog.Any("error", err))
+		darwinConnectionLog.Error("error closing connection", slog.Any("error", err))
 	}
 
 	darwinDBCancel()

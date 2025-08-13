@@ -10,20 +10,18 @@ import (
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
 
-	"github.com/headblockhead/railreader/darwin/db"
 	"github.com/headblockhead/railreader/darwin/processor"
 )
 
 type Connection struct {
-	log                *slog.Logger
-	connectionContext  context.Context
-	fetcherContext     context.Context
-	reader             *kafka.Reader
-	databaseConnection *db.Connection
-	processor          *processor.Processor
+	log               *slog.Logger
+	connectionContext context.Context
+	fetcherContext    context.Context
+	reader            *kafka.Reader
+	processor         *processor.Processor
 }
 
-func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherContext context.Context, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
+func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherContext context.Context, processor *processor.Processor, bootstrapServer string, groupID string, topic string, username string, password string) *Connection {
 	return &Connection{
 		log:               log,
 		connectionContext: connectionContext,
@@ -31,7 +29,7 @@ func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherC
 		reader: kafka.NewReader(kafka.ReaderConfig{
 			Brokers: []string{bootstrapServer},
 			GroupID: groupID,
-			Topic:   "prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML",
+			Topic:   topic,
 			Dialer: &kafka.Dialer{
 				Timeout:   10 * time.Second,
 				DualStack: true,
@@ -42,7 +40,7 @@ func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherC
 				TLS: &tls.Config{},
 			},
 		}),
-		databaseConnection: dbConnection,
+		processor: processor,
 	}
 }
 
@@ -66,7 +64,7 @@ func (dc *Connection) FetchKafkaMessage() (*kafka.Message, error) {
 }
 
 func (dc *Connection) ProcessAndCommitKafkaMessage(msg *kafka.Message) error {
-	if err := dc.processor.processKafkaMessage(msg); err != nil {
+	if err := dc.processor.ProcessKafkaMessage(msg); err != nil {
 		return fmt.Errorf("failed to process Kafka message: %w", err)
 	}
 	dc.log.Debug("processed Kafka message")

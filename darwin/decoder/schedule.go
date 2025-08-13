@@ -17,7 +17,7 @@ type Schedule struct {
 	// or a 6 character "base identifier" (without a TOC code).
 	RetailServiceID string `xml:"rsid,attr"`
 	// TOC is the Rail Delivery Group's 2-character code for the train operating company.
-	TOC TOCCode `xml:"toc,attr"`
+	TOC TrainOperatingCompanyCode `xml:"toc,attr"`
 	// Service is the 1-character code for the type of transport.
 	// If not provided, it defaults to a Passenger and Parcel Train.
 	Service railreader.ServiceType `xml:"status,attr"`

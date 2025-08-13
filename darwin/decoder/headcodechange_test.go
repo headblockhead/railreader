@@ -10,7 +10,7 @@ var headcodeChangeTestCases = map[string]HeadcodeChange{
 	</trackingID>`: {
 		OldHeadcode: "2C04",
 		NewHeadcode: "2C05",
-		TrainDescriberLocation: TrainDescriberLocation{
+		TDLocation: TDLocation{
 			Describer: "Y2",
 			Berth:     "L3608",
 		},

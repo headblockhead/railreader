@@ -24,7 +24,7 @@ func NewProcessor(log *slog.Logger, dbConnection *db.Connection) *Processor {
 	}
 }
 
-func (p *Processor) processKafkaMessage(msg *kafka.Message) error {
+func (p *Processor) ProcessKafkaMessage(msg *kafka.Message) error {
 	p.log.Debug("processing Kafka message")
 	capsule, err := newMessageCapsule(p.log, msg)
 	if err != nil {

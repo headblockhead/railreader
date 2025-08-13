@@ -18,14 +18,14 @@ type Reference struct {
 type Location struct {
 	Location railreader.TimingPointLocationCode `xml:"tpl,attr"`
 	CRS      decoder.CRSCode                    `xml:"crs,attr"`
-	TOC      decoder.TOCCode                    `xml:"toc,attr"`
+	TOC      decoder.TrainOperatingCompanyCode  `xml:"toc,attr"`
 	Name     string                             `xml:"name,attr"`
 }
 
 type TrainOperatingCompany struct {
-	ID   decoder.TOCCode `xml:"toc,attr"`
-	Name string          `xml:"name,attr"`
-	URL  string          `xml:"url,attr"`
+	ID   decoder.TrainOperatingCompanyCode `xml:"toc,attr"`
+	Name string                            `xml:"name,attr"`
+	URL  string                            `xml:"url,attr"`
 }
 
 type Reason struct {

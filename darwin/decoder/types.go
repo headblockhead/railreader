@@ -60,8 +60,8 @@ type CISCode string
 // CRSCode (Computerised Reservation System Code) is a 3-letter code that identifies a passenger rail station.
 type CRSCode string
 
-// TOCCode (Train Operating Company Code) is a two-letter code.
-type TOCCode string
+// TrainOperatingCompanyCode is a two-letter code.
+type TrainOperatingCompanyCode string
 
 type TrainTime string
 
