@@ -4,8 +4,8 @@ import "github.com/headblockhead/railreader"
 
 // Association represents a relationship between two services.
 type Association struct {
-	TIPLOC   railreader.TIPLOC              `xml:"tiploc,attr"`
-	Category railreader.AssociationCategory `xml:"category,attr"`
+	TIPLOC   railreader.TimingPointLocationCode `xml:"tiploc,attr"`
+	Category railreader.AssociationCategory     `xml:"category,attr"`
 	// Cancelled indicates the association won't happen.
 	Cancelled bool `xml:"isCancelled,attr"`
 	// Deleted indicates the association no longer exists.

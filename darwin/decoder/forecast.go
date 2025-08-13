@@ -22,7 +22,7 @@ type ForecastTime struct {
 type ForecastLocation struct {
 	LocationTimeIdentifiers
 	// TIPLOC is the code for the location
-	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
+	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
 
 	// zero or one of:
 	ArrivalData   *ForecastLocationTimeData `xml:"arr"`
@@ -32,9 +32,10 @@ type ForecastLocation struct {
 	LateReason *DisruptionReason `xml:"LateReason"`
 	// Uncertainty data may be provided to indicate there is a risk that this service may be disrupted at this location, along with how and why.
 	Uncertainty *Uncertainty `xml:"uncertainty"`
-	// AffectedBy is expected to contain a National Rail Enquires incident number, to link multiple services disrupted by the same incident together.
+	// AffectedBy optionally provides data about what caused an incident, to help group multiple services disrupted by the same incident together.
+	// It is *expected* to contain a National Rail Enquires incident number, but can contain any text.
 	AffectedBy string `xml:"affectedBy"`
-	// Length may or may not match the Formation data. If it is 0, it is unknown.
+	// Length may or may not match the Formation data. If it is given as 0, it is unknown.
 	Length       int               `xml:"length"`
 	PlatformData *ForecastPlatform `xml:"plat"`
 	// Suppressed indicates that this service should not be shown to users at this location.
@@ -46,17 +47,17 @@ type ForecastLocation struct {
 // ForecastLocationTimeData contains the time data for arrival, departure, or passing a location.
 type ForecastLocationTimeData struct {
 	// EstimatedTime is optional, generated from the public time table (or the Working Time Table if the location does not have public times).
-	EstimatedTime railreader.TrainTime `xml:"et,attr"`
+	EstimatedTime TrainTime `xml:"et,attr"`
 	// WorkingTime is optional, generated from the Working Time Table.
-	WorkingTime railreader.TrainTime `xml:"wet,attr"`
+	WorkingTime TrainTime `xml:"wet,attr"`
 	// ActualTime is optional, and may not be reported for all locations.
-	ActualTime railreader.TrainTime `xml:"at,attr"`
+	ActualTime TrainTime `xml:"at,attr"`
 	// ActualTimeRevoked indicates that a previously given 'actual time' was incorrect, and has been replaced by an estimated time.
 	ActualTimeRevoked bool `xml:"atRemoved,attr"`
 	// ActualTimeSource is the optionally provided source of the Actual Time data, such as "Manual", "GPS", etc.
 	ActualTimeSource string `xml:"atClass,attr"`
 	// EstimatedTimeMinimum is optional, and indicates the absolute minimum value the estimated time could be.
-	EstimatedTimeMinimum railreader.TrainTime `xml:"etmin,attr"`
+	EstimatedTimeMinimum TrainTime `xml:"etmin,attr"`
 	// EstimatedTimeUnknown indicates that the forecast for this location has been manually set to "unknown delay".
 	// This is usually shown on signage as "Delayed", without a specific time.
 	EstimatedTimeUnknown bool `xml:"etUnknown,attr"`

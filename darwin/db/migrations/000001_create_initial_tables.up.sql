@@ -3,7 +3,12 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS train_operating_companies (
 				train_operating_company_id text PRIMARY KEY,
 				name text NOT NULL,
-				url text
+				url text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS customer_information_system_sources (
+				customer_information_system_source_id text PRIMARY KEY,
+				name text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS late_reasons (
@@ -17,22 +22,22 @@ CREATE TABLE IF NOT EXISTS cancellation_reasons (
 );
 
 CREATE TABLE IF NOT EXISTS locations (
-				location_id text PRIMARY KEY, -- this is the TIPLOC, renamed to be consistent with other tables
-				name text NOT NULL,
-				CRS text
+				location_id text PRIMARY KEY,
+				computerised_reservation_system_id text NOT NULL,
+				train_operating_company_id text NOT NULL,
+				name text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS schedules (
 				--  TrainIdentifiers
 				schedule_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
 
-				UID text NOT NULL,
+				uid text NOT NULL,
 				scheduled_start_date date NOT NULL,
 				-- Schedule
 				headcode text NOT NULL,
 				retail_service_id text,
-				train_operating_company_id text NOT NULL,
-				CONSTRAINT fk_train_operating_company FOREIGN KEY(train_operating_company_id) REFERENCES train_operating_companies(train_operating_company_id) ON DELETE CASCADE,
+				train_operating_company_id text NOT NULL, -- no foreign key contraint here, reference data on TOCs is not complete.
 				service text NOT NULL,
 				category text NOT NULL,
 				is_active boolean NOT NULL,
@@ -40,19 +45,14 @@ CREATE TABLE IF NOT EXISTS schedules (
 				is_charter boolean NOT NULL,
 
 				cancellation_reason_id int,
-				CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id) ON DELETE SET NULL,
 				cancellation_reason_location_id text,
-				CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
 				cancellation_reason_is_near_location boolean,
 
 				late_reason_id int,
-				CONSTRAINT fk_late_reason FOREIGN KEY(late_reason_id) REFERENCES late_reasons(late_reason_id) ON DELETE SET NULL,
 				late_reason_location_id text,
-				CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
 				late_reason_is_near_location boolean,
 
-				diverted_via_location_id text,
-				CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id) ON DELETE SET NULL
+				diverted_via_location_id text
 );
 
 CREATE TABLE IF NOT EXISTS schedules_locations (
@@ -77,12 +77,9 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				working_departure_time timestamp,
 				routing_delay interval,
 				false_destination_location_id text,
-				CONSTRAINT fk_false_destination_location FOREIGN KEY(false_destination_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
 
 				cancellation_reason_id int,
-				CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id) ON DELETE SET NULL,
 				cancellation_reason_location_id text,
-				CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id) ON DELETE SET NULL,
 				is_near_cancellation_reason_location boolean NOT NULL
 );
 

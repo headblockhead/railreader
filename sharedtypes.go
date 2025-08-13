@@ -267,18 +267,9 @@ func (sc ServiceCategory) String() string {
 	return "Unknown"
 }
 
-type DisruptionReasonID string
-
-// TODO
-
-// TIPLOC is a code representing a location.
-// TIPLOCs can be a station, junction, or any other relevant location.
-type TIPLOC string
-
-// TODO: map TIPLOCs to human-readable names using dataset.
-
-// TrainTime is a time in HH:MM or HH:MM:SS format, representing a time of day.
-type TrainTime string
+// TimingPointLocationCode (TIPLOC) is a code representing a location.
+// TIPLOCs can be a passenger station, junction, or any other relevant location.
+type TimingPointLocationCode string
 
 type AssociationCategory string
 
@@ -297,4 +288,8 @@ const (
 	AssociationNext AssociationCategory = "NP"
 )
 
-type TrainDescriberArea string
+// TrainDescriber is a two-letter code.
+type TrainDescriber string
+
+// TrainDescriberBerth is a four-character area of track dictated usually by a signal. Verths are not unique between TrainDescribers.
+type TrainDescriberBerth string

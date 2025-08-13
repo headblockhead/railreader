@@ -26,11 +26,11 @@ func (p *TrueIfPresent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 // This is useful for circular routes, where a train may visit the same TIPLOC multiple times in a single schedule.
 type LocationTimeIdentifiers struct {
 	// at least one of:
-	WorkingArrivalTime   railreader.TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime railreader.TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   railreader.TrainTime `xml:"wtp,attr"`
-	PublicArrivalTime    railreader.TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  railreader.TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingPassingTime   TrainTime `xml:"wtp,attr"`
+	PublicArrivalTime    TrainTime `xml:"pta,attr"`
+	PublicDepartureTime  TrainTime `xml:"ptd,attr"`
 }
 
 // TrainIdentifiers is used as a base struct.
@@ -44,6 +44,25 @@ type TrainIdentifiers struct {
 	ScheduledStartDate string `xml:"ssd,attr"`
 }
 
-// CISCode is a code that identifies the ID of the system that sent the request.
+type DisruptionReason struct {
+	// TIPLOC is the optionally provided location code for the position of the disruption.
+	TIPLOC railreader.TimingPointLocationCode `xml:"tiploc,attr"`
+	// Near is true if the disruption should be interpreted as being near the provided TIPLOC, rather than at the exact location.
+	Near bool `xml:"near,attr"`
+
+	ReasonID int `xml:",chardata"`
+}
+
+// CISCode (Customer Information System Code) is a code that identifies the ID of the system that sent the request.
 // A mapping of CIS codes to system names is included in the reference data.
 type CISCode string
+
+// CRSCode (Computerised Reservation System Code) is a 3-letter code that identifies a passenger rail station.
+type CRSCode string
+
+// TOCCode (Train Operating Company Code) is a two-letter code.
+type TOCCode string
+
+type TrainTime string
+
+// TODO: write a func that converts a TrainTime to a time.Time

@@ -34,7 +34,7 @@ type TrainAlertService struct {
 	// to identify a specific service.
 
 	// Locations is the list of TIPLOCs that this alert applies to.
-	Locations []railreader.TIPLOC `xml:"Location"`
+	Locations []railreader.TimingPointLocationCode `xml:"Location"`
 }
 
 type TrainAlertType string

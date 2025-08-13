@@ -1,4 +1,4 @@
-package darwin
+package processor
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
-func (dc *Connection) processSchedule(log *slog.Logger, s *decoder.Schedule) error {
+func (p *Processor) processSchedule(log *slog.Logger, s *decoder.Schedule) error {
 	log.Debug("processing schedule", slog.String("RID", s.RID))
 
 	var dbs db.Schedule
@@ -25,7 +25,7 @@ func (dc *Connection) processSchedule(log *slog.Logger, s *decoder.Schedule) err
 	if s.RetailServiceID != "" {
 		dbs.RetailServiceID = &s.RetailServiceID
 	}
-	dbs.TrainOperatingCompanyID = s.TrainOperatingCompany
+	dbs.TrainOperatingCompanyID = string(s.TOC)
 	dbs.Service = string(s.Service)
 	dbs.Category = string(s.Category)
 	dbs.Active = s.Active
@@ -34,7 +34,7 @@ func (dc *Connection) processSchedule(log *slog.Logger, s *decoder.Schedule) err
 
 	// TODO
 
-	if err := dc.databaseConnection.InsertSchedule(&dbs); err != nil {
+	if err := p.databaseConnection.InsertSchedule(&dbs); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.RID, err)
 	}
 	return nil

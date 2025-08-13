@@ -32,7 +32,7 @@ var trainAlertTestCases = map[string]TrainAlert{
 				RID:                "012345678901234",
 				UID:                "A00001",
 				ScheduledStartDate: "2006-01-02",
-				Locations:          []railreader.TIPLOC{"LDS", "MAN"},
+				Locations:          []railreader.TimingPointLocationCode{"LDS", "MAN"},
 			},
 		},
 		SendSMS:          true,

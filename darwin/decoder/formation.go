@@ -18,7 +18,7 @@ type Formation struct {
 	// Source is optional.
 	Source string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
-	SourceSystem CISCode `xml:"srcInst,attr"`
+	SourceSystem string `xml:"srcInst,attr"`
 
 	Coaches []FormationCoach `xml:"coaches>coach"`
 }

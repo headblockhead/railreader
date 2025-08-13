@@ -17,8 +17,7 @@ type StationMessage struct {
 }
 
 type StationCRS struct {
-	// CRS is the passenger-facing 3-letter code for this station.
-	CRS string `xml:"crs,attr"`
+	CRS CRSCode `xml:"crs,attr"`
 }
 
 type XHTMLBody struct {

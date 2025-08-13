@@ -13,7 +13,7 @@ type ServiceLoading struct {
 	// RID is the unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
 	// TIPLOC is the code for the location where the loading information applies.
-	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
+	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
 
 	// zero or one of:
 	LoadingCategory   *LoadingCategory   `xml:"loadingCategory"`

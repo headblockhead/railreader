@@ -71,14 +71,16 @@ func main() {
 
 var serverTerminating bool = false
 
+type connectionWithKafka interface {
+	FetchKafkaMessage() (*kafka.Message, error)
+	ProcessAndCommitKafkaMessage(msg *kafka.Message) error
+	Close() error
+}
+
 func (c ServeCommand) Run() error {
 	log := getLogger(c.LogLevel, c.JSONOutput)
-	darwinLog := log.With(slog.String("source", "darwin"))
-	darwinDatabaseLog := log.With(slog.String("source", "darwin.db"))
 
-	connectionContext, connectionCancel := context.WithCancel(context.Background())
 	fetcherContext, fetcherCancel := context.WithCancel(context.Background())
-	darwinDatabaseContext, darwinDatabaseCancel := context.WithCancel(context.Background())
 
 	signalchan := make(chan os.Signal, 1)
 	signal.Notify(signalchan, syscall.SIGINT, syscall.SIGTERM)
@@ -96,13 +98,25 @@ func (c ServeCommand) Run() error {
 		}
 	}()
 
-	darwinDatabaseConnection, err := darwindb.NewConnection(darwinDatabaseContext, darwinDatabaseLog, c.Darwin.DatabaseURL)
-	if err != nil {
-		darwinDatabaseLog.Error("error connecting", slog.Any("error", err))
-	}
-	darwinConnection := darwin.NewConnection(darwinLog, connectionContext, fetcherContext, darwinDatabaseConnection, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Username, c.Darwin.Password)
-	darwinKafkaMessages := make(chan *kafka.Message, 32)
+	darwinLog := log.With(slog.String("source", "darwin"))
+	darwinDBLog := log.With(slog.String("source", "darwin.db"))
 
+	var darwinConnection connectionWithKafka
+
+	darwinDBLog.Debug("connecting")
+	darwinDBContext, darwinDBCancel := context.WithCancel(context.Background())
+	darwinDBConnection, err := darwindb.NewConnection(darwinDBContext, darwinDBLog, c.Darwin.DatabaseURL)
+	if err != nil {
+		darwinDBCancel()
+		darwinDBLog.Error("error connecting", slog.Any("error", err))
+		return err
+	}
+	darwinDBLog.Debug("connected")
+
+	connectionContext, connectionCancel := context.WithCancel(context.Background())
+	darwinConnection = darwin.NewConnection(darwinLog, connectionContext, fetcherContext, darwinDBConnection, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Username, c.Darwin.Password)
+
+	darwinKafkaMessages := make(chan *kafka.Message, 32)
 	var darwinProcessorGroup sync.WaitGroup
 
 	//for range runtime.NumCPU() {
@@ -117,25 +131,24 @@ func (c ServeCommand) Run() error {
 	// FetchKafkaMessages will run forever until the fetcherContext is canceled.
 	fetchKafkaMessages(darwinLog, darwinConnection, darwinKafkaMessages)
 
+	// Close the channel to indicate no more messages will be added by the fetchers.
 	close(darwinKafkaMessages)
-	// Connections to Kafka must remain intact until processors have finished so that they can commit message offsets.
+
+	log.Debug("stopped fetching new messages, waiting for processors to finish")
 	darwinProcessorGroup.Wait()
+	log.Debug("all processors finished, closing connections")
 
 	connectionCancel()
 	if err := darwinConnection.Close(); err != nil {
 		darwinLog.Error("error closing connection", slog.Any("error", err))
 	}
-	if err := darwinDatabaseConnection.Close(5 * time.Second); err != nil {
-		darwinDatabaseLog.Error("error closing connection", slog.Any("error", err))
+
+	darwinDBCancel()
+	if err := darwinDBConnection.Close(5 * time.Second); err != nil {
+		darwinDBLog.Error("error closing connection", slog.Any("error", err))
 	}
-	darwinDatabaseCancel()
 
 	return nil
-}
-
-type connectionWithKafka interface {
-	FetchKafkaMessage() (*kafka.Message, error)
-	ProcessAndCommitKafkaMessage(msg *kafka.Message) error
 }
 
 func fetchKafkaMessages(log *slog.Logger, c connectionWithKafka, messageChannel chan *kafka.Message) {

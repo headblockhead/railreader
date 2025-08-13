@@ -29,9 +29,9 @@ var forecastTestCases = map[string]ForecastTime{
 		},
 		ReverseFormation: true,
 		LateReason: &DisruptionReason{
-			TIPLOC: "EFGH",
-			Near:   true,
-			Reason: "100",
+			TIPLOC:   "EFGH",
+			Near:     true,
+			ReasonID: 100,
 		},
 		Locations: []ForecastLocation{
 			{
@@ -82,16 +82,16 @@ var forecastTestCases = map[string]ForecastTime{
 				Suppressed:        true,
 				DetachesFromFront: true,
 				LateReason: &DisruptionReason{
-					TIPLOC: "IJKL",
-					Near:   true,
-					Reason: "101",
+					TIPLOC:   "IJKL",
+					Near:     true,
+					ReasonID: 101,
 				},
 				Uncertainty: &Uncertainty{
 					Effect: "delay",
 					Reason: &DisruptionReason{
-						TIPLOC: "MNOP",
-						Near:   true,
-						Reason: "102",
+						TIPLOC:   "MNOP",
+						Near:     true,
+						ReasonID: 102,
 					},
 				},
 				AffectedBy: "123456",

@@ -10,7 +10,7 @@ type FormationLoading struct {
 	// FormationID is used to link this information to a specific train formation.
 	FormationID string `xml:"fid,attr"`
 	// TIPLOC is the code for the location where the loading information applies.
-	TIPLOC railreader.TIPLOC `xml:"tpl,attr"`
+	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
 
 	Loading []CoachLoading `xml:"loading"`
 }

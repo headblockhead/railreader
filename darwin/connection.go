@@ -11,6 +11,7 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 
 	"github.com/headblockhead/railreader/darwin/db"
+	"github.com/headblockhead/railreader/darwin/processor"
 )
 
 type Connection struct {
@@ -19,6 +20,7 @@ type Connection struct {
 	fetcherContext     context.Context
 	reader             *kafka.Reader
 	databaseConnection *db.Connection
+	processor          *processor.Processor
 }
 
 func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherContext context.Context, dbConnection *db.Connection, bootstrapServer string, groupID string, username string, password string) *Connection {
@@ -64,7 +66,7 @@ func (dc *Connection) FetchKafkaMessage() (*kafka.Message, error) {
 }
 
 func (dc *Connection) ProcessAndCommitKafkaMessage(msg *kafka.Message) error {
-	if err := dc.processKafkaMessage(msg); err != nil {
+	if err := dc.processor.processKafkaMessage(msg); err != nil {
 		return fmt.Errorf("failed to process Kafka message: %w", err)
 	}
 	dc.log.Debug("processed Kafka message")

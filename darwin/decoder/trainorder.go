@@ -6,7 +6,7 @@ import "github.com/headblockhead/railreader"
 // This is most useful for services that divide.
 type TrainOrder struct {
 	// TIPLOC is the location code for the station with the platform.
-	TIPLOC railreader.TIPLOC `xml:"tiploc,attr"`
+	TIPLOC railreader.TimingPointLocationCode `xml:"tiploc,attr"`
 	// CRS is the passenger-facing 3-letter code for this station.
 	CRS      string `xml:"crs,attr"`
 	Platform string `xml:"platform,attr"`

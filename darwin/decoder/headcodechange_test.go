@@ -11,8 +11,8 @@ var headcodeChangeTestCases = map[string]HeadcodeChange{
 		OldHeadcode: "2C04",
 		NewHeadcode: "2C05",
 		TrainDescriberLocation: TrainDescriberLocation{
-			Area:  "Y2",
-			Berth: "L3608",
+			Describer: "Y2",
+			Berth:     "L3608",
 		},
 	},
 }

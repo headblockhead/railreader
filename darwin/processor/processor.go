@@ -1,4 +1,4 @@
-package darwin
+package processor
 
 import (
 	"bytes"
@@ -7,17 +7,30 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/headblockhead/railreader/darwin/db"
 	"github.com/headblockhead/railreader/darwin/decoder"
 	"github.com/segmentio/kafka-go"
 )
 
-func (dc *Connection) processKafkaMessage(msg *kafka.Message) error {
-	dc.log.Debug("processing Kafka message")
-	capsule, err := newMessageCapsule(dc.log, msg)
+type Processor struct {
+	log                *slog.Logger
+	databaseConnection *db.Connection
+}
+
+func NewProcessor(log *slog.Logger, dbConnection *db.Connection) *Processor {
+	return &Processor{
+		log:                log,
+		databaseConnection: dbConnection,
+	}
+}
+
+func (p *Processor) processKafkaMessage(msg *kafka.Message) error {
+	p.log.Debug("processing Kafka message")
+	capsule, err := newMessageCapsule(p.log, msg)
 	if err != nil {
 		return fmt.Errorf("failed to create message capsule: %w", err)
 	}
-	messageLog := dc.log.With(slog.String("messageID", capsule.MessageID))
+	messageLog := p.log.With(slog.String("messageID", capsule.MessageID))
 
 	pport, err := decoder.NewPushPortMessage(bytes.NewReader([]byte(capsule.Bytes)))
 	if err != nil {
@@ -29,7 +42,7 @@ func (dc *Connection) processKafkaMessage(msg *kafka.Message) error {
 		return errors.New("unmarshalled PushPort message is nil")
 	}
 
-	if err := dc.processPushPortMessage(messageLog, pport); err != nil {
+	if err := p.processPushPortMessage(messageLog, pport); err != nil {
 		return fmt.Errorf("failed to process PushPortMessage: %w", err)
 	}
 	return nil
