@@ -18,6 +18,9 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
 	}
 
+	// TODO: change logs to make it clear that this is a transaction
+	// TODO: possibly move transaction higher to lump schedules and formations together, etc.
+
 	_, err = tx.Exec(c.context, `
 		DELETE FROM schedules WHERE schedule_id = @schedule_id;
 		`, pgx.NamedArgs{
@@ -26,15 +29,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	if err != pgx.ErrNoRows && err != nil {
 		return fmt.Errorf("failed to delete existing schedule for schedule %s: %w", s.ScheduleID, err)
 	}
-
-	_, err = tx.Exec(c.context, `
-		DELETE FROM schedules_locations WHERE schedule_id = @schedule_id;
-		`, pgx.NamedArgs{
-		"schedule_id": s.ScheduleID,
-	})
-	if err != pgx.ErrNoRows && err != nil {
-		return fmt.Errorf("failed to delete existing schedule locations for schedule %s: %w", s.ScheduleID, err)
-	}
+	// schedules_locations rows should CASCADE from the above delete.
 
 	namedArguments := pgx.StrictNamedArgs{
 		"last_updated":                      s.LastUpdated,
@@ -190,21 +185,21 @@ type ScheduleLocation struct {
 	LocationID string
 	Sequence   int
 
-	Activities          string
-	PlannedActivities   string
+	Activities          *string
+	PlannedActivities   *string
 	Cancelled           bool
 	AffectedByDiversion bool
 
 	Type                       string
-	PublicArrivalTime          time.Time
-	PublicDepartureTime        time.Time
-	WorkingArrivalTime         time.Time
-	WorkingPassingTime         time.Time
-	WorkingDepartureTime       time.Time
-	RoutingDelay               time.Duration
-	FalseDestinationLocationID string
+	PublicArrivalTime          *time.Time
+	PublicDepartureTime        *time.Time
+	WorkingArrivalTime         *time.Time
+	WorkingPassingTime         *time.Time
+	WorkingDepartureTime       *time.Time
+	RoutingDelay               *time.Duration
+	FalseDestinationLocationID *string
 
-	CancellationReasonID           int
-	CancellationReasonLocationID   string
-	CancellationReasonNearLocation bool
+	CancellationReasonID           *int
+	CancellationReasonLocationID   *string
+	CancellationReasonNearLocation *bool
 }

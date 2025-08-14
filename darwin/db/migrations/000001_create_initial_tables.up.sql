@@ -65,12 +65,11 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				schedule_id text,
 				CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE,
 				location_id text,
-				CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id) ON DELETE CASCADE,
 				sequence int,
 				PRIMARY KEY (schedule_id, location_id, sequence),
 
 				-- Schedule
-				activities text NOT NULL,
+				activities text,
 				planned_activities text,
 				is_cancelled boolean NOT NULL,
 				is_affected_by_diversion boolean NOT NULL,
@@ -86,7 +85,7 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 
 				cancellation_reason_id int,
 				cancellation_reason_location_id text,
-				cancellation_reason_is_near_location boolean NOT NULL
+				cancellation_reason_is_near_location boolean
 );
 
 COMMIT;
