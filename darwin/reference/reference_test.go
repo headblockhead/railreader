@@ -45,7 +45,7 @@ var referenceTestCases = map[string]Reference{
 				Description: "This train has been cancelled due to a problem",
 			},
 		},
-		CustomerInformationSystemSources: []CustomerInformationSystemSource{
+		CustomerInformationSystemSources: []CISSource{
 			{
 				CIS:  "TH01",
 				Name: "Southeastern",

@@ -2,6 +2,8 @@ package decoder
 
 import (
 	"encoding/xml"
+	"fmt"
+	"time"
 
 	"github.com/headblockhead/railreader"
 )
@@ -63,6 +65,46 @@ type CRSCode string
 // TrainOperatingCompanyCode is a two-letter code.
 type TrainOperatingCompanyCode string
 
+// TrainTime is formatted as HH:MM:SS or HH:MM.
 type TrainTime string
 
-// TODO: write a func that converts a TrainTime to a time.Time
+func (t TrainTime) Time(previousTime TrainTime, date time.Time) (*time.Time, error) {
+	if previousTime == "" {
+		previousTime = t
+	}
+
+	location, err := time.LoadLocation("Europe/London")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load location: %w", err)
+	}
+
+	parsedCurrentTime, err := time.ParseInLocation(time.TimeOnly, string(t), location)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse time %q: %w", t, err)
+	}
+	parsedPreviousTime, err := time.ParseInLocation(time.TimeOnly, string(previousTime), location)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse previous time %q: %w", previousTime, err)
+	}
+
+	difference := parsedCurrentTime.Sub(parsedPreviousTime)
+
+	// Crossed midnight forwards
+	if difference < -6*time.Hour {
+		date = date.AddDate(0, 0, 1)
+	}
+	// Backwards time
+	if difference >= -6*time.Hour && difference <= 0 {
+	}
+	// Normal time
+	if difference >= 0 && difference <= 18*time.Hour {
+	}
+	// Crossed midnight backwards
+	if difference > 18*time.Hour {
+		date = date.AddDate(0, 0, -1)
+	}
+
+	finalTime := parsedCurrentTime.AddDate(date.Year(), int(date.Month()-1), date.Day()-1)
+
+	return &finalTime, nil
+}

@@ -6,26 +6,29 @@ import (
 )
 
 type Reference struct {
-	Locations                        []Location                        `xml:"LocationRef"`
-	TrainOperatingCompanies          []TrainOperatingCompany           `xml:"TocRef"`
-	LateReasons                      []Reason                          `xml:"LateRunningReasons>Reason"`
-	CancellationReasons              []Reason                          `xml:"CancellationReasons>Reason"`
-	ViaTexts                         []ViaConditions                   `xml:"Via"`
-	CustomerInformationSystemSources []CustomerInformationSystemSource `xml:"CISSource"`
+	Locations                        []Location              `xml:"LocationRef"`
+	TrainOperatingCompanies          []TrainOperatingCompany `xml:"TocRef"`
+	LateReasons                      []Reason                `xml:"LateRunningReasons>Reason"`
+	CancellationReasons              []Reason                `xml:"CancellationReasons>Reason"`
+	ViaTexts                         []ViaConditions         `xml:"Via"`
+	CustomerInformationSystemSources []CISSource             `xml:"CISSource"`
 	// TODO: loading categories
 }
 
 type Location struct {
 	Location railreader.TimingPointLocationCode `xml:"tpl,attr"`
-	CRS      decoder.CRSCode                    `xml:"crs,attr"`
-	TOC      decoder.TrainOperatingCompanyCode  `xml:"toc,attr"`
-	Name     string                             `xml:"name,attr"`
+	// CRS is optional.
+	CRS decoder.CRSCode `xml:"crs,attr"`
+	// TOC is optional.
+	TOC  decoder.TrainOperatingCompanyCode `xml:"toc,attr"`
+	Name string                            `xml:"locname,attr"`
 }
 
 type TrainOperatingCompany struct {
 	ID   decoder.TrainOperatingCompanyCode `xml:"toc,attr"`
-	Name string                            `xml:"name,attr"`
-	URL  string                            `xml:"url,attr"`
+	Name string                            `xml:"tocname,attr"`
+	// URL is optional.
+	URL string `xml:"url,attr"`
 }
 
 type Reason struct {
@@ -48,7 +51,7 @@ type ViaConditions struct {
 	Text string `xml:"viatext,attr"`
 }
 
-type CustomerInformationSystemSource struct {
+type CISSource struct {
 	CIS  decoder.CISCode `xml:"code,attr"`
 	Name string          `xml:"name,attr"`
 }

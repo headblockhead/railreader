@@ -77,10 +77,10 @@ func (s StatusCode) String() string {
 // Response is a response for a successful request made to update Darwin's data.
 // Darwin broadcasts the new state(s) of the data to all subscribers using this message.
 type Response struct {
-	// UpdateOrigin is optionally provided by the requestor to indicate which system the update originated from (eg "Darwin" or "CIS").
-	UpdateOrigin string `xml:"updateOrigin,attr"`
-	// RequestSourceSystem is optionally provided by the requestor to indicate who they are. This can usually be assumed to be a CIS code, when the UpdateOrigin is "CIS".
-	RequestSourceSystem string `xml:"requestSource,attr"`
+	// Source is optionally provided by the requestor to indicate which system the update originated from (eg "Darwin" or "CIS").
+	Source string `xml:"updateOrigin,attr"`
+	// SourceSystem is optionally provided by the requestor to indicate who they are. If Source is "CIS", it is most likely a CISCode.
+	SourceSystem string `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
 	RequestID string `xml:"requestID,attr"`
 

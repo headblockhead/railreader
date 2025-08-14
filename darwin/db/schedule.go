@@ -18,38 +18,33 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
 	}
 
+	scheduleAlreadyExists := true
+
+	if err := tx.QueryRow(c.context, `
+	SELECT schedule_id FROM schedules WHERE schedule_id = @schedule_id;
+	`, pgx.NamedArgs{
+		"schedule_id": s.ScheduleID,
+	}).Scan(nil); err != nil {
+		if err != pgx.ErrNoRows {
+			return fmt.Errorf("failed to check if schedule %s exists: %w", s.ScheduleID, err)
+		}
+		log.Debug("schedule does not already exist, will insert a new record")
+		scheduleAlreadyExists = false
+	}
+
 	// TODO: delete existing schedule locations that are not in the new schedule
 	// this is fine because the whole thing is wrapped in a transaction
 
 	for _, loc := range s.Locations {
-		if err := c.insertScheduleLocation(s.ScheduleID, &loc); err != nil {
+		if err := c.insertScheduleLocation(tx, s.ScheduleID, &loc); err != nil {
 			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
 		}
 	}
 
-	if _, err := tx.Exec(c.context, `
-	INSERT INTO public.schedules 
-	VALUES (@schedule_id, @uid, @scheduled_start_date, @headcode, @retail_service_id, @train_operating_company_id, @service, @category, @active, @deleted, @charter, @cancellation_reason_id, @cancellation_reason_location_id, @cancellation_reason_near_location, @late_reason_id, @late_reason_location_id, @late_reason_near_location, @diverted_via_location_id)
-	ON CONFLICT (schedule_id) DO UPDATE 
-	SET
-		uid = EXCLUDED.uid,
-		scheduled_start_date = EXCLUDED.scheduled_start_date,
-		headcode = EXCLUDED.headcode,
-		retail_service_id = EXCLUDED.retail_service_id,
-		train_operating_company_id = EXCLUDED.train_operating_company_id,
-		service = EXCLUDED.service,
-		category = EXCLUDED.category,
-		is_active = EXCLUDED.is_active,
-		is_deleted = EXCLUDED.is_deleted,
-		is_charter = EXCLUDED.is_charter,
-		cancellation_reason_id = EXCLUDED.cancellation_reason_id,
-		cancellation_reason_location_id = EXCLUDED.cancellation_reason_location_id,
-		cancellation_reason_is_near_location = EXCLUDED.cancellation_reason_is_near_location,
-		late_reason_id = EXCLUDED.late_reason_id,
-		late_reason_location_id = EXCLUDED.late_reason_location_id,
-		late_reason_is_near_location = EXCLUDED.late_reason_is_near_location,
-		diverted_via_location_id = EXCLUDED.diverted_via_location_id;
-	`, pgx.NamedArgs{
+	namedArguments := pgx.StrictNamedArgs{
+		"last_updated":                      s.LastUpdated,
+		"source":                            s.Source,
+		"source_system":                     s.SourceSystem,
 		"schedule_id":                       s.ScheduleID,
 		"uid":                               s.UID,
 		"scheduled_start_date":              s.ScheduledStartDate,
@@ -68,10 +63,68 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		"late_reason_location_id":           s.LateReasonLocationID,
 		"late_reason_near_location":         s.LateReasonNearLocation,
 		"diverted_via_location_id":          s.DivertedViaLocationID,
-	}); err != nil {
-		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
-	log.Info("inserted schedule")
+
+	if !scheduleAlreadyExists {
+		if _, err := tx.Exec(c.context, `
+		INSERT INTO public.schedules 
+			VALUES (
+				@schedule_id,
+				@last_updated,
+				@source,
+				@source_system,
+				@uid,
+				@scheduled_start_date,
+				@headcode, 
+				@retail_service_id, 
+				@train_operating_company_id, 
+				@service, 
+				@category, 
+				@active, 
+				@deleted, 
+				@charter, 
+				@cancellation_reason_id, 
+				@cancellation_reason_location_id, 
+				@cancellation_reason_near_location, 
+				@late_reason_id, 
+				@late_reason_location_id, 
+				@late_reason_near_location, 
+				@diverted_via_location_id
+			);
+		`, namedArguments); err != nil {
+			return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
+		}
+		log.Info("inserted schedule")
+	} else {
+		if _, err := tx.Exec(c.context, `
+		UPDATE public.schedules 
+			SET 
+				last_updated = @last_updated,
+				source = @source,
+				source_system = @source_system,
+				uid = @uid,
+				scheduled_start_date = @scheduled_start_date,
+				headcode = @headcode,
+				retail_service_id = @retail_service_id,
+				train_operating_company_id = @train_operating_company_id,
+				service = @service,
+				category = @category,
+				is_active = @active,
+				is_deleted = @deleted,
+				is_charter = @charter,
+				cancellation_reason_id = @cancellation_reason_id,
+				cancellation_reason_location_id = @cancellation_reason_location_id,
+				cancellation_reason_is_near_location = @cancellation_reason_near_location,
+				late_reason_id = @late_reason_id,
+				late_reason_location_id = @late_reason_location_id,
+				late_reason_is_near_location = @late_reason_near_location,
+				diverted_via_location_id = @diverted_via_location_id
+			WHERE schedule_id = @schedule_id;
+	`, namedArguments); err != nil {
+			return fmt.Errorf("failed to update schedule %s: %w", s.ScheduleID, err)
+		}
+		log.Info("updated schedule")
+	}
 
 	if err := tx.Commit(c.context); err != nil {
 		return fmt.Errorf("failed to commit transaction while processing a schedule: %w", err)
@@ -79,12 +132,16 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	return nil
 }
 
-func (c *Connection) insertScheduleLocation(scheduleID string, l *ScheduleLocation) error {
+func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, l *ScheduleLocation) error {
 	return nil
 }
 
 type Schedule struct {
 	ScheduleID string
+
+	LastUpdated  time.Time
+	Source       string
+	SourceSystem string
 
 	UID                     string
 	ScheduledStartDate      time.Time

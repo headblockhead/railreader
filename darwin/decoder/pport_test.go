@@ -34,9 +34,9 @@ var pportTestCases = map[string]PushPortMessage{
 		Timestamp: "2006-01-02T15:04:05.999999999-07:00",
 		Version:   "18.0",
 		UpdateResponse: &Response{
-			UpdateOrigin:        "CIS",
-			RequestSourceSystem: "CIS1",
-			RequestID:           "01234567",
+			Source:       "CIS",
+			SourceSystem: "CIS1",
+			RequestID:    "01234567",
 		},
 	},
 }

@@ -29,11 +29,17 @@ CREATE TABLE IF NOT EXISTS locations (
 );
 
 CREATE TABLE IF NOT EXISTS schedules (
-				--  TrainIdentifiers
 				schedule_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
 
+				-- Response
+				last_updated timestamp NOT NULL,
+				source text,
+				source_system text,
+
+				-- TrainIdentifiers
 				uid text NOT NULL,
 				scheduled_start_date date NOT NULL,
+
 				-- Schedule
 				headcode text NOT NULL,
 				retail_service_id text,
@@ -80,7 +86,7 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 
 				cancellation_reason_id int,
 				cancellation_reason_location_id text,
-				is_near_cancellation_reason_location boolean NOT NULL
+				cancellation_reason_is_near_location boolean NOT NULL
 );
 
 COMMIT;
