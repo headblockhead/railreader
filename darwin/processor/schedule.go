@@ -60,6 +60,10 @@ func (p *Processor) processSchedule(log *slog.Logger, msg *decoder.PushPortMessa
 		dbs.LateReasonNearLocation = &schedule.DiversionReason.Near
 	}
 
+	for _, loc := range schedule.Locations {
+
+	}
+
 	if err := p.databaseConnection.InsertSchedule(&dbs); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", schedule.RID, err)
 	}

@@ -18,27 +18,22 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
 	}
 
-	scheduleAlreadyExists := true
-
-	if err := tx.QueryRow(c.context, `
-	SELECT schedule_id FROM schedules WHERE schedule_id = @schedule_id;
-	`, pgx.NamedArgs{
+	_, err = tx.Exec(c.context, `
+		DELETE FROM schedules WHERE schedule_id = @schedule_id;
+		`, pgx.NamedArgs{
 		"schedule_id": s.ScheduleID,
-	}).Scan(nil); err != nil {
-		if err != pgx.ErrNoRows {
-			return fmt.Errorf("failed to check if schedule %s exists: %w", s.ScheduleID, err)
-		}
-		log.Debug("schedule does not already exist, will insert a new record")
-		scheduleAlreadyExists = false
+	})
+	if err != pgx.ErrNoRows && err != nil {
+		return fmt.Errorf("failed to delete existing schedule for schedule %s: %w", s.ScheduleID, err)
 	}
 
-	// TODO: delete existing schedule locations that are not in the new schedule
-	// this is fine because the whole thing is wrapped in a transaction
-
-	for _, loc := range s.Locations {
-		if err := c.insertScheduleLocation(tx, s.ScheduleID, &loc); err != nil {
-			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
-		}
+	_, err = tx.Exec(c.context, `
+		DELETE FROM schedules_locations WHERE schedule_id = @schedule_id;
+		`, pgx.NamedArgs{
+		"schedule_id": s.ScheduleID,
+	})
+	if err != pgx.ErrNoRows && err != nil {
+		return fmt.Errorf("failed to delete existing schedule locations for schedule %s: %w", s.ScheduleID, err)
 	}
 
 	namedArguments := pgx.StrictNamedArgs{
@@ -65,9 +60,8 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		"diverted_via_location_id":          s.DivertedViaLocationID,
 	}
 
-	if !scheduleAlreadyExists {
-		if _, err := tx.Exec(c.context, `
-		INSERT INTO public.schedules 
+	if _, err := tx.Exec(c.context, `
+		INSERT INTO schedules 
 			VALUES (
 				@schedule_id,
 				@last_updated,
@@ -92,38 +86,14 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 				@diverted_via_location_id
 			);
 		`, namedArguments); err != nil {
-			return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
+		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
+	}
+	log.Info("inserted schedule")
+
+	for _, loc := range s.Locations {
+		if err := c.insertScheduleLocation(tx, s.ScheduleID, &loc); err != nil {
+			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
 		}
-		log.Info("inserted schedule")
-	} else {
-		if _, err := tx.Exec(c.context, `
-		UPDATE public.schedules 
-			SET 
-				last_updated = @last_updated,
-				source = @source,
-				source_system = @source_system,
-				uid = @uid,
-				scheduled_start_date = @scheduled_start_date,
-				headcode = @headcode,
-				retail_service_id = @retail_service_id,
-				train_operating_company_id = @train_operating_company_id,
-				service = @service,
-				category = @category,
-				is_active = @active,
-				is_deleted = @deleted,
-				is_charter = @charter,
-				cancellation_reason_id = @cancellation_reason_id,
-				cancellation_reason_location_id = @cancellation_reason_location_id,
-				cancellation_reason_is_near_location = @cancellation_reason_near_location,
-				late_reason_id = @late_reason_id,
-				late_reason_location_id = @late_reason_location_id,
-				late_reason_is_near_location = @late_reason_near_location,
-				diverted_via_location_id = @diverted_via_location_id
-			WHERE schedule_id = @schedule_id;
-	`, namedArguments); err != nil {
-			return fmt.Errorf("failed to update schedule %s: %w", s.ScheduleID, err)
-		}
-		log.Info("updated schedule")
 	}
 
 	if err := tx.Commit(c.context); err != nil {
@@ -132,7 +102,55 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	return nil
 }
 
-func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, l *ScheduleLocation) error {
+func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, location *ScheduleLocation) error {
+	log := c.log.With(slog.String("schedule_id", scheduleID), slog.Int("sequence", location.Sequence))
+	log.Debug("processing schedule location")
+	namedArgs := pgx.StrictNamedArgs{
+		"schedule_id":                       scheduleID,
+		"location_id":                       location.LocationID,
+		"sequence":                          location.Sequence,
+		"activities":                        location.Activities,
+		"planned_activities":                location.PlannedActivities,
+		"cancelled":                         location.Cancelled,
+		"affected_by_diversion":             location.AffectedByDiversion,
+		"type":                              location.Type,
+		"public_arrival_time":               location.PublicArrivalTime,
+		"public_departure_time":             location.PublicDepartureTime,
+		"working_arrival_time":              location.WorkingArrivalTime,
+		"working_passing_time":              location.WorkingPassingTime,
+		"working_departure_time":            location.WorkingDepartureTime,
+		"routing_delay":                     location.RoutingDelay,
+		"false_destination_location_id":     location.FalseDestinationLocationID,
+		"cancellation_reason_id":            location.CancellationReasonID,
+		"cancellation_reason_location_id":   location.CancellationReasonLocationID,
+		"cancellation_reason_near_location": location.CancellationReasonNearLocation,
+	}
+	if _, err := tx.Exec(c.context, `
+	INSERT INTO schedules_locations 
+		VALUES (
+			@schedule_id,
+			@location_id,
+			@sequence,
+			@activities,
+			@planned_activities,
+			@cancelled,
+			@affected_by_diversion,
+			@type,
+			@public_arrival_time,
+			@public_departure_time,
+			@working_arrival_time,
+			@working_passing_time,
+			@working_departure_time,
+			@routing_delay,
+			@false_destination_location_id,
+			@cancellation_reason_id,
+			@cancellation_reason_location_id,
+			@cancellation_reason_near_location
+		);
+	`, namedArgs); err != nil {
+		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)
+	}
+	log.Info("inserted schedule location")
 	return nil
 }
 
