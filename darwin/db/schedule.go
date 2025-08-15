@@ -18,9 +18,6 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
 	}
 
-	// TODO: change logs to make it clear that this is a transaction
-	// TODO: possibly move transaction higher to lump schedules and formations together, etc.
-
 	_, err = tx.Exec(c.context, `
 		DELETE FROM schedules WHERE schedule_id = @schedule_id;
 		`, pgx.NamedArgs{
@@ -83,7 +80,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
-	log.Info("inserted schedule")
+	log.Info("will insert schedule")
 
 	for _, loc := range s.Locations {
 		if err := c.insertScheduleLocation(tx, s.ScheduleID, &loc); err != nil {
@@ -94,6 +91,8 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	if err := tx.Commit(c.context); err != nil {
 		return fmt.Errorf("failed to commit transaction while processing a schedule: %w", err)
 	}
+	log.Info("committing schedule")
+
 	return nil
 }
 
@@ -145,7 +144,7 @@ func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, locati
 	`, namedArgs); err != nil {
 		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)
 	}
-	log.Info("inserted schedule location")
+	log.Info("will insert schedule location")
 	return nil
 }
 
