@@ -286,6 +286,7 @@ func processScheduleDestinationLocation(dbLoc *db.ScheduleLocation, location *de
 	if location == nil {
 		return errors.New("location is nil")
 	}
+	appendSharedValues(dbLoc, location.LocationSchedule)
 	wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
 	if err != nil {
 		return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
@@ -326,6 +327,7 @@ func processScheduleOperationalDestinationLocation(dbLoc *db.ScheduleLocation, l
 	if location == nil {
 		return errors.New("location is nil")
 	}
+	appendSharedValues(dbLoc, location.LocationSchedule)
 	wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
 	if err != nil {
 		return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
