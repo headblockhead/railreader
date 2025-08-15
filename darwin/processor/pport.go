@@ -10,11 +10,16 @@ import (
 )
 
 func (p *Processor) processPushPortMessage(log *slog.Logger, msg *decoder.PushPortMessage) error {
+	if msg == nil {
+		return errors.New("PushPortMessage is nil")
+	}
+
 	timestamp, err := time.Parse(time.RFC3339Nano, msg.Timestamp)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp %q: %w", msg.Timestamp, err)
 	}
 	log.Debug("processing PushPortMessage", slog.Time("timestamp", timestamp), slog.String("version", msg.Version))
+
 	/* if msg.NewTimetableFiles != nil {*/
 	/*if err := p.processNewTimetableFiles(log, msg, msg.NewTimetableFiles); err != nil {*/
 	/*return fmt.Errorf("failed to process StatusUpdate: %w", err)*/
@@ -28,25 +33,30 @@ func (p *Processor) processPushPortMessage(log *slog.Logger, msg *decoder.PushPo
 	/*return nil*/
 	/*}*/
 	if msg.UpdateResponse != nil {
-		if err := p.processResponse(log, msg, msg.UpdateResponse); err != nil {
+		if err := p.processResponse(log, timestamp, false, msg.UpdateResponse); err != nil {
 			return fmt.Errorf("failed to process UpdateResponse: %w", err)
 		}
 		return nil
 	}
-	if msg.SnapshotResponse != nil {
-		if err := p.processResponse(log, msg, msg.SnapshotResponse); err != nil {
-			return fmt.Errorf("failed to process SnapshotResponse: %w", err)
-		}
-		return nil
-	}
+	/* if msg.SnapshotResponse != nil {*/
+	/*if err := p.processResponse(log, timestamp, true, msg.SnapshotResponse); err != nil {*/
+	/*return fmt.Errorf("failed to process SnapshotResponse: %w", err)*/
+	/*}*/
+	/*return nil*/
+	/*}*/
 	return errors.New("PushPortMessage does not contain any data")
 }
 
-func (p *Processor) processResponse(log *slog.Logger, msg *decoder.PushPortMessage, resp *decoder.Response) error {
-	log.Debug("processing Response", slog.String("updateOrigin", resp.Source), slog.String("requestSourceSystem", resp.SourceSystem))
+func (p *Processor) processResponse(log *slog.Logger, lastUpdated time.Time, snapshot bool, resp *decoder.Response) error {
+	if resp == nil {
+		return errors.New("Response is nil")
+	}
+
+	log.Debug("processing Response", slog.String("updateOrigin", resp.Source), slog.String("requestSourceSystem", resp.SourceSystem), slog.Bool("snapshot", snapshot))
+
 	for _, schedule := range resp.Schedules {
-		if err := p.processSchedule(log, msg, resp, &schedule); err != nil {
-			return fmt.Errorf("failed to process Schedule: %w", err)
+		if err := p.processSchedule(log, lastUpdated, resp.Source, resp.SourceSystem, &schedule); err != nil {
+			return fmt.Errorf("failed to process Schedule %s: %w", schedule.RID, err)
 		}
 	}
 	/* for _, deactivation := range resp.Deactivations {*/

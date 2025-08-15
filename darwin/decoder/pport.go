@@ -20,8 +20,8 @@ type PushPortMessage struct {
 	SnapshotResponse  *Response       `xml:"sR"`
 }
 
-func NewPushPortMessage(reader *bytes.Reader) (*PushPortMessage, error) {
-	d := xml.NewDecoder(reader)
+func NewPushPortMessage(xmlString string) (*PushPortMessage, error) {
+	d := xml.NewDecoder(bytes.NewReader([]byte(xmlString)))
 	d.Entity = xml.HTMLEntity
 	var pport PushPortMessage
 	if err := d.Decode(&pport); err != nil {

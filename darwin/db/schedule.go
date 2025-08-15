@@ -13,7 +13,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	log := c.log.With(slog.String("schedule_id", s.ScheduleID))
 
 	log.Debug("processing schedule")
-	tx, err := c.connection.Begin(c.context)
+	tx, err := c.pgxConnection.Begin(c.context)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
 	}
@@ -102,8 +102,8 @@ func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, locati
 	log.Debug("processing schedule location")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                       scheduleID,
-		"location_id":                       location.LocationID,
 		"sequence":                          location.Sequence,
+		"location_id":                       location.LocationID,
 		"activities":                        location.Activities,
 		"planned_activities":                location.PlannedActivities,
 		"cancelled":                         location.Cancelled,
@@ -124,8 +124,8 @@ func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, locati
 	INSERT INTO schedules_locations 
 		VALUES (
 			@schedule_id,
-			@location_id,
 			@sequence,
+			@location_id,
 			@activities,
 			@planned_activities,
 			@cancelled,
@@ -182,8 +182,9 @@ type Schedule struct {
 
 type ScheduleLocation struct {
 	// ScheduleID  string
+	Sequence int
+
 	LocationID string
-	Sequence   int
 
 	Activities          *string
 	PlannedActivities   *string

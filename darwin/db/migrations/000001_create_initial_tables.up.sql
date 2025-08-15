@@ -64,11 +64,11 @@ CREATE TABLE IF NOT EXISTS schedules (
 CREATE TABLE IF NOT EXISTS schedules_locations (
 				schedule_id text,
 				CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE,
-				location_id text,
 				sequence int,
-				PRIMARY KEY (schedule_id, location_id, sequence),
+				PRIMARY KEY (schedule_id, sequence),
 
 				-- Schedule
+				location_id text,
 				activities text,
 				planned_activities text,
 				is_cancelled boolean NOT NULL,

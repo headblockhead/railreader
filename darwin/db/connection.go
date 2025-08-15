@@ -14,10 +14,10 @@ import (
 )
 
 type Connection struct {
-	log        *slog.Logger
-	url        string
-	context    context.Context
-	connection *pgx.Conn
+	log           *slog.Logger
+	url           string
+	context       context.Context
+	pgxConnection *pgx.Conn
 }
 
 //go:embed migrations/*.sql
@@ -25,6 +25,12 @@ var migrationsFS embed.FS
 
 // NewConnection connects to the postgres database, and automatically migrates the schema to the latest version.
 func NewConnection(context context.Context, log *slog.Logger, url string) (*Connection, error) {
+	var conn Connection = Connection{
+		log:     log,
+		url:     url,
+		context: context,
+	}
+
 	srcDriver, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create iofs for migrations: %w", err)
@@ -49,23 +55,23 @@ func NewConnection(context context.Context, log *slog.Logger, url string) (*Conn
 	log.Debug("closed migration instance")
 
 	log.Debug("connecting PGX to the database")
-	conn, err := pgx.Connect(context, url)
+	pgxConnection, err := pgx.Connect(context, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 	log.Debug("connected PGX to the database")
+	conn.pgxConnection = pgxConnection
 
-	return &Connection{
-		log:        log,
-		url:        url,
-		context:    context,
-		connection: conn,
-	}, nil
+	return &conn, nil
 }
 
 func (c *Connection) Close(timeout time.Duration) error {
 	c.log.Info("closing connection...")
 	connectionCloseContext, connectionCloseCancel := context.WithTimeout(c.context, timeout)
 	defer connectionCloseCancel()
-	return c.connection.Close(connectionCloseContext)
+	if err := c.pgxConnection.Close(connectionCloseContext); err != nil {
+		return fmt.Errorf("failed to close connection: %w", err)
+	}
+	c.log.Info("connection closed")
+	return nil
 }
