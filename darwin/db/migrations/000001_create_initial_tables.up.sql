@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				PRIMARY KEY (schedule_id, sequence),
 
 				-- Schedule
-				location_id text,
+				location_id text NOT NULL,
 				activities text,
 				planned_activities text,
 				is_cancelled boolean NOT NULL,

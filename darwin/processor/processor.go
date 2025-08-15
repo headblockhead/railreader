@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/headblockhead/railreader/darwin/db"
 	"github.com/headblockhead/railreader/darwin/decoder"
@@ -47,6 +48,8 @@ func (p *Processor) ProcessKafkaMessage(msg *kafka.Message) error {
 		return fmt.Errorf("failed to unmarshal messageCapsule XML into PushPortMessage: %w", err)
 	}
 	messageLog.Debug("unmarshalled messageCapsule XML into a PushPortMessage")
+
+	os.WriteFile(capsule.MessageID+".xml", []byte(capsule.XML), 0644)
 
 	if err := p.processPushPortMessage(messageLog, pport); err != nil {
 		return fmt.Errorf("failed to process PushPortMessage: %w", err)
