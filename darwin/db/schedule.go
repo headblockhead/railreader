@@ -17,6 +17,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
 	}
+	defer tx.Rollback(c.context)
 
 	_, err = tx.Exec(c.context, `
 		DELETE FROM schedules WHERE schedule_id = @schedule_id;
@@ -29,6 +30,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	// schedules_locations rows should CASCADE from the above delete.
 
 	namedArguments := pgx.StrictNamedArgs{
+		"message_id":                        s.MessageID,
 		"last_updated":                      s.LastUpdated,
 		"source":                            s.Source,
 		"source_system":                     s.SourceSystem,
@@ -56,6 +58,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		INSERT INTO schedules 
 			VALUES (
 				@schedule_id,
+				@message_id,
 				@last_updated,
 				@source,
 				@source_system,
@@ -150,6 +153,8 @@ func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, locati
 
 type Schedule struct {
 	ScheduleID string
+
+	MessageID string
 
 	LastUpdated  time.Time
 	Source       string

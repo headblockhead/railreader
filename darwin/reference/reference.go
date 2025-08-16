@@ -5,6 +5,7 @@ import (
 	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
+// Reference version 4
 type Reference struct {
 	Locations                        []Location              `xml:"LocationRef"`
 	TrainOperatingCompanies          []TrainOperatingCompany `xml:"TocRef"`
@@ -12,7 +13,7 @@ type Reference struct {
 	CancellationReasons              []Reason                `xml:"CancellationReasons>Reason"`
 	ViaTexts                         []ViaConditions         `xml:"Via"`
 	CustomerInformationSystemSources []CISSource             `xml:"CISSource"`
-	// TODO: loading categories
+	LoadingCategories                []LoadingCategory       `xml:"LoadingCategories>category"`
 }
 
 type Location struct {
@@ -54,4 +55,22 @@ type ViaConditions struct {
 type CISSource struct {
 	CIS  decoder.CISCode `xml:"code,attr"`
 	Name string          `xml:"name,attr"`
+}
+
+type LoadingCategory struct {
+	ID string `xml:"Code,attr"`
+	// Name is the name of the loading category, eg "Few seats taken".
+	Name string `xml:"Name,attr"`
+	// TOC is optional. It is unused as of 2025-08-15.
+	TOC decoder.TrainOperatingCompanyCode `xml:"Toc,attr"`
+
+	// TypicalDescription should be shown when ServiceLoading.LoadingCategory.Type == LoadingCategoryTypeTypical
+	TypicalDescription string `xml:"TypicalDescription"`
+	// ExpectedDescription should be shown when ServiceLoading.LoadingCategory.Type == LoadingCategoryTypeExpected
+	ExpectedDescription string `xml:"ExpectedDescription"`
+	Definition          string `xml:"Definition"`
+	// Colour is a hex RGB or RGBA value, eg "#FF0000" or "#FF000080". It is unused as of 2025-08-15.
+	Colour string `xml:"Colour"`
+	// Image is a filepath to an image that represents the loading category. It is unused as of 2025-08-15.
+	Image string `xml:"Image"`
 }

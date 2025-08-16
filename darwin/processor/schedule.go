@@ -10,7 +10,7 @@ import (
 	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
-func (p *Processor) processSchedule(log *slog.Logger, lastUpdated time.Time, source string, sourceSystem string, schedule *decoder.Schedule) error {
+func (p *Processor) processSchedule(log *slog.Logger, messageID string, lastUpdated time.Time, source string, sourceSystem string, schedule *decoder.Schedule) error {
 	if schedule == nil {
 		return errors.New("Schedule is nil")
 	}
@@ -21,6 +21,7 @@ func (p *Processor) processSchedule(log *slog.Logger, lastUpdated time.Time, sou
 	var dbs db.Schedule
 
 	dbs.ScheduleID = schedule.RID
+	dbs.MessageID = messageID
 	dbs.LastUpdated = lastUpdated
 	dbs.Source = source
 	dbs.SourceSystem = sourceSystem
@@ -346,7 +347,6 @@ func processScheduleOperationalDestinationLocation(dbLoc *db.ScheduleLocation, l
 	}
 	previousTime = wta
 	return nil
-
 }
 
 func appendSharedValues(dbLoc *db.ScheduleLocation, locationBase decoder.LocationSchedule) {

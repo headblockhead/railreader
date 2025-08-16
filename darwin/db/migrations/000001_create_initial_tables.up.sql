@@ -28,8 +28,16 @@ CREATE TABLE IF NOT EXISTS locations (
 				name text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS message_ids_xml (
+				message_id text PRIMARY KEY,
+				xml xml NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS schedules (
 				schedule_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
+
+				-- PushPortMessage
+				message_id text NOT NULL,
 
 				-- Response
 				last_updated timestamp NOT NULL,

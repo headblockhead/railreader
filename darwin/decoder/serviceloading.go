@@ -20,22 +20,28 @@ type ServiceLoading struct {
 	LoadingPercentage *LoadingPercentage `xml:"loadingPercentage"`
 }
 
-// TODO: load this from the refdata.
-type LoadingCategoryCode string
-
 // Struct embedding is not used here because it (for unknown reasons) breaks XML unmarshalling of the chardata when a custom UnmarshalXML method is defined for the base struct.
 
 type LoadingCategory struct {
-	// Type is optional, but defaults to "Typical" if not specified.
-	Type string `xml:"type,attr"`
+	// Type is optional, it can be "Expected" or "Typical", and defaults to "Typical" if not specified.
+	Type LoadingCategoryType `xml:"type,attr"`
 	// Source is optional.
 	Source string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
 	SourceSystem string `xml:"srcInst,attr"`
 
 	// Category is between 1 and 4 characters, and can be looked up in the reference data.
-	Category LoadingCategoryCode `xml:",chardata"`
+	Category LoadingCategoryID `xml:",chardata"`
 }
+
+type LoadingCategoryID string
+
+type LoadingCategoryType string
+
+const (
+	LoadingCategoryTypeExpected LoadingCategoryType = "Expected"
+	LoadingCategoryTypeTypical  LoadingCategoryType = "Typical"
+)
 
 func (lc *LoadingCategory) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// Alias type created to avoid recursion.
@@ -43,7 +49,7 @@ func (lc *LoadingCategory) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	var loadingCategory Alias
 
 	// Set default values.
-	loadingCategory.Type = "Typical"
+	loadingCategory.Type = LoadingCategoryTypeTypical
 
 	if err := d.DecodeElement(&loadingCategory, &start); err != nil {
 		return fmt.Errorf("failed to decode LoadingCategory: %w", err)

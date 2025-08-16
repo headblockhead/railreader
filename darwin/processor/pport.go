@@ -9,7 +9,7 @@ import (
 	"github.com/headblockhead/railreader/darwin/decoder"
 )
 
-func (p *Processor) processPushPortMessage(log *slog.Logger, msg *decoder.PushPortMessage) error {
+func (p *Processor) processPushPortMessage(log *slog.Logger, messageID string, msg *decoder.PushPortMessage) error {
 	if msg == nil {
 		return errors.New("PushPortMessage is nil")
 	}
@@ -33,7 +33,7 @@ func (p *Processor) processPushPortMessage(log *slog.Logger, msg *decoder.PushPo
 	/*return nil*/
 	/*}*/
 	if msg.UpdateResponse != nil {
-		if err := p.processResponse(log, timestamp, false, msg.UpdateResponse); err != nil {
+		if err := p.processResponse(log, timestamp, messageID, false, msg.UpdateResponse); err != nil {
 			return fmt.Errorf("failed to process UpdateResponse: %w", err)
 		}
 		return nil
@@ -47,7 +47,7 @@ func (p *Processor) processPushPortMessage(log *slog.Logger, msg *decoder.PushPo
 	return errors.New("PushPortMessage does not contain any data")
 }
 
-func (p *Processor) processResponse(log *slog.Logger, lastUpdated time.Time, snapshot bool, resp *decoder.Response) error {
+func (p *Processor) processResponse(log *slog.Logger, lastUpdated time.Time, messageID string, snapshot bool, resp *decoder.Response) error {
 	if resp == nil {
 		return errors.New("Response is nil")
 	}
@@ -55,7 +55,7 @@ func (p *Processor) processResponse(log *slog.Logger, lastUpdated time.Time, sna
 	log.Debug("processing Response", slog.String("updateOrigin", resp.Source), slog.String("requestSourceSystem", resp.SourceSystem), slog.Bool("snapshot", snapshot))
 
 	for _, schedule := range resp.Schedules {
-		if err := p.processSchedule(log, lastUpdated, resp.Source, resp.SourceSystem, &schedule); err != nil {
+		if err := p.processSchedule(log, messageID, lastUpdated, resp.Source, resp.SourceSystem, &schedule); err != nil {
 			return fmt.Errorf("failed to process Schedule %s: %w", schedule.RID, err)
 		}
 	}

@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// PushPortMessage is the root node of Darwin messages.
+// PushPort version 18.0
 type PushPortMessage struct {
 	// Timestamp is in the ISO 8601 YYYY-MM-DDTHH:MM:SS.sssssssss±HH:MM format.
 	Timestamp string `xml:"ts,attr"`
