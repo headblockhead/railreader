@@ -70,7 +70,8 @@ func (p *Processor) processSchedule(log *slog.Logger, messageID string, lastUpda
 
 	for seq, loc := range schedule.Locations {
 		dbLoc := db.ScheduleLocation{}
-		if err := processScheduleLocation(scheduleLog, seq, &previousTime, startDate, &loc, &dbLoc); err != nil {
+		previousTime, err := processScheduleLocation(scheduleLog, seq, startDate, &loc, &dbLoc)
+		if err := ; err != nil {
 			return fmt.Errorf("failed to process %s location at sequence %d for schedule %s: %w", loc.Type, seq, schedule.RID, err)
 		}
 		dbs.Locations = append(dbs.Locations, dbLoc)

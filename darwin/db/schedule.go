@@ -12,13 +12,6 @@ import (
 func (c *Connection) InsertSchedule(s *Schedule) error {
 	log := c.log.With(slog.String("schedule_id", s.ScheduleID))
 
-	log.Debug("processing schedule")
-	tx, err := c.pgxConnection.Begin(c.context)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction while processing a schedule: %w", err)
-	}
-	defer tx.Rollback(c.context)
-
 	_, err = tx.Exec(c.context, `
 		DELETE FROM schedules WHERE schedule_id = @schedule_id;
 		`, pgx.NamedArgs{

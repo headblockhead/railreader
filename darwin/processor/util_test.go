@@ -42,7 +42,7 @@ func TestTrainTime(t *testing.T) {
 	}
 	testCases := []trainTimeTestCase{
 		// Time crossing midnight forwards
-		newTrainTimeTestCase(t, "2025-08-10", time.Date(2025, 8, 10, 23, 59, 0, 0, location), "00:01:30", time.Date(2025, 8, 11, 0, 1, 30, 0, location)),
+		newTrainTimeTestCase(t, "2025-08-16", time.Date(2025, 8, 16, 23, 59, 30, 0, location), "00:05", time.Date(2025, 8, 17, 0, 5, 0, 0, location)),
 		// Time going forwards.
 		newTrainTimeTestCase(t, "2025-08-10", time.Date(2025, 8, 10, 8, 0, 0, 0, location), "08:05:30", time.Date(2025, 8, 10, 8, 5, 30, 0, location)),
 		// Time going backwards.

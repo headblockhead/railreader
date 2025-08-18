@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,27 +14,53 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/headblockhead/railreader/darwin"
-	darwindb "github.com/headblockhead/railreader/darwin/db"
-	darwinprocessor "github.com/headblockhead/railreader/darwin/processor"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
 type CLI struct {
-	Serve ServeCommand `cmd:"serve" aliases:"run" default:"withargs"`
+	Serve ServeCommand `group:"Server:" cmd:"serve" help:"Run the railreader server."`
+
+	Interpret InterpretCommand `group:"Client:" cmd:"interpret" help:"Interpret data from a single message, and write it to the database."`
+}
+
+type InterpretCommand struct {
+	Darwin InterpretDarwinCommand `cmd:"darwin" help:"Interpret a message from Darwin."`
+}
+
+type InterpretDarwinCommand struct {
+	MessageID string `arg:"" help:"message_id of a message to (re-)interpret. This will be fetched from the database."`
+	File      string `arg:"" help:"Path to a file containing a Darwin message to interpret. This takes precedence over providing a message_id."`
 }
 
 type ServeCommand struct {
 	Darwin struct {
-		Server      string `group:"Darwin Push Port connection:" env:"DARWIN_SERVER" required:"" help:"Kafka server hostname and port."`
-		GroupID     string `group:"Darwin Push Port connection:" env:"DARWIN_GROUPID" required:"" help:"Kafka consumer group ID." name:"group"`
-		Topic       string `group:"Darwin Push Port connection:" env:"DARWIN_TOPIC" required:"" help:"Kafka topic to consume from." name:"topic"`
-		Username    string `group:"Darwin Push Port connection:" env:"DARWIN_USERNAME" required:"" help:"Kafka username."`
-		Password    string `group:"Darwin Push Port connection:" env:"DARWIN_PASSWORD" required:"" help:"Kafka password."`
-		DatabaseURL string `group:"Darwin Push Port connection:" env:"DARWIN_DATABASE_URL" required:"" help:"PostgreSQL database URL."`
-	} `embed:"" prefix:"darwin-"`
+		Kafka struct {
+			Host     string `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_HOST" required:"" help:"Kafka server hostname and port."`
+			GroupID  string `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_GROUP" required:"" name:"group"`
+			Topic    string `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_TOPIC" required:""`
+			Username string `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_USERNAME" required:""`
+			Password string `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_PASSWORD" required:""`
+		} `embed:"" prefix:"kafka."`
 
-	JSONOutput bool   `default:"false" short:"j" help:"Output logs as JSON instead of plaintext."`
-	LogLevel   string `default:"info" enum:"debug,info,warn,error" help:"Minimum severity of logs required for them to be output."`
+		QueueSize   int    `group:"Darwin Push Port client:" env:"DARWIN_MESSAGE_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
+		DatabaseURL string `group:"Darwin Push Port client:" env:"DARWIN_POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store Darwin data in."`
+	} `embed:"" prefix:"darwin."`
+
+	Socket struct {
+		Enable   bool   `group:"Socket:" env:"SOCKET_ENABLE" default:"true" help:"Enable local control of the database via an unauthenticated socket. Access can be limited using file permissions."`
+		Location string `group:"Socket:" env:"SOCKET_LOCATION" help:"Path of the socket file to create."`
+		Mode     string `group:"Socket:" env:"SOCKET_MODE" default:"600" help:"File mode for the socket. The socket file is owned by the user running the program."`
+	} `embed:"" prefix:"socket."`
+
+	/* HTTP struct {*/
+	/*Host string `group:"HTTP Server:" env:"HTTP_HOST" default:":8080" help:"HTTP server hostname and port."`*/
+	/*} `embed:"" prefix:"http."`*/
+
+	Logging struct {
+		Level string `enum:"debug,info,warn,error" default:"info"`
+		Type  string `enum:"json,console" default:"console"`
+	} `embed:"" prefix:"logging."`
 }
 
 func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
@@ -65,46 +93,38 @@ func main() {
 	kctx := kong.Parse(&cli, kong.Description("Middleman between National Rail and Network Rail's datafeeds, and your project!"), kong.UsageOnError())
 
 	if err := kctx.Run(); err != nil {
+		// Assume logs should be output in JSON if the option cannot be obtained from the CLI.
 		log := getLogger("error", true)
 		log.Error("error", slog.Any("error", err))
 		os.Exit(1)
 	}
 }
 
-var serverTerminating bool = false
-
-type connectionWithKafka interface {
-	FetchKafkaMessage() (*kafka.Message, error)
-	ProcessAndCommitKafkaMessage(msg *kafka.Message) error
-	Close() error
-}
-
 func (c ServeCommand) Run() error {
-	log := getLogger(c.LogLevel, c.JSONOutput)
+	log := getLogger(c.Logging.Level, c.Logging.Type == "json")
 
-	fetcherContext, fetcherCancel := context.WithCancel(context.Background())
+	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
 
-	signalchan := make(chan os.Signal, 1)
-	signal.Notify(signalchan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
+		signalchan := make(chan os.Signal, 1)
+		defer close(signalchan)
+		signal.Notify(signalchan, syscall.SIGINT, syscall.SIGTERM)
+
+		terminating := false
 		for {
-			<-signalchan
-			if !serverTerminating {
-				log.Warn("SIGINT/SIGTERM recieved, stopping gracefully...")
-				serverTerminating = true
-				fetcherCancel()
-			} else {
-				log.Error("recieved multiple SIGINT/SIGTERM signals, exiting immediately")
+			signal := <-signalchan
+			log.Warn(signal.String() + " recieved, stopping gracefully...")
+			terminating = true
+			messageFetcherCancel()
+
+			if terminating {
+				log.Error("recieved multiple exit signals, exiting immediately")
 				os.Exit(130)
 			}
 		}
 	}()
 
-	darwinConnectionLog := log.With(slog.String("source", "darwin.connection"))
-	darwinDBLog := log.With(slog.String("source", "darwin.db"))
-	darwinProcessorLog := log.With(slog.String("source", "darwin.processor"))
-
-	var darwinConnection connectionWithKafka
+	var darwinConnection kafkaConnection
 
 	darwinDBContext, darwinDBCancel := context.WithCancel(context.Background())
 	darwinDBConnection, err := darwindb.NewConnection(darwinDBContext, darwinDBLog, c.Darwin.DatabaseURL)
@@ -116,13 +136,28 @@ func (c ServeCommand) Run() error {
 
 	darwinProcessor := darwinprocessor.NewProcessor(darwinProcessorLog, darwinDBConnection)
 
+	darwinKafkaReader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: []string{c.Darwin.Server},
+		GroupID: c.Darwin.GroupID,
+		Topic:   c.Darwin.Topic,
+		Dialer: &kafka.Dialer{
+			Timeout:   10 * time.Second,
+			DualStack: true,
+			SASLMechanism: plain.Mechanism{
+				Username: c.Darwin.Username,
+				Password: c.Darwin.Password,
+			},
+			TLS: &tls.Config{},
+		},
+	})
+
 	connectionContext, connectionCancel := context.WithCancel(context.Background())
-	darwinConnection = darwin.NewConnection(darwinConnectionLog, connectionContext, fetcherContext, darwinProcessor, c.Darwin.Server, c.Darwin.GroupID, c.Darwin.Topic, c.Darwin.Username, c.Darwin.Password)
+	darwinConnection = darwin.NewConnection(darwinConnectionLog, connectionContext, messageFetcherContext, darwinProcessor, darwinKafkaReader)
 
 	darwinKafkaMessages := make(chan *kafka.Message, 32)
 	var darwinProcessorGroup sync.WaitGroup
 
-	//for range runtime.NumCPU() {
+	// for range runtime.NumCPU() {
 	for range 1 {
 		darwinProcessorGroup.Add(1)
 		go func() {
@@ -154,7 +189,7 @@ func (c ServeCommand) Run() error {
 	return nil
 }
 
-func fetchKafkaMessages(log *slog.Logger, c connectionWithKafka, messageChannel chan *kafka.Message) {
+func fetchKafkaMessagesIntoChannel(log *slog.Logger, messageChannel chan *kafka.Message) {
 	for {
 		msg, err := c.FetchKafkaMessage()
 		if err != nil {
@@ -180,4 +215,39 @@ func processKafkaMessages(log *slog.Logger, c connectionWithKafka, messageChanne
 			continue
 		}
 	}
+}
+
+type Connection struct {
+	log *slog.Logger
+
+	connectionContext context.Context
+	fetcherContext    context.Context
+	reader            *kafka.Reader
+}
+
+func NewConnection(log *slog.Logger, connectionContext context.Context, fetcherContext context.Context, reader *kafka.Reader) *Connection {
+	return &Connection{
+		log:               log,
+		connectionContext: connectionContext,
+		fetcherContext:    fetcherContext,
+		reader:            reader,
+	}
+}
+
+func (dc *Connection) Close() error {
+	dc.log.Info("closing connection...")
+	return dc.reader.Close()
+}
+
+// FetchMessage blocks until a message is available, or the fetcherContext is cancelled.
+func (dc *Connection) FetchMessage() (*kafka.Message, error) {
+}
+
+func (dc *Connection) CommitMessage(msg *kafka.Message) error {
+	dc.log.Debug("commiting Kafka message", slog.Int64("offset", msg.Offset))
+	if err := dc.reader.CommitMessages(dc.connectionContext, *msg); err != nil {
+		return fmt.Errorf("failed to commit Kafka message: %w", err)
+	}
+	dc.log.Debug("committed Kafka message", slog.Int64("offset", msg.Offset))
+	return nil
 }
