@@ -11,40 +11,36 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5"
+	"github.com/pkg/errors"
 )
 
 type Connection struct {
-	log           *slog.Logger
-	url           string
-	context       context.Context
-	pgxConnection *pgx.Conn
+	log     *slog.Logger
+	context context.Context
+	cancel  context.CancelCauseFunc
+	conn    *pgx.Conn
 }
 
 //go:embed migrations/*.sql
 var migrationsFS embed.FS
 
 // NewConnection connects to the postgres database, and automatically migrates the schema to the latest version.
-func NewConnection(context context.Context, log *slog.Logger, url string) (*Connection, error) {
-	var conn Connection = Connection{
-		log:     log,
-		url:     url,
-		context: context,
-	}
-
+func NewConnection(log *slog.Logger, ctx context.Context, url string) (*Connection, error) {
+	log.Debug("creating iofs for migrations")
 	srcDriver, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create iofs for migrations: %w", err)
 	}
-	log.Debug("connecting migrate to the database")
+	log.Debug("connecting migrate")
 	m, err := migrate.NewWithSourceInstance("iofs", srcDriver, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
 	}
-	log.Debug("connected migrate to the database")
+	log.Debug("migrating to the latest schema")
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return nil, fmt.Errorf("failed to apply migrations: %w", err)
 	}
-	log.Debug("applied all upward migrations")
+	log.Debug("closing migrate connection")
 	srcerr, dberr := m.Close()
 	if srcerr != nil {
 		return nil, fmt.Errorf("failed to close migrate connection due to an error closing the source: %w", srcerr)
@@ -52,26 +48,41 @@ func NewConnection(context context.Context, log *slog.Logger, url string) (*Conn
 	if dberr != nil {
 		return nil, fmt.Errorf("failed to close migrate connection due to an error closing the database: %w", dberr)
 	}
-	log.Debug("closed migration instance")
 
-	log.Debug("connecting pgx to the database")
-	pgxConnection, err := pgx.Connect(context, url)
+	ctx, cancel := context.WithCancelCause(ctx)
+
+	log.Debug("connecting pgx")
+	conn, err := pgx.Connect(ctx, url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
-	log.Debug("connected pgx to the database")
-	conn.pgxConnection = pgxConnection
+	log.Debug("connected pgx")
 
-	return &conn, nil
+	return &Connection{
+		log:     log,
+		context: ctx,
+		cancel:  cancel,
+		conn:    conn,
+	}, nil
 }
 
 func (c *Connection) Close(timeout time.Duration) error {
 	c.log.Debug("closing pgx connection", slog.String("timeout", timeout.String()))
-	connectionCloseContext, connectionCloseCancel := context.WithTimeout(c.context, timeout)
-	defer connectionCloseCancel()
-	if err := c.pgxConnection.Close(connectionCloseContext); err != nil {
+	defer c.cancel(errors.New("connection closed"))
+	// TODO: check if cancel is optional (below)
+	ctx, cancel := context.WithTimeout(c.context, timeout)
+	defer cancel()
+	if err := c.conn.Close(ctx); err != nil {
 		return fmt.Errorf("failed to close pgx connection: %w", err)
 	}
-	c.log.Debug("pgx connection closed")
 	return nil
+}
+
+func (c *Connection) BeginTx() (pgx.Tx, error) {
+	c.log.Debug("starting a new transaction")
+	tx, err := c.conn.Begin(c.context)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
+	}
+	return tx, nil
 }

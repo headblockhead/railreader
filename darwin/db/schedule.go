@@ -84,11 +84,6 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		}
 	}
 
-	if err := tx.Commit(c.context); err != nil {
-		return fmt.Errorf("failed to commit transaction while processing a schedule: %w", err)
-	}
-	log.Info("committing schedule")
-
 	return nil
 }
 
