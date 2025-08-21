@@ -1,14 +1,14 @@
 module github.com/headblockhead/railreader
 
-go 1.24.4
+go 1.25rc3
 
 require (
 	github.com/alecthomas/kong v1.12.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/go-cmp v0.7.0
 	github.com/jackc/pgx/v5 v5.7.5
-	github.com/pkg/errors v0.9.1
 	github.com/segmentio/kafka-go v0.4.48
+	golang.org/x/net v0.42.0
 )
 
 require (

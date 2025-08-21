@@ -1,4 +1,4 @@
-package db
+package database
 
 import (
 	"fmt"
@@ -6,13 +6,27 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"golang.org/x/net/context"
 )
 
-// InsertSchedule takes a Schedule struct and creates/updates/deletes records appropriately.
-func (c *Connection) InsertSchedule(s *Schedule) error {
-	log := c.log.With(slog.String("schedule_id", s.ScheduleID))
+type PGXScheduleRepository struct {
+	ctx context.Context
+	log *slog.Logger
+	tx  pgx.Tx
+}
 
-	_, err = tx.Exec(c.context, `
+func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) *PGXScheduleRepository {
+	return &PGXScheduleRepository{
+		ctx: ctx,
+		log: log,
+		tx:  tx,
+	}
+}
+
+func (sr *PGXScheduleRepository) Insert(s *Schedule) error {
+	sr.log.Debug("inserting schedule")
+
+	_, err := sr.tx.Exec(sr.ctx, `
 		DELETE FROM schedules WHERE schedule_id = @schedule_id;
 		`, pgx.NamedArgs{
 		"schedule_id": s.ScheduleID,
@@ -47,7 +61,7 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 		"diverted_via_location_id":          s.DivertedViaLocationID,
 	}
 
-	if _, err := tx.Exec(c.context, `
+	if _, err := sr.tx.Exec(sr.ctx, `
 		INSERT INTO schedules 
 			VALUES (
 				@schedule_id,
@@ -72,14 +86,13 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 				@late_reason_location_id, 
 				@late_reason_near_location, 
 				@diverted_via_location_id
-			);
-		`, namedArguments); err != nil {
+			);`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
-	log.Info("will insert schedule")
+	sr.log.Info("will insert schedule")
 
 	for _, loc := range s.Locations {
-		if err := c.insertScheduleLocation(tx, s.ScheduleID, &loc); err != nil {
+		if err := sr.insertLocation(s.ScheduleID, &loc); err != nil {
 			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
 		}
 	}
@@ -87,8 +100,8 @@ func (c *Connection) InsertSchedule(s *Schedule) error {
 	return nil
 }
 
-func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, location *ScheduleLocation) error {
-	log := c.log.With(slog.String("schedule_id", scheduleID), slog.Int("sequence", location.Sequence))
+func (sr *PGXScheduleRepository) insertLocation(scheduleID string, location *ScheduleLocation) error {
+	log := sr.log.With(slog.Int("sequence", location.Sequence))
 	log.Debug("processing schedule location")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                       scheduleID,
@@ -110,7 +123,7 @@ func (c *Connection) insertScheduleLocation(tx pgx.Tx, scheduleID string, locati
 		"cancellation_reason_location_id":   location.CancellationReasonLocationID,
 		"cancellation_reason_near_location": location.CancellationReasonNearLocation,
 	}
-	if _, err := tx.Exec(c.context, `
+	if _, err := sr.tx.Exec(sr.ctx, `
 	INSERT INTO schedules_locations 
 		VALUES (
 			@schedule_id,

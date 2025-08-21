@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/headblockhead/railreader/darwin/decoder"
+	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
 type trainTimeTestCase struct {
 	// Inputs
 	StartDate    time.Time
 	PreviousTime time.Time
-	CurrentTime  decoder.TrainTime
+	CurrentTime  unmarshaller.TrainTime
 
 	// Expected outputs
 	ExpectedCurrentTime time.Time
@@ -30,7 +30,7 @@ func newTrainTimeTestCase(t *testing.T, startDate string, previousTime time.Time
 	return trainTimeTestCase{
 		StartDate:           start,
 		PreviousTime:        previousTime,
-		CurrentTime:         decoder.TrainTime(currentTime),
+		CurrentTime:         unmarshaller.TrainTime(currentTime),
 		ExpectedCurrentTime: expectedCurrentTime,
 	}
 }

@@ -1,4 +1,4 @@
-package interpreter
+package darwin
 
 import (
 	"errors"
@@ -10,22 +10,18 @@ import (
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
-func processSchedule(sr ScheduleRepository, log *slog.Logger, messageID string, lastUpdated time.Time, source string, sourceSystem string, schedule *unmarshaller.Schedule) error {
-	if schedule == nil {
-		return errors.New("Schedule is nil")
-	}
+func (u *UnitOfWork) interpretSchedule(lastUpdated time.Time, source string, sourceSystem string, schedule *unmarshaller.Schedule) error {
+	log := u.log.With("rid", schedule.RID)
+	log.Debug("interpreting schedule")
 
-	scheduleLog := log.With("rid", schedule.RID)
-	scheduleLog.Debug("processing Schedule")
+	var databaseSchedule database.Schedule
 
-	var dbs database.Schedule
-
-	dbs.ScheduleID = schedule.RID
-	dbs.MessageID = messageID
-	dbs.LastUpdated = lastUpdated
-	dbs.Source = source
-	dbs.SourceSystem = sourceSystem
-	dbs.UID = schedule.UID
+	databaseSchedule.ScheduleID = schedule.RID
+	databaseSchedule.MessageID = u.messageID
+	databaseSchedule.LastUpdated = lastUpdated
+	databaseSchedule.Source = source
+	databaseSchedule.SourceSystem = sourceSystem
+	databaseSchedule.UID = schedule.UID
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
 		return fmt.Errorf("failed to load time location: %w", err)
@@ -34,60 +30,55 @@ func processSchedule(sr ScheduleRepository, log *slog.Logger, messageID string, 
 	if err != nil {
 		return fmt.Errorf("failed to parse ScheduledStartDate %q: %w", schedule.ScheduledStartDate, err)
 	}
-	dbs.ScheduledStartDate = startDate
-	dbs.Headcode = schedule.Headcode
+	databaseSchedule.ScheduledStartDate = startDate
+	databaseSchedule.Headcode = schedule.Headcode
 	if schedule.RetailServiceID != "" {
-		scheduleLog.Debug("RetailServiceID is set")
+		log.Debug("RetailServiceID is set")
 		retailServiceID := schedule.RetailServiceID
-		dbs.RetailServiceID = &retailServiceID
+		databaseSchedule.RetailServiceID = &retailServiceID
 	}
-	dbs.TrainOperatingCompanyID = string(schedule.TOC)
-	dbs.Service = string(schedule.Service)
-	dbs.Category = string(schedule.Category)
-	dbs.Active = schedule.Active
-	dbs.Deleted = schedule.Deleted
-	dbs.Charter = schedule.Charter
+	databaseSchedule.TrainOperatingCompanyID = string(schedule.TOC)
+	databaseSchedule.Service = string(schedule.Service)
+	databaseSchedule.Category = string(schedule.Category)
+	databaseSchedule.Active = schedule.Active
+	databaseSchedule.Deleted = schedule.Deleted
+	databaseSchedule.Charter = schedule.Charter
 	if schedule.CancellationReason != nil {
-		scheduleLog.Debug("CancellationReason is set")
-		dbs.CancellationReasonID = &schedule.CancellationReason.ReasonID
+		log.Debug("CancellationReason is set")
+		databaseSchedule.CancellationReasonID = &schedule.CancellationReason.ReasonID
 		if schedule.CancellationReason.TIPLOC != "" {
 			tiploc := string(schedule.CancellationReason.TIPLOC)
-			dbs.CancellationReasonLocationID = &tiploc
+			databaseSchedule.CancellationReasonLocationID = &tiploc
 		}
-		dbs.CancellationReasonNearLocation = &schedule.CancellationReason.Near
+		databaseSchedule.CancellationReasonNearLocation = &schedule.CancellationReason.Near
 	}
 	if schedule.DiversionReason != nil {
-		scheduleLog.Debug("DiversionReason is set")
-		dbs.LateReasonID = &schedule.DiversionReason.ReasonID
+		log.Debug("DiversionReason is set")
+		databaseSchedule.LateReasonID = &schedule.DiversionReason.ReasonID
 		if schedule.DiversionReason.TIPLOC != "" {
 			tiploc := string(schedule.DiversionReason.TIPLOC)
-			dbs.LateReasonLocationID = &tiploc
+			databaseSchedule.LateReasonLocationID = &tiploc
 		}
-		dbs.LateReasonNearLocation = &schedule.DiversionReason.Near
+		databaseSchedule.LateReasonNearLocation = &schedule.DiversionReason.Near
 	}
 
-	var previousTime time.Time = time.Time{}
-
+	previousTime := time.Time{}
 	for seq, loc := range schedule.Locations {
-		dbLoc := database.ScheduleLocation{}
-		previousTime, err = processScheduleLocation(scheduleLog, seq, startDate, previousTime, &loc, &dbLoc)
+		databaseLocation, nextTime, err := genericLocationToDatabaseLocation(log, seq, startDate, previousTime, &loc)
 		if err != nil {
 			return fmt.Errorf("failed to process %s location at sequence %d for schedule %s: %w", loc.Type, seq, schedule.RID, err)
 		}
-		dbs.Locations = append(dbs.Locations, dbLoc)
+		previousTime = nextTime
+		databaseSchedule.Locations = append(databaseSchedule.Locations, databaseLocation)
 	}
 
-	if err := sr.InsertSchedule(&dbs); err != nil {
+	if err := u.ScheduleRepository.Insert(&databaseSchedule); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", schedule.RID, err)
 	}
 	return nil
 }
 
-func processScheduleLocation(log *slog.Logger, sequence int, startDate time.Time, previousTime time.Time, genericLocation *unmarshaller.LocationGeneric, dbLoc *database.ScheduleLocation) (nextTime time.Time, err error) {
-	if genericLocation == nil {
-		return errors.New("LocationGeneric is nil")
-	}
-
+func genericLocationToDatabaseLocation(log *slog.Logger, sequence int, startDate time.Time, previousTime time.Time, genericLocation *unmarshaller.LocationGeneric) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	locationLog := log.With(slog.Int("sequence", sequence), slog.String("type", string(genericLocation.Type)))
 	locationLog.Debug("processing Location")
 

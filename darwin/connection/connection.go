@@ -10,38 +10,38 @@ import (
 )
 
 type Connection struct {
-	log     *slog.Logger
-	context context.Context
-	cancel  context.CancelCauseFunc
-	reader  *kafka.Reader
+	ctx    context.Context
+	cancel context.CancelCauseFunc
+	log    *slog.Logger
+	reader *kafka.Reader
 }
 
-func New(log *slog.Logger, ctx context.Context, readerConfig kafka.ReaderConfig) *Connection {
+func New(ctx context.Context, log *slog.Logger, readerConfig kafka.ReaderConfig) *Connection {
 	ctx, cancel := context.WithCancelCause(ctx)
 	return &Connection{
-		log:     log,
-		context: ctx,
-		cancel:  cancel,
-		reader:  kafka.NewReader(readerConfig),
+		ctx:    ctx,
+		cancel: cancel,
+		log:    log,
+		reader: kafka.NewReader(readerConfig),
 	}
 }
 
 func (c *Connection) Close() error {
-	c.log.Info("closing connection")
+	c.log.Debug("closing connection")
 	defer c.cancel(errors.New("connection closed"))
 	if err := c.reader.Close(); err != nil {
 		return fmt.Errorf("failed to close Kafka reader: %w", err)
 	}
-	c.log.Debug("connection closed successfully")
+	c.log.Debug("closed connection")
 	return nil
 }
 
 // FetchMessage blocks until a message is available, or the provided context is cancelled.
 func (c *Connection) FetchMessage(ctx context.Context) (kafka.Message, error) {
 	if err := ctx.Err(); err != nil {
-		return kafka.Message{}, fmt.Errorf("context error: %w", err)
+		return kafka.Message{}, err
 	}
-	c.log.Debug("blocking until message fetched")
+	c.log.Debug("fetching message")
 	msg, err := c.reader.FetchMessage(ctx)
 	if err != nil {
 		return kafka.Message{}, fmt.Errorf("failed to fetch a message: %w", err)
@@ -51,11 +51,11 @@ func (c *Connection) FetchMessage(ctx context.Context) (kafka.Message, error) {
 }
 
 func (c *Connection) CommitMessage(msg kafka.Message) error {
-	if err := c.context.Err(); err != nil {
+	if err := c.ctx.Err(); err != nil {
 		return fmt.Errorf("context error: %w", err)
 	}
 	c.log.Debug("commiting message", slog.Int64("offset", msg.Offset))
-	if err := c.reader.CommitMessages(c.context, msg); err != nil {
+	if err := c.reader.CommitMessages(c.ctx, msg); err != nil {
 		return fmt.Errorf("failed to commit message: %w", err)
 	}
 	c.log.Debug("committed message", slog.Int64("offset", msg.Offset))

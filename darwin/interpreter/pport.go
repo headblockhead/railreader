@@ -6,20 +6,19 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/headblockhead/railreader/darwin/decoder"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
-func ProcessPushPortMessage(log *slog.Logger, messageID string, msg *unmarshaller.PushPortMessage) error {
-	if msg == nil {
+func InterpretPushPortMessage(log *slog.Logger, messageID string, pport *unmarshaller.PushPortMessage) error {
+	if pport == nil {
 		return errors.New("PushPortMessage is nil")
 	}
 
-	timestamp, err := time.Parse(time.RFC3339Nano, msg.Timestamp)
+	timestamp, err := time.Parse(time.RFC3339Nano, pport.Timestamp)
 	if err != nil {
-		return fmt.Errorf("failed to parse timestamp %q: %w", msg.Timestamp, err)
+		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
 	}
-	log.Debug("processing PushPortMessage", slog.Time("timestamp", timestamp), slog.String("version", msg.Version))
+	log.Debug("processing PushPortMessage", slog.Time("timestamp", timestamp), slog.String("version", pport.Version))
 
 	/* if msg.NewTimetableFiles != nil {*/
 	/*if err := p.processNewTimetableFiles(log, msg, msg.NewTimetableFiles); err != nil {*/
@@ -33,8 +32,8 @@ func ProcessPushPortMessage(log *slog.Logger, messageID string, msg *unmarshalle
 	/*}*/
 	/*return nil*/
 	/*}*/
-	if msg.UpdateResponse != nil {
-		if err := p.processResponse(log, timestamp, messageID, false, msg.UpdateResponse); err != nil {
+	if pport.UpdateResponse != nil {
+		if err := processResponse(log, timestamp, messageID, false, pport.UpdateResponse); err != nil {
 			return fmt.Errorf("failed to process UpdateResponse: %w", err)
 		}
 		return nil
@@ -48,7 +47,7 @@ func ProcessPushPortMessage(log *slog.Logger, messageID string, msg *unmarshalle
 	return errors.New("PushPortMessage does not contain any data")
 }
 
-func (p *Processor) processResponse(log *slog.Logger, lastUpdated time.Time, messageID string, snapshot bool, resp *decoder.Response) error {
+func processResponse(log *slog.Logger, lastUpdated time.Time, messageID string, snapshot bool, resp *unmarshaller.Response) error {
 	if resp == nil {
 		return errors.New("Response is nil")
 	}
@@ -56,7 +55,7 @@ func (p *Processor) processResponse(log *slog.Logger, lastUpdated time.Time, mes
 	log.Debug("processing Response", slog.String("updateOrigin", resp.Source), slog.String("requestSourceSystem", resp.SourceSystem), slog.Bool("snapshot", snapshot))
 
 	for _, schedule := range resp.Schedules {
-		if err := p.processSchedule(log, messageID, lastUpdated, resp.Source, resp.SourceSystem, &schedule); err != nil {
+		if err := processSchedule(log, messageID, lastUpdated, resp.Source, resp.SourceSystem, &schedule); err != nil {
 			return fmt.Errorf("failed to process Schedule %s: %w", schedule.RID, err)
 		}
 	}
