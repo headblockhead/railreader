@@ -17,7 +17,7 @@ type Schedule struct {
 	// or a 6 character "base identifier" (without a TOC code).
 	RetailServiceID string `xml:"rsid,attr"`
 	// TOC is the Rail Delivery Group's 2-character code for the train operating company.
-	TOC TrainOperatingCompanyCode `xml:"toc,attr"`
+	TOC string `xml:"toc,attr"`
 	// Service is the 1-character code for the type of transport.
 	// If not provided, it defaults to a Passenger and Parcel Train.
 	Service railreader.ServiceType `xml:"status,attr"`
@@ -68,13 +68,13 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 type LocationGeneric struct {
 	Type LocationType
 
-	OriginLocation                  *OriginLocation                  `xml:"OR"`
-	OperationalOriginLocation       *OperationalOriginLocation       `xml:"OPOR"`
-	IntermediateLocation            *IntermediateLocation            `xml:"IP"`
-	OperationalIntermediateLocation *OperationalIntermediateLocation `xml:"OPIP"`
-	IntermediatePassingLocation     *IntermediatePassingLocation     `xml:"PP"`
-	DestinationLocation             *DestinationLocation             `xml:"DT"`
-	OperationalDestinationLocation  *OperationalDestinationLocation  `xml:"OPDT"`
+	Origin                  *OriginLocation                  `xml:"OR"`
+	OperationalOrigin       *OperationalOriginLocation       `xml:"OPOR"`
+	Intermediate            *IntermediateLocation            `xml:"IP"`
+	OperationalIntermediate *OperationalIntermediateLocation `xml:"OPIP"`
+	IntermediatePassing     *IntermediatePassingLocation     `xml:"PP"`
+	Destination             *DestinationLocation             `xml:"DT"`
+	OperationalDestination  *OperationalDestinationLocation  `xml:"OPDT"`
 }
 
 type LocationType string
@@ -94,38 +94,38 @@ func (lg *LocationGeneric) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	lg.Type = LocationType(locationType)
 	switch lg.Type {
 	case LocationTypeOrigin:
-		lg.OriginLocation = &OriginLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.OriginLocation, &start); err != nil {
+		lg.Origin = &OriginLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.Origin, &start); err != nil {
 			return fmt.Errorf("failed to decode OriginLocation: %w", err)
 		}
 	case LocationTypeOperationalOrigin:
-		lg.OperationalOriginLocation = &OperationalOriginLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.OperationalOriginLocation, &start); err != nil {
+		lg.OperationalOrigin = &OperationalOriginLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.OperationalOrigin, &start); err != nil {
 			return fmt.Errorf("failed to decode OperationalOriginLocation: %w", err)
 		}
 	case LocationTypeIntermediate:
-		lg.IntermediateLocation = &IntermediateLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.IntermediateLocation, &start); err != nil {
+		lg.Intermediate = &IntermediateLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.Intermediate, &start); err != nil {
 			return fmt.Errorf("failed to decode IntermediateLocation: %w", err)
 		}
 	case LocationTypeOperationalIntermediate:
-		lg.OperationalIntermediateLocation = &OperationalIntermediateLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.OperationalIntermediateLocation, &start); err != nil {
+		lg.OperationalIntermediate = &OperationalIntermediateLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.OperationalIntermediate, &start); err != nil {
 			return fmt.Errorf("failed to decode OperationalIntermediateLocation: %w", err)
 		}
 	case LocationTypeIntermediatePassing:
-		lg.IntermediatePassingLocation = &IntermediatePassingLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.IntermediatePassingLocation, &start); err != nil {
+		lg.IntermediatePassing = &IntermediatePassingLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.IntermediatePassing, &start); err != nil {
 			return fmt.Errorf("failed to decode IntermediatePassingLocation: %w", err)
 		}
 	case LocationTypeDestination:
-		lg.DestinationLocation = &DestinationLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.DestinationLocation, &start); err != nil {
+		lg.Destination = &DestinationLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.Destination, &start); err != nil {
 			return fmt.Errorf("failed to decode DestinationLocation: %w", err)
 		}
 	case LocationTypeOperationalDestination:
-		lg.OperationalDestinationLocation = &OperationalDestinationLocation{LocationSchedule: LocationSchedule{}}
-		if err := d.DecodeElement(lg.OperationalDestinationLocation, &start); err != nil {
+		lg.OperationalDestination = &OperationalDestinationLocation{LocationSchedule: LocationSchedule{}}
+		if err := d.DecodeElement(lg.OperationalDestination, &start); err != nil {
 			return fmt.Errorf("failed to decode OperationalDestinationLocation: %w", err)
 		}
 	default:

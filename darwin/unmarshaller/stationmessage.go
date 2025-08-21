@@ -17,7 +17,8 @@ type StationMessage struct {
 }
 
 type StationCRS struct {
-	CRS CRSCode `xml:"crs,attr"`
+	// CRS (Computerised Reservation System) is a 3-letter code that identifies a passenger rail station.
+	CRS string `xml:"crs,attr"`
 }
 
 type XHTMLBody struct {

@@ -1,7 +1,6 @@
 package darwin
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -66,10 +65,10 @@ func (u *UnitOfWork) interpretSchedule(lastUpdated time.Time, source string, sou
 	for seq, loc := range schedule.Locations {
 		databaseLocation, nextTime, err := genericLocationToDatabaseLocation(log, seq, startDate, previousTime, &loc)
 		if err != nil {
-			return fmt.Errorf("failed to process %s location at sequence %d for schedule %s: %w", loc.Type, seq, schedule.RID, err)
+			return fmt.Errorf("failed to process schedule location at sequence %d: %w", seq, err)
 		}
-		previousTime = nextTime
-		databaseSchedule.Locations = append(databaseSchedule.Locations, databaseLocation)
+		previousTime = *nextTime
+		databaseSchedule.Locations = append(databaseSchedule.Locations, *databaseLocation)
 	}
 
 	if err := u.ScheduleRepository.Insert(&databaseSchedule); err != nil {
@@ -78,286 +77,283 @@ func (u *UnitOfWork) interpretSchedule(lastUpdated time.Time, source string, sou
 	return nil
 }
 
-func genericLocationToDatabaseLocation(log *slog.Logger, sequence int, startDate time.Time, previousTime time.Time, genericLocation *unmarshaller.LocationGeneric) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
-	locationLog := log.With(slog.Int("sequence", sequence), slog.String("type", string(genericLocation.Type)))
+type databaseableScheduleLocation interface {
+	DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation *database.ScheduleLocation, nextTime *time.Time, err error)
+}
+
+func genericLocationToDatabaseLocation(log *slog.Logger, sequence int, startDate time.Time, previousTime time.Time, genericLocation *unmarshaller.LocationGeneric) (databaseLocation *database.ScheduleLocation, nextTime *time.Time, err error) {
+	locationLog := log.With(slog.Int("sequence", sequence))
 	locationLog.Debug("processing Location")
 
-	dbLoc.Sequence = sequence
-	dbLoc.Type = string(genericLocation.Type)
+	var location databaseableScheduleLocation
 
 	switch genericLocation.Type {
 	case unmarshaller.LocationTypeOrigin:
-		nextTime, err = processScheduleOriginLocation(dbLoc, genericLocation.OriginLocation, previousTime, startDate)
-		if err != nil {
-			return err
-		}
+		location = scheduleOriginLocation{log: locationLog, src: genericLocation.Origin}
 	case unmarshaller.LocationTypeOperationalOrigin:
-		if err := processScheduleOperationalOriginLocation(dbLoc, genericLocation.OperationalOriginLocation, previousTime, startDate); err != nil {
-			return err
-		}
+		location = scheduleOperationalOriginLocation{log: locationLog, src: genericLocation.OperationalOrigin}
 	case unmarshaller.LocationTypeIntermediate:
-		if err := processScheduleIntermediateLocation(dbLoc, genericLocation.IntermediateLocation, previousTime, startDate); err != nil {
-			return err
-		}
+		location = scheduleIntermediateLocation{log: locationLog, src: genericLocation.Intermediate}
 	case unmarshaller.LocationTypeOperationalIntermediate:
-		if err := processScheduleOperationalIntermediateLocation(dbLoc, genericLocation.OperationalIntermediateLocation, previousTime, startDate); err != nil {
-			return err
-		}
+		location = scheduleOperationalIntermediateLocation{log: locationLog, src: genericLocation.OperationalIntermediate}
 	case unmarshaller.LocationTypeIntermediatePassing:
-		if err := processScheduleIntermediatePassingLocation(dbLoc, genericLocation.IntermediatePassingLocation, previousTime, startDate); err != nil {
-			return err
-		}
+		location = scheduleIntermediatePassingLocation{log: locationLog, src: genericLocation.IntermediatePassing}
 	case unmarshaller.LocationTypeDestination:
-		if err := processScheduleDestinationLocation(dbLoc, genericLocation.DestinationLocation, previousTime, startDate); err != nil {
-			return err
-		}
+		location = scheduleDestinationLocation{log: locationLog, src: genericLocation.Destination}
 	case unmarshaller.LocationTypeOperationalDestination:
-		if err := processScheduleOperationalDestinationLocation(dbLoc, genericLocation.OperationalDestinationLocation, previousTime, startDate); err != nil {
-			return err
-		}
+		location = scheduleOperationalDestinationLocation{log: locationLog, src: genericLocation.OperationalDestination}
 	default:
-		return fmt.Errorf("unknown location type %s", genericLocation.Type)
+		return nil, nil, fmt.Errorf("unknown location type %s", genericLocation.Type)
 	}
 
-	return nil
+	return location.DatabaseLocation(sequence, previousTime, startDate)
 }
 
-// MUST contain: WTD
-// MAY contain: WTA, PTA, PTD, FD
-func processScheduleOriginLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.OriginLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
-	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	if location.WorkingArrivalTime != "" {
-		wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
-		}
-		dbLoc.WorkingArrivalTime = wta
-	}
-	wtd, err := trainTimeToTime(*previousTime, location.WorkingDepartureTime, startDate)
-	if err != nil {
-		return fmt.Errorf("failed to parse WorkingDepartureTime %q: %w", location.WorkingDepartureTime, err)
-	}
-	dbLoc.WorkingDepartureTime = wtd
-	if location.PublicArrivalTime != "" {
-		pta, err := trainTimeToTime(*previousTime, location.PublicArrivalTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse PublicArrivalTime %q: %w", location.PublicArrivalTime, err)
-		}
-		dbLoc.PublicArrivalTime = pta
-	}
-	if location.PublicDepartureTime != "" {
-		ptd, err := trainTimeToTime(*previousTime, location.PublicDepartureTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse PublicDepartureTime %q: %w", location.PublicDepartureTime, err)
-		}
-		dbLoc.PublicDepartureTime = ptd
-	}
-	if location.FalseDestination != "" {
-		fd := string(location.FalseDestination)
-		dbLoc.FalseDestinationLocationID = &fd
-	}
-	previousTime = wtd
-	return nil
+type scheduleOriginLocation struct {
+	log *slog.Logger
+	// MUST contain: WTD
+	// MAY contain: WTA, PTA, PTD, FD
+	src *unmarshaller.OriginLocation
 }
 
-// MUST contain: WTD
-// MAY contain: WTA
-func processScheduleOperationalOriginLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.OperationalOriginLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
-	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	if location.WorkingArrivalTime != "" {
-		wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
+func (c scheduleOriginLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	if c.src.WorkingArrivalTime != "" {
+		wta, err := trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
 		if err != nil {
-			return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
+			return nil, nil, fmt.Errorf("failed to parse WorkingArrivalTime: %w", err)
 		}
-		dbLoc.WorkingArrivalTime = wta
+		databaseLocation.WorkingArrivalTime = wta
 	}
-	wtd, err := trainTimeToTime(*previousTime, location.WorkingDepartureTime, startDate)
+	wtd, err := trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
 	if err != nil {
-		return fmt.Errorf("failed to parse WorkingDepartureTime %q: %w", location.WorkingDepartureTime, err)
+		return nil, nil, fmt.Errorf("failed to parse WorkingDepartureTime: %w", err)
 	}
-	dbLoc.WorkingDepartureTime = wtd
-	previousTime = wtd
-	return nil
+	databaseLocation.WorkingDepartureTime = wtd
+	if c.src.PublicArrivalTime != "" {
+		pta, err := trainTimeToTime(previousTime, c.src.PublicArrivalTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse PublicArrivalTime: %w", err)
+		}
+		databaseLocation.PublicArrivalTime = pta
+	}
+	if c.src.PublicDepartureTime != "" {
+		ptd, err := trainTimeToTime(previousTime, c.src.PublicDepartureTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse PublicDepartureTime: %w", err)
+		}
+		databaseLocation.PublicDepartureTime = ptd
+	}
+	if c.src.FalseDestination != "" {
+		fd := string(c.src.FalseDestination)
+		databaseLocation.FalseDestinationLocationID = &fd
+	}
+	return databaseLocation, wtd, nil
 }
 
-// MUST contain: WTA, WTD
-// MAY contain: PTA, PTD, FD, RD
-func processScheduleIntermediateLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.IntermediateLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
-	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
-	if err != nil {
-		return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
-	}
-	dbLoc.WorkingArrivalTime = wta
-	wtd, err := trainTimeToTime(*previousTime, location.WorkingDepartureTime, startDate)
-	if err != nil {
-		return fmt.Errorf("failed to parse WorkingDepartureTime %q: %w", location.WorkingDepartureTime, err)
-	}
-	dbLoc.WorkingDepartureTime = wtd
-	if location.PublicArrivalTime != "" {
-		pta, err := trainTimeToTime(*previousTime, location.PublicArrivalTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse PublicArrivalTime %q: %w", location.PublicArrivalTime, err)
-		}
-		dbLoc.PublicArrivalTime = pta
-	}
-	if location.PublicDepartureTime != "" {
-		ptd, err := trainTimeToTime(*previousTime, location.PublicDepartureTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse PublicDepartureTime %q: %w", location.PublicDepartureTime, err)
-		}
-		dbLoc.PublicDepartureTime = ptd
-	}
-	if location.FalseDestination != "" {
-		fd := string(location.FalseDestination)
-		dbLoc.FalseDestinationLocationID = &fd
-	}
-	if location.RoutingDelay != 0 {
-		rd := time.Duration(location.RoutingDelay) * time.Minute
-		dbLoc.RoutingDelay = &rd
-	}
-	previousTime = wtd
-	return nil
+type scheduleOperationalOriginLocation struct {
+	log *slog.Logger
+	// MUST contain: WTD
+	// MAY contain: WTA
+	src *unmarshaller.OperationalOriginLocation
 }
 
-// MUST contain: WTA, WTD
-// MAY contain: RD
-func processScheduleOperationalIntermediateLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.OperationalIntermediateLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
+func (c scheduleOperationalOriginLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	if c.src.WorkingArrivalTime != "" {
+		wta, err := trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse WorkingArrivalTime: %w", err)
+		}
+		databaseLocation.WorkingArrivalTime = wta
 	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
+	wtd, err := trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
 	if err != nil {
-		return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
+		return nil, nil, fmt.Errorf("failed to parse WorkingDepartureTime: %w", err)
 	}
-	dbLoc.WorkingArrivalTime = wta
-	wtd, err := trainTimeToTime(*previousTime, location.WorkingDepartureTime, startDate)
-	if err != nil {
-		return fmt.Errorf("failed to parse WorkingDepartureTime %q: %w", location.WorkingDepartureTime, err)
-	}
-	dbLoc.WorkingDepartureTime = wtd
-	if location.RoutingDelay != 0 {
-		rd := time.Duration(location.RoutingDelay) * time.Minute
-		dbLoc.RoutingDelay = &rd
-	}
-	previousTime = wtd
-	return nil
+	databaseLocation.WorkingDepartureTime = wtd
+	return databaseLocation, wtd, nil
 }
 
-// MUST contain: WTP
-// MAY contain: RD
-func processScheduleIntermediatePassingLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.IntermediatePassingLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
-	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	wtp, err := trainTimeToTime(*previousTime, location.WorkingPassingTime, startDate)
-	if err != nil {
-		return fmt.Errorf("failed to parse WorkingPassingTime %q: %w", location.WorkingPassingTime, err)
-	}
-	dbLoc.WorkingPassingTime = wtp
-	if location.RoutingDelay != 0 {
-		rd := time.Duration(location.RoutingDelay) * time.Minute
-		dbLoc.RoutingDelay = &rd
-	}
-	previousTime = wtp
-	return nil
+type scheduleIntermediateLocation struct {
+	log *slog.Logger
+	// MUST contain: WTA, WTD
+	// MAY contain: PTA, PTD, FD, RD
+	src *unmarshaller.IntermediateLocation
 }
 
-// MUST contain: WTA
-// MAY contain: WTD, PTA, PTD, RD
-func processScheduleDestinationLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.DestinationLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
-	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
+func (c scheduleIntermediateLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	wta, err := trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
 	if err != nil {
-		return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
+		return nil, nil, fmt.Errorf("failed to parse WorkingArrivalTime: %w", err)
 	}
-	dbLoc.WorkingArrivalTime = wta
-	if location.WorkingDepartureTime != "" {
-		wtd, err := trainTimeToTime(*previousTime, location.WorkingDepartureTime, startDate)
+	databaseLocation.WorkingArrivalTime = wta
+	wtd, err := trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse WorkingDepartureTime: %w", err)
+	}
+	databaseLocation.WorkingDepartureTime = wtd
+	if c.src.PublicArrivalTime != "" {
+		pta, err := trainTimeToTime(previousTime, c.src.PublicArrivalTime, startDate)
 		if err != nil {
-			return fmt.Errorf("failed to parse WorkingDepartureTime %q: %w", location.WorkingDepartureTime, err)
+			return nil, nil, fmt.Errorf("failed to parse PublicArrivalTime: %w", err)
 		}
-		dbLoc.WorkingDepartureTime = wtd
+		databaseLocation.PublicArrivalTime = pta
 	}
-	if location.PublicArrivalTime != "" {
-		pta, err := trainTimeToTime(*previousTime, location.PublicArrivalTime, startDate)
+	if c.src.PublicDepartureTime != "" {
+		ptd, err := trainTimeToTime(previousTime, c.src.PublicDepartureTime, startDate)
 		if err != nil {
-			return fmt.Errorf("failed to parse PublicArrivalTime %q: %w", location.PublicArrivalTime, err)
+			return nil, nil, fmt.Errorf("failed to parse PublicDepartureTime: %w", err)
 		}
-		dbLoc.PublicArrivalTime = pta
+		databaseLocation.PublicDepartureTime = ptd
 	}
-	if location.PublicDepartureTime != "" {
-		ptd, err := trainTimeToTime(*previousTime, location.PublicDepartureTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse PublicDepartureTime %q: %w", location.PublicDepartureTime, err)
-		}
-		dbLoc.PublicDepartureTime = ptd
+	if c.src.FalseDestination != "" {
+		fd := string(c.src.FalseDestination)
+		databaseLocation.FalseDestinationLocationID = &fd
 	}
-	if location.RoutingDelay != 0 {
-		rd := time.Duration(location.RoutingDelay) * time.Minute
-		dbLoc.RoutingDelay = &rd
+	if c.src.RoutingDelay != 0 {
+		rd := time.Duration(c.src.RoutingDelay) * time.Minute
+		databaseLocation.RoutingDelay = &rd
 	}
-	previousTime = wta
-	return nil
+	return databaseLocation, wtd, nil
 }
 
-// MUST contain: WTA
-// MAY contain: WTD, RD
-func processScheduleOperationalDestinationLocation(dbLoc *db.ScheduleLocation, location *unmarshaller.OperationalDestinationLocation, previousTime *time.Time, startDate time.Time) error {
-	if location == nil {
-		return errors.New("location is nil")
-	}
-	appendSharedValues(dbLoc, location.LocationSchedule)
-	wta, err := trainTimeToTime(*previousTime, location.WorkingArrivalTime, startDate)
-	if err != nil {
-		return fmt.Errorf("failed to parse WorkingArrivalTime %q: %w", location.WorkingArrivalTime, err)
-	}
-	dbLoc.WorkingArrivalTime = wta
-	if location.WorkingDepartureTime != "" {
-		wtd, err := trainTimeToTime(*previousTime, location.WorkingDepartureTime, startDate)
-		if err != nil {
-			return fmt.Errorf("failed to parse WorkingDepartureTime %q: %w", location.WorkingDepartureTime, err)
-		}
-		dbLoc.WorkingDepartureTime = wtd
-	}
-	if location.RoutingDelay != 0 {
-		rd := time.Duration(location.RoutingDelay) * time.Minute
-		dbLoc.RoutingDelay = &rd
-	}
-	previousTime = wta
-	return nil
+type scheduleOperationalIntermediateLocation struct {
+	log *slog.Logger
+	// MUST contain: WTA, WTD
+	// MAY contain: RD
+	src *unmarshaller.OperationalIntermediateLocation
 }
 
-func appendSharedValues(dbLoc *db.ScheduleLocation, locationBase unmarshaller.LocationSchedule) {
-	dbLoc.LocationID = string(locationBase.TIPLOC)
-	if locationBase.Activities != "" {
-		dbLoc.Activities = &locationBase.Activities
+func (c scheduleOperationalIntermediateLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	wta, err := trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse WorkingArrivalTime: %w", err)
 	}
-	if locationBase.PlannedActivities != "" {
-		dbLoc.PlannedActivities = &locationBase.PlannedActivities
+	databaseLocation.WorkingArrivalTime = wta
+	wtd, err := trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse WorkingDepartureTime: %w", err)
 	}
-	dbLoc.Cancelled = locationBase.Cancelled
-	dbLoc.AffectedByDiversion = locationBase.AffectedByDiversion
-	if locationBase.CancellationReason != nil {
-		dbLoc.CancellationReasonID = &locationBase.CancellationReason.ReasonID
-		if locationBase.CancellationReason.TIPLOC != "" {
-			tiploc := string(locationBase.CancellationReason.TIPLOC)
-			dbLoc.CancellationReasonLocationID = &tiploc
+	databaseLocation.WorkingDepartureTime = wtd
+	if c.src.RoutingDelay != 0 {
+		rd := time.Duration(c.src.RoutingDelay) * time.Minute
+		databaseLocation.RoutingDelay = &rd
+	}
+	return databaseLocation, wtd, nil
+}
+
+type scheduleIntermediatePassingLocation struct {
+	log *slog.Logger
+	// MUST contain: WTP
+	// MAY contain: RD
+	src *unmarshaller.IntermediatePassingLocation
+}
+
+func (c scheduleIntermediatePassingLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	wtp, err := trainTimeToTime(previousTime, c.src.WorkingPassingTime, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse WorkingPassingTime: %w", err)
+	}
+	databaseLocation.WorkingPassingTime = wtp
+	if c.src.RoutingDelay != 0 {
+		rd := time.Duration(c.src.RoutingDelay) * time.Minute
+		databaseLocation.RoutingDelay = &rd
+	}
+	return databaseLocation, wtp, nil
+}
+
+type scheduleDestinationLocation struct {
+	log *slog.Logger
+	// MUST contain: WTA
+	// MAY contain: WTD, PTA, PTD, RD
+	src *unmarshaller.DestinationLocation
+}
+
+func (c scheduleDestinationLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	wta, err := trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse WorkingArrivalTime: %w", err)
+	}
+	databaseLocation.WorkingArrivalTime = wta
+	if c.src.WorkingDepartureTime != "" {
+		wtd, err := trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse WorkingDepartureTime: %w", err)
 		}
-		dbLoc.CancellationReasonNearLocation = &locationBase.CancellationReason.Near
+		databaseLocation.WorkingDepartureTime = wtd
 	}
+	if c.src.PublicArrivalTime != "" {
+		pta, err := trainTimeToTime(previousTime, c.src.PublicArrivalTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse PublicArrivalTime: %w", err)
+		}
+		databaseLocation.PublicArrivalTime = pta
+	}
+	if c.src.PublicDepartureTime != "" {
+		ptd, err := trainTimeToTime(previousTime, c.src.PublicDepartureTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse PublicDepartureTime: %w", err)
+		}
+		databaseLocation.PublicDepartureTime = ptd
+	}
+	if c.src.RoutingDelay != 0 {
+		rd := time.Duration(c.src.RoutingDelay) * time.Minute
+		databaseLocation.RoutingDelay = &rd
+	}
+	return databaseLocation, wta, nil
+}
+
+type scheduleOperationalDestinationLocation struct {
+	log *slog.Logger
+	// MUST contain: WTA
+	// MAY contain: WTD, RD
+	src *unmarshaller.OperationalDestinationLocation
+}
+
+func (c scheduleOperationalDestinationLocation) DatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (*database.ScheduleLocation, *time.Time, error) {
+	databaseLocation := newDatabaseLocationWithBaseValues(c.src.LocationSchedule, sequence)
+	wta, err := trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse WorkingArrivalTime: %w", err)
+	}
+	databaseLocation.WorkingArrivalTime = wta
+	if c.src.WorkingDepartureTime != "" {
+		wtd, err := trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to parse WorkingDepartureTime: %w", err)
+		}
+		databaseLocation.WorkingDepartureTime = wtd
+	}
+	if c.src.RoutingDelay != 0 {
+		rd := time.Duration(c.src.RoutingDelay) * time.Minute
+		databaseLocation.RoutingDelay = &rd
+	}
+	return databaseLocation, wta, nil
+}
+
+func newDatabaseLocationWithBaseValues(baseValues unmarshaller.LocationSchedule, sequence int) (databaseLocation *database.ScheduleLocation) {
+	databaseLocation = &database.ScheduleLocation{Sequence: sequence}
+	databaseLocation.LocationID = string(baseValues.TIPLOC)
+	if baseValues.Activities != "" {
+		databaseLocation.Activities = &baseValues.Activities
+	}
+	if baseValues.PlannedActivities != "" {
+		databaseLocation.PlannedActivities = &baseValues.PlannedActivities
+	}
+	databaseLocation.Cancelled = baseValues.Cancelled
+	databaseLocation.AffectedByDiversion = baseValues.AffectedByDiversion
+	if baseValues.CancellationReason != nil {
+		databaseLocation.CancellationReasonID = &baseValues.CancellationReason.ReasonID
+		if baseValues.CancellationReason.TIPLOC != "" {
+			tiploc := string(baseValues.CancellationReason.TIPLOC)
+			databaseLocation.CancellationReasonLocationID = &tiploc
+		}
+		databaseLocation.CancellationReasonNearLocation = &baseValues.CancellationReason.Near
+	}
+	return
 }

@@ -49,7 +49,7 @@ var scheduleTestCases = map[string]Schedule{
 		Locations: []LocationGeneric{
 			{
 				Type: LocationTypeOrigin,
-				OriginLocation: &OriginLocation{
+				Origin: &OriginLocation{
 					LocationSchedule: LocationSchedule{
 						TIPLOC:              "MNOP",
 						Activities:          "TBT ",
@@ -72,14 +72,14 @@ var scheduleTestCases = map[string]Schedule{
 			},
 			{
 				Type: LocationTypeOperationalOrigin,
-				OperationalOriginLocation: &OperationalOriginLocation{
+				OperationalOrigin: &OperationalOriginLocation{
 					WorkingArrivalTime:   "00:05",
 					WorkingDepartureTime: "00:06",
 				},
 			},
 			{
 				Type: LocationTypeIntermediate,
-				IntermediateLocation: &IntermediateLocation{
+				Intermediate: &IntermediateLocation{
 					PublicArrivalTime:    "00:07",
 					PublicDepartureTime:  "00:08",
 					WorkingArrivalTime:   "00:09",
@@ -90,7 +90,7 @@ var scheduleTestCases = map[string]Schedule{
 			},
 			{
 				Type: LocationTypeOperationalIntermediate,
-				OperationalIntermediateLocation: &OperationalIntermediateLocation{
+				OperationalIntermediate: &OperationalIntermediateLocation{
 					WorkingArrivalTime:   "00:11",
 					WorkingDepartureTime: "00:12",
 					RoutingDelay:         3,
@@ -98,14 +98,14 @@ var scheduleTestCases = map[string]Schedule{
 			},
 			{
 				Type: LocationTypeIntermediatePassing,
-				IntermediatePassingLocation: &IntermediatePassingLocation{
+				IntermediatePassing: &IntermediatePassingLocation{
 					WorkingPassingTime: "00:13",
 					RoutingDelay:       4,
 				},
 			},
 			{
 				Type: LocationTypeDestination,
-				DestinationLocation: &DestinationLocation{
+				Destination: &DestinationLocation{
 					PublicArrivalTime:    "00:14",
 					PublicDepartureTime:  "00:15",
 					WorkingArrivalTime:   "00:16",
@@ -115,7 +115,7 @@ var scheduleTestCases = map[string]Schedule{
 			},
 			{
 				Type: LocationTypeOperationalDestination,
-				OperationalDestinationLocation: &OperationalDestinationLocation{
+				OperationalDestination: &OperationalDestinationLocation{
 					WorkingArrivalTime:   "00:18",
 					WorkingDepartureTime: "00:19",
 					RoutingDelay:         6,

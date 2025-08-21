@@ -95,14 +95,14 @@ func (c ServeCommand) Run() error {
 
 	databaseContext := context.Background()
 
-	darwinDatabase, err := darwindb.New(log.With(slog.String("source", "darwin.database")), databaseContext, c.Darwin.Database.URL)
+	darwinDatabase, err := darwindb.New(databaseContext, log.With(slog.String("source", "darwin.database")), c.Darwin.Database.URL)
 	if err != nil {
 		return fmt.Errorf("error connecting to darwin database: %w", err)
 	}
 
 	kafkaContext := context.Background()
 
-	darwinKafkaConnection := darwinconn.New(log.With(slog.String("source", "darwin.connection")), kafkaContext, kafka.ReaderConfig{
+	darwinKafkaConnection := darwinconn.New(kafkaContext, log.With(slog.String("source", "darwin.connection")), kafka.ReaderConfig{
 		Brokers: []string{c.Darwin.Kafka.Host},
 		GroupID: c.Darwin.Kafka.GroupID,
 		Topic:   c.Darwin.Kafka.Topic,
@@ -120,7 +120,7 @@ func (c ServeCommand) Run() error {
 
 	messageHandlerContext := context.Background()
 
-	darwinMessageHandler := darwin.NewMessageHandler(log.With(slog.String("source", "darwin.handler")), messageHandlerContext, darwinDatabase)
+	darwinMessageHandler := darwin.NewMessageHandler(messageHandlerContext, log.With(slog.String("source", "darwin.handler")), darwinDatabase)
 
 	var fetcherGroup sync.WaitGroup
 	fetcherGroup.Go(func() {
