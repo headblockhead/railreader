@@ -58,6 +58,6 @@ func (c Connection) CommitMessage(msg kafka.Message) error {
 	if err := c.reader.CommitMessages(c.ctx, msg); err != nil {
 		return fmt.Errorf("failed to commit message: %w", err)
 	}
-	c.log.Debug("committed message", slog.Int64("offset", msg.Offset))
+	c.log.Info("committed message", slog.Int64("offset", msg.Offset))
 	return nil
 }

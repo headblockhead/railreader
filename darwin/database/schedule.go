@@ -24,7 +24,7 @@ func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) 
 }
 
 func (sr PGXScheduleRepository) Insert(s *Schedule) error {
-	sr.log.Debug("inserting schedule")
+	sr.log.Info("inserting schedule")
 
 	_, err := sr.tx.Exec(sr.ctx, `
 		DELETE FROM schedules WHERE schedule_id = @schedule_id;
@@ -101,7 +101,7 @@ func (sr PGXScheduleRepository) Insert(s *Schedule) error {
 
 func (sr PGXScheduleRepository) insertLocation(scheduleID string, location *ScheduleLocation) error {
 	log := sr.log.With(slog.Int("sequence", location.Sequence))
-	log.Debug("inserting schedule location")
+	log.Info("inserting schedule location")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                       scheduleID,
 		"sequence":                          location.Sequence,
