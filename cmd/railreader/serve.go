@@ -84,7 +84,7 @@ func (c ServeCommand) Run() error {
 		for {
 			signal := <-signalchan // block until a signal is received
 			if alreadyTerminating {
-				log.Error("received multiple exit signals, exiting immediately")
+				log.Warn("received multiple exit signals, exiting immediately")
 				os.Exit(130)
 			}
 			alreadyTerminating = true
@@ -153,7 +153,7 @@ func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.
 			if err == context.Canceled {
 				break
 			}
-			log.Warn("error fetching message", slog.Any("error", err))
+			log.Error("error fetching message", slog.Any("error", err))
 			continue
 		}
 		messages <- message
