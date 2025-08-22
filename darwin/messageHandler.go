@@ -61,10 +61,6 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 	return nil
 }
 
-type MessageXMLRepository interface {
-	Insert(message database.MessageXML) error
-}
-
 func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Database, capsule messageCapsule) error {
 	log.Debug("inserting a messageCapsule (as a database.MessageXML) into the database")
 	messageXML := database.MessageXML{MessageID: capsule.MessageID, XML: capsule.XML}
@@ -88,25 +84,19 @@ func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Dat
 }
 
 func interpretPushPortMessage(ctx context.Context, log *slog.Logger, db database.Database, messageID string, pport unmarshaller.PushPortMessage) error {
-	log.Debug("interpreting a PushPortMessage")
-	interpretPushPortMessageTx, err := db.BeginTx()
-	if err != nil {
-		return fmt.Errorf("failed to begin PushPortMessage interpretation transaction: %w", err)
-	}
 	log.Debug("creating a new UnitOfWork for interpreting the PushPortMessage")
-	u := interpreter.NewUnitOfWork(
-		log,
-		messageID,
-		database.NewPGXScheduleRepository(ctx, log.With(slog.String("repository", "Schedule")), interpretPushPortMessageTx),
-	)
+	u, err := interpreter.NewUnitOfWork(ctx, log, messageID, db)
+	if err != nil {
+		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
+	}
 	if err = u.InterpretPushPortMessage(pport); err != nil {
-		_ = interpretPushPortMessageTx.Rollback(ctx)
+		_ = u.Rollback()
 		return err
 	}
-	log.Debug("committing the PushPortMessage interpretation transaction")
-	if err := interpretPushPortMessageTx.Commit(ctx); err != nil {
-		_ = interpretPushPortMessageTx.Rollback(ctx)
-		return fmt.Errorf("failed to commit PushPortMessage interpretation transaction: %w", err)
+	log.Debug("committing the UnitOfWork")
+	if err := u.Commit(); err != nil {
+		_ = u.Rollback()
+		return fmt.Errorf("failed to commit UnitOfWork: %w", err)
 	}
 	log.Debug("interpreted a PushPortMessage")
 	return nil

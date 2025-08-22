@@ -24,42 +24,42 @@ func TestTrainTime(t *testing.T) {
 	}
 	testCases := []trainTimeTestCase{
 		// Time crossing midnight forwards
-		trainTimeTestCase{
+		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location),   // 2025-08-10
 			PreviousTime:        time.Date(2025, 8, 10, 23, 55, 0, 0, location), // 2025-08-10 23:55
 			CurrentTime:         "00:05",
 			ExpectedCurrentTime: time.Date(2025, 8, 11, 0, 5, 0, 0, location), // 2025-08-11 00:05
 		},
 		// Time going forwards.
-		trainTimeTestCase{
+		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location), // 2025-08-10
 			PreviousTime:        time.Date(2025, 8, 10, 8, 0, 0, 0, location), // 2025-08-10 08:00
 			CurrentTime:         "08:05",
 			ExpectedCurrentTime: time.Date(2025, 8, 10, 8, 5, 0, 0, location), // 2025-08-10 08:05
 		},
 		// Time going backwards.
-		trainTimeTestCase{
+		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location), // 2025-08-10
 			PreviousTime:        time.Date(2025, 8, 10, 8, 0, 0, 0, location), // 2025-08-10 08:00
 			CurrentTime:         "07:55",
 			ExpectedCurrentTime: time.Date(2025, 8, 10, 7, 55, 0, 0, location), // 2025-08-10 07:55
 		},
 		// Time crossing midnight backwards.
-		trainTimeTestCase{
+		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location), // 2025-08-10
 			PreviousTime:        time.Date(2025, 8, 11, 0, 5, 0, 0, location), // 2025-08-11 00:05
 			CurrentTime:         "23:55",
 			ExpectedCurrentTime: time.Date(2025, 8, 10, 23, 55, 0, 0, location), // 2025-08-10 23:55
 		},
 		// No previousTime given
-		trainTimeTestCase{
+		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location), // 2025-08-10
 			PreviousTime:        time.Time{},                                  // zero
 			CurrentTime:         "08:00",
 			ExpectedCurrentTime: time.Date(2025, 8, 10, 8, 0, 0, 0, location), // 2025-08-10 08:00
 		},
 		// Time going forwards after previously crossing midnight
-		trainTimeTestCase{
+		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location), // 2025-08-10
 			PreviousTime:        time.Date(2025, 8, 11, 8, 0, 0, 0, location), // 2025-08-11 08:00
 			CurrentTime:         "08:05",
