@@ -37,17 +37,18 @@ func (c Connection) Close() error {
 }
 
 // FetchMessage blocks until a message is available, or the provided context is cancelled.
-func (c Connection) FetchMessage(ctx context.Context) (kafka.Message, error) {
-	if err := ctx.Err(); err != nil {
-		return kafka.Message{}, err
+func (c Connection) FetchMessage(ctx context.Context) (msg kafka.Message, err error) {
+	if err = ctx.Err(); err != nil {
+		return
 	}
 	c.log.Debug("fetching message")
-	msg, err := c.reader.FetchMessage(ctx)
+	msg, err = c.reader.FetchMessage(ctx)
 	if err != nil {
-		return kafka.Message{}, fmt.Errorf("failed to fetch a message: %w", err)
+		err = fmt.Errorf("failed to fetch a message: %w", err)
+		return
 	}
 	c.log.Info("fetched message", slog.Int64("offset", msg.Offset))
-	return msg, nil
+	return
 }
 
 func (c Connection) CommitMessage(msg kafka.Message) error {

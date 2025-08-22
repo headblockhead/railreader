@@ -9,7 +9,8 @@ import (
 
 func trainTimeToTime(previousTime time.Time, currentTrainTime unmarshaller.TrainTime, scheduledStartDate time.Time) (currentTime time.Time, err error) {
 	if len(currentTrainTime) != 5 && len(currentTrainTime) != 8 {
-		return currentTime, fmt.Errorf("invalid train time length of: %q", currentTrainTime)
+		err = fmt.Errorf("invalid train time length of: %q", currentTrainTime)
+		return
 	}
 
 	template := "15:04"
@@ -19,17 +20,19 @@ func trainTimeToTime(previousTime time.Time, currentTrainTime unmarshaller.Train
 
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
-		return currentTime, fmt.Errorf("failed to load time location: %w", err)
+		err = fmt.Errorf("failed to load time location: %w", err)
+		return
 	}
 	currentTime, err = time.ParseInLocation(template, string(currentTrainTime), location)
 	if err != nil {
-		return currentTime, fmt.Errorf("failed to parse time %q: %w", currentTrainTime, err)
+		err = fmt.Errorf("failed to parse time %q: %w", currentTrainTime, err)
+		return
 	}
 
 	currentTime = time.Date(scheduledStartDate.Year(), scheduledStartDate.Month(), scheduledStartDate.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second(), 0, location)
 
 	if previousTime.IsZero() {
-		return currentTime, nil
+		return
 	}
 
 	difference := currentTime.Sub(previousTime)
@@ -49,7 +52,6 @@ func trainTimeToTime(previousTime time.Time, currentTrainTime unmarshaller.Train
 		scheduledStartDate = scheduledStartDate.AddDate(0, 0, -1)
 	}
 
-	finalTime := time.Date(scheduledStartDate.Year(), scheduledStartDate.Month(), scheduledStartDate.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second(), 0, location)
-
-	return finalTime, nil
+	currentTime = time.Date(scheduledStartDate.Year(), scheduledStartDate.Month(), scheduledStartDate.Day(), currentTime.Hour(), currentTime.Minute(), currentTime.Second(), 0, location)
+	return
 }
