@@ -33,7 +33,7 @@ type Schedule struct {
 	Charter bool `xml:"isCharter,attr"`
 
 	// Locations is a slice of at least 2 location elements that describe the train's schedule.
-	Locations []LocationGeneric `xml:",any"` // Any other provided XML elements will be interpreted as locations.
+	Locations []ScheduleLocation `xml:",any"` // Any other provided XML elements will be interpreted as locations.
 	// CancellationReason is the optionally provided reason why this service was cancelled.
 	// This is provided at the service level, and/or the location level.
 	CancellationReason *DisruptionReason `xml:"cancelReason"`
@@ -64,8 +64,8 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// LocationGeneric is a generic struct that contains (nullable pointers to) all the possible location types.
-type LocationGeneric struct {
+// ScheduleLocation is a generic struct that contains (nullable pointers to) all the possible location types.
+type ScheduleLocation struct {
 	Type LocationType
 
 	Origin                  *OriginLocation                  `xml:"OR"`
@@ -89,42 +89,42 @@ const (
 	LocationTypeOperationalDestination  LocationType = "OPDT"
 )
 
-func (lg *LocationGeneric) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (lg *ScheduleLocation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	locationType := start.Name.Local
 	lg.Type = LocationType(locationType)
 	switch lg.Type {
 	case LocationTypeOrigin:
-		lg.Origin = &OriginLocation{LocationSchedule: LocationSchedule{}}
+		lg.Origin = &OriginLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.Origin, &start); err != nil {
 			return fmt.Errorf("failed to decode OriginLocation: %w", err)
 		}
 	case LocationTypeOperationalOrigin:
-		lg.OperationalOrigin = &OperationalOriginLocation{LocationSchedule: LocationSchedule{}}
+		lg.OperationalOrigin = &OperationalOriginLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.OperationalOrigin, &start); err != nil {
 			return fmt.Errorf("failed to decode OperationalOriginLocation: %w", err)
 		}
 	case LocationTypeIntermediate:
-		lg.Intermediate = &IntermediateLocation{LocationSchedule: LocationSchedule{}}
+		lg.Intermediate = &IntermediateLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.Intermediate, &start); err != nil {
 			return fmt.Errorf("failed to decode IntermediateLocation: %w", err)
 		}
 	case LocationTypeOperationalIntermediate:
-		lg.OperationalIntermediate = &OperationalIntermediateLocation{LocationSchedule: LocationSchedule{}}
+		lg.OperationalIntermediate = &OperationalIntermediateLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.OperationalIntermediate, &start); err != nil {
 			return fmt.Errorf("failed to decode OperationalIntermediateLocation: %w", err)
 		}
 	case LocationTypeIntermediatePassing:
-		lg.IntermediatePassing = &IntermediatePassingLocation{LocationSchedule: LocationSchedule{}}
+		lg.IntermediatePassing = &IntermediatePassingLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.IntermediatePassing, &start); err != nil {
 			return fmt.Errorf("failed to decode IntermediatePassingLocation: %w", err)
 		}
 	case LocationTypeDestination:
-		lg.Destination = &DestinationLocation{LocationSchedule: LocationSchedule{}}
+		lg.Destination = &DestinationLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.Destination, &start); err != nil {
 			return fmt.Errorf("failed to decode DestinationLocation: %w", err)
 		}
 	case LocationTypeOperationalDestination:
-		lg.OperationalDestination = &OperationalDestinationLocation{LocationSchedule: LocationSchedule{}}
+		lg.OperationalDestination = &OperationalDestinationLocation{LocationBase: LocationBase{}}
 		if err := d.DecodeElement(lg.OperationalDestination, &start); err != nil {
 			return fmt.Errorf("failed to decode OperationalDestinationLocation: %w", err)
 		}
@@ -135,8 +135,8 @@ func (lg *LocationGeneric) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	return nil
 }
 
-// LocationSchedule is the base struct for all location types.
-type LocationSchedule struct {
+// LocationBase is the base struct for all location types.
+type LocationBase struct {
 	// TIPLOC is the code for the location
 	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
 	// Activities optionally provides what is happening at this location.
@@ -159,7 +159,7 @@ type LocationSchedule struct {
 }
 
 type OriginLocation struct {
-	LocationSchedule
+	LocationBase
 	// PublicArrivalTime is optionally provided.
 	PublicArrivalTime TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
@@ -172,14 +172,14 @@ type OriginLocation struct {
 }
 
 type OperationalOriginLocation struct {
-	LocationSchedule
+	LocationBase
 	// WorkingArrivalTime is optionally provided.
 	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
 	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
 }
 
 type IntermediateLocation struct {
-	LocationSchedule
+	LocationBase
 	// PublicArrivalTime is optionally provided.
 	PublicArrivalTime TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
@@ -193,7 +193,7 @@ type IntermediateLocation struct {
 }
 
 type OperationalIntermediateLocation struct {
-	LocationSchedule
+	LocationBase
 	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
 	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
@@ -201,14 +201,14 @@ type OperationalIntermediateLocation struct {
 }
 
 type IntermediatePassingLocation struct {
-	LocationSchedule
+	LocationBase
 	WorkingPassingTime TrainTime `xml:"wtp,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type DestinationLocation struct {
-	LocationSchedule
+	LocationBase
 	// PublicArrivalTime is optionally provided.
 	PublicArrivalTime TrainTime `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
@@ -221,7 +221,7 @@ type DestinationLocation struct {
 }
 
 type OperationalDestinationLocation struct {
-	LocationSchedule
+	LocationBase
 	WorkingArrivalTime TrainTime `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
 	WorkingDepartureTime TrainTime `xml:"wtd,attr"`

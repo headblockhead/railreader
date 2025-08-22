@@ -25,28 +25,33 @@ type Database struct {
 var migrationsFS embed.FS
 
 // New connects to the postgres database, and automatically migrates the schema to the latest version.
-func New(ctx context.Context, log *slog.Logger, url string) (*Database, error) {
+func New(ctx context.Context, log *slog.Logger, url string) (db Database, err error) {
 	log.Debug("creating migrations iofs")
 	srcDriver, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create iofs for migrations: %w", err)
+		err = fmt.Errorf("failed to create iofs for migrations: %w", err)
+		return
 	}
 	log.Debug("connecting migration tool")
 	m, err := migrate.NewWithSourceInstance("iofs", srcDriver, url)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
+		err = fmt.Errorf("failed to create migrate instance: %w", err)
+		return
 	}
 	log.Debug("migrating to the latest schema")
-	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		return nil, fmt.Errorf("failed to apply migrations: %w", err)
+	if err = m.Up(); err != nil && err != migrate.ErrNoChange {
+		err = fmt.Errorf("failed to apply migrations: %w", err)
+		return
 	}
 	log.Debug("closing migration tool's connection")
 	srcerr, dberr := m.Close()
 	if srcerr != nil {
-		return nil, fmt.Errorf("failed to close migrate connection due to an error closing the source: %w", srcerr)
+		err = fmt.Errorf("failed to close migrate connection due to an error closing the source: %w", srcerr)
+		return
 	}
 	if dberr != nil {
-		return nil, fmt.Errorf("failed to close migrate connection due to an error closing the database: %w", dberr)
+		err = fmt.Errorf("failed to close migrate connection due to an error closing the database: %w", dberr)
+		return
 	}
 
 	ctx, cancel := context.WithCancelCause(ctx)
@@ -54,11 +59,12 @@ func New(ctx context.Context, log *slog.Logger, url string) (*Database, error) {
 	conn, err := pgx.Connect(ctx, url)
 	if err != nil {
 		cancel(errors.New("failed to connect to database"))
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		err = fmt.Errorf("failed to connect to database: %w", err)
+		return
 	}
 	log.Debug("connected pgx")
 
-	return &Database{
+	return Database{
 		ctx:    ctx,
 		cancel: cancel,
 		log:    log,
@@ -66,7 +72,7 @@ func New(ctx context.Context, log *slog.Logger, url string) (*Database, error) {
 	}, nil
 }
 
-func (c *Database) Close(timeout time.Duration) error {
+func (c Database) Close(timeout time.Duration) error {
 	c.log.Debug("closing connection", slog.String("timeout", timeout.String()))
 	defer c.cancel(errors.New("connection closed"))
 	ctx, cancel := context.WithTimeout(c.ctx, timeout)
@@ -78,7 +84,7 @@ func (c *Database) Close(timeout time.Duration) error {
 	return nil
 }
 
-func (c *Database) BeginTx() (pgx.Tx, error) {
+func (c Database) BeginTx() (pgx.Tx, error) {
 	c.log.Debug("starting a new transaction")
 	tx, err := c.conn.Begin(c.ctx)
 	if err != nil {

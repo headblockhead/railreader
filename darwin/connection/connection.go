@@ -16,9 +16,9 @@ type Connection struct {
 	reader *kafka.Reader
 }
 
-func New(ctx context.Context, log *slog.Logger, readerConfig kafka.ReaderConfig) *Connection {
+func New(ctx context.Context, log *slog.Logger, readerConfig kafka.ReaderConfig) Connection {
 	ctx, cancel := context.WithCancelCause(ctx)
-	return &Connection{
+	return Connection{
 		ctx:    ctx,
 		cancel: cancel,
 		log:    log,
@@ -26,7 +26,7 @@ func New(ctx context.Context, log *slog.Logger, readerConfig kafka.ReaderConfig)
 	}
 }
 
-func (c *Connection) Close() error {
+func (c Connection) Close() error {
 	c.log.Debug("closing connection")
 	defer c.cancel(errors.New("connection closed"))
 	if err := c.reader.Close(); err != nil {
@@ -37,7 +37,7 @@ func (c *Connection) Close() error {
 }
 
 // FetchMessage blocks until a message is available, or the provided context is cancelled.
-func (c *Connection) FetchMessage(ctx context.Context) (kafka.Message, error) {
+func (c Connection) FetchMessage(ctx context.Context) (kafka.Message, error) {
 	if err := ctx.Err(); err != nil {
 		return kafka.Message{}, err
 	}
@@ -50,7 +50,7 @@ func (c *Connection) FetchMessage(ctx context.Context) (kafka.Message, error) {
 	return msg, nil
 }
 
-func (c *Connection) CommitMessage(msg kafka.Message) error {
+func (c Connection) CommitMessage(msg kafka.Message) error {
 	if err := c.ctx.Err(); err != nil {
 		return fmt.Errorf("context error: %w", err)
 	}

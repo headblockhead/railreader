@@ -43,7 +43,7 @@ var forecastTestCases = map[string]ForecastTime{
 					PublicArrivalTime:    "00:04",
 					PublicDepartureTime:  "00:05",
 				},
-				ArrivalData: &ForecastLocationTimeData{
+				ArrivalData: &ForecastTimes{
 					EstimatedTime:        "00:12",
 					WorkingTime:          "00:13",
 					ActualTime:           "00:14",
@@ -55,7 +55,7 @@ var forecastTestCases = map[string]ForecastTime{
 					Source:               "TRUST",
 					SourceSystem:         "Auto",
 				},
-				DepartureData: &ForecastLocationTimeData{
+				DepartureData: &ForecastTimes{
 					EstimatedTime:        "00:16",
 					WorkingTime:          "00:17",
 					ActualTime:           "00:18",
@@ -67,7 +67,7 @@ var forecastTestCases = map[string]ForecastTime{
 					Source:               "TRUST",
 					SourceSystem:         "Auto",
 				},
-				PassingData: &ForecastLocationTimeData{
+				PassingData: &ForecastTimes{
 					EstimatedTime:        "00:20",
 					WorkingTime:          "00:21",
 					ActualTime:           "00:22",
@@ -86,7 +86,7 @@ var forecastTestCases = map[string]ForecastTime{
 					Near:     true,
 					ReasonID: 101,
 				},
-				Uncertainty: &Uncertainty{
+				DisruptionRisk: &ForecastDisruptionRisk{
 					Effect: "delay",
 					Reason: &DisruptionReason{
 						TIPLOC:   "MNOP",

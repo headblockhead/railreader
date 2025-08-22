@@ -67,7 +67,7 @@ type postgreSQLDatabase interface {
 }
 
 type messageHandler interface {
-	Handle(msg *kafka.Message) error
+	Handle(msg kafka.Message) error
 }
 
 func (c ServeCommand) Run() error {
@@ -82,7 +82,7 @@ func (c ServeCommand) Run() error {
 
 		alreadyTerminating := false
 		for {
-			signal := <-signalchan
+			signal := <-signalchan // block until a signal is received
 			if alreadyTerminating {
 				log.Error("received multiple exit signals, exiting immediately")
 				os.Exit(130)
@@ -94,14 +94,12 @@ func (c ServeCommand) Run() error {
 	}()
 
 	databaseContext := context.Background()
-
 	darwinDatabase, err := darwindb.New(databaseContext, log.With(slog.String("source", "darwin.database")), c.Darwin.Database.URL)
 	if err != nil {
 		return fmt.Errorf("error connecting to darwin database: %w", err)
 	}
 
 	kafkaContext := context.Background()
-
 	darwinKafkaConnection := darwinconn.New(kafkaContext, log.With(slog.String("source", "darwin.connection")), kafka.ReaderConfig{
 		Brokers: []string{c.Darwin.Kafka.Host},
 		GroupID: c.Darwin.Kafka.GroupID,
@@ -119,7 +117,6 @@ func (c ServeCommand) Run() error {
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
 
 	messageHandlerContext := context.Background()
-
 	darwinMessageHandler := darwin.NewMessageHandler(messageHandlerContext, log.With(slog.String("source", "darwin.handler")), darwinDatabase)
 
 	var fetcherGroup sync.WaitGroup
@@ -168,7 +165,7 @@ func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.
 func processMessages(log *slog.Logger, messages <-chan kafka.Message, connection kafkaConnection, messageHandler messageHandler) {
 	log.Debug("starting message processor")
 	for msg := range messages {
-		if err := messageHandler.Handle(&msg); err != nil {
+		if err := messageHandler.Handle(msg); err != nil {
 			log.Error("error handling message", slog.Any("error", err))
 			continue
 		}

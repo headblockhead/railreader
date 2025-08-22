@@ -46,11 +46,11 @@ var scheduleTestCases = map[string]Schedule{
 			Near:     true,
 			ReasonID: 101,
 		},
-		Locations: []LocationGeneric{
+		Locations: []ScheduleLocation{
 			{
 				Type: LocationTypeOrigin,
 				Origin: &OriginLocation{
-					LocationSchedule: LocationSchedule{
+					LocationBase: LocationBase{
 						TIPLOC:              "MNOP",
 						Activities:          "TBT ",
 						PlannedActivities:   "TB",

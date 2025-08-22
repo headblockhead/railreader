@@ -15,15 +15,15 @@ type PGXScheduleRepository struct {
 	tx  pgx.Tx
 }
 
-func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) *PGXScheduleRepository {
-	return &PGXScheduleRepository{
+func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXScheduleRepository {
+	return PGXScheduleRepository{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
 	}
 }
 
-func (sr *PGXScheduleRepository) Insert(s *Schedule) error {
+func (sr PGXScheduleRepository) Insert(s *Schedule) error {
 	sr.log.Debug("inserting schedule")
 
 	_, err := sr.tx.Exec(sr.ctx, `
@@ -89,7 +89,6 @@ func (sr *PGXScheduleRepository) Insert(s *Schedule) error {
 			);`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
-	sr.log.Info("will insert schedule")
 
 	for _, loc := range s.Locations {
 		if err := sr.insertLocation(s.ScheduleID, &loc); err != nil {
@@ -100,9 +99,9 @@ func (sr *PGXScheduleRepository) Insert(s *Schedule) error {
 	return nil
 }
 
-func (sr *PGXScheduleRepository) insertLocation(scheduleID string, location *ScheduleLocation) error {
+func (sr PGXScheduleRepository) insertLocation(scheduleID string, location *ScheduleLocation) error {
 	log := sr.log.With(slog.Int("sequence", location.Sequence))
-	log.Debug("processing schedule location")
+	log.Debug("inserting schedule location")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                       scheduleID,
 		"sequence":                          location.Sequence,
@@ -148,7 +147,6 @@ func (sr *PGXScheduleRepository) insertLocation(scheduleID string, location *Sch
 	`, namedArgs); err != nil {
 		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)
 	}
-	log.Info("will insert schedule location")
 	return nil
 }
 

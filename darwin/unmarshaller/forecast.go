@@ -25,13 +25,13 @@ type ForecastLocation struct {
 	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
 
 	// zero or one of:
-	ArrivalData   *ForecastLocationTimeData `xml:"arr"`
-	DepartureData *ForecastLocationTimeData `xml:"dep"`
-	PassingData   *ForecastLocationTimeData `xml:"pass"`
+	ArrivalData   *ForecastTimes `xml:"arr"`
+	DepartureData *ForecastTimes `xml:"dep"`
+	PassingData   *ForecastTimes `xml:"pass"`
 
 	LateReason *DisruptionReason `xml:"LateReason"`
-	// Uncertainty data may be provided to indicate there is a risk that this service may be disrupted at this location, along with how and why.
-	Uncertainty *Uncertainty `xml:"uncertainty"`
+	// DisruptionRisk data may be provided to indicate there is a risk that this service may be disrupted at this location, along with how and why.
+	DisruptionRisk *ForecastDisruptionRisk `xml:"uncertainty"`
 	// AffectedBy optionally provides data about what caused an incident, to help group multiple services disrupted by the same incident together.
 	// It is *expected* to contain a National Rail Enquires incident number, but can contain any text.
 	AffectedBy string `xml:"affectedBy"`
@@ -44,8 +44,8 @@ type ForecastLocation struct {
 	DetachesFromFront bool `xml:"detachFront"`
 }
 
-// ForecastLocationTimeData contains the time data for arrival, departure, or passing a location.
-type ForecastLocationTimeData struct {
+// ForecastTimes contains the time data for arrival, departure, or passing a location.
+type ForecastTimes struct {
 	// EstimatedTime is optional, generated from the public time table (or the Working Time Table if the location does not have public times).
 	EstimatedTime TrainTime `xml:"et,attr"`
 	// WorkingTime is optional, generated from the Working Time Table.
@@ -70,10 +70,10 @@ type ForecastLocationTimeData struct {
 	SourceSystem string `xml:"srcInst,attr"`
 }
 
-// Uncertainty contains information about a potential future disruption to a service.
-type Uncertainty struct {
+// ForecastDisruptionRisk contains information about a potential future disruption to a service.
+type ForecastDisruptionRisk struct {
 	// Effect indicates the predicted effect of the uncertainty (eg, delay, cancellation, etc).
-	// TODO: find examples of Effect values.
+	// TODO: find real examples of Effect values.
 	Effect string `xml:"status,attr"`
 
 	Reason *DisruptionReason `xml:"reason"`

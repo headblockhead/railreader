@@ -14,8 +14,9 @@ type PGXMessageXMLRepository struct {
 	tx  pgx.Tx
 }
 
-func NewPGXMessageXMLRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) *PGXMessageXMLRepository {
-	return &PGXMessageXMLRepository{
+func NewPGXMessageXMLRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessageXMLRepository {
+	log.Debug("creating new PGXMessageXMLRepository")
+	return PGXMessageXMLRepository{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
@@ -27,8 +28,8 @@ type MessageXML struct {
 	XML       string
 }
 
-func (mr *PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
-	mr.log.Debug("inserting message")
+func (mr PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
+	mr.log.Debug("inserting")
 	if _, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_ids_xml
 			VALUES (
@@ -41,7 +42,7 @@ func (mr *PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
 		"message_id": messageXML.MessageID,
 		"xml":        messageXML.XML,
 	}); err != nil {
-		return fmt.Errorf("failed to insert XML data: %w", err)
+		return fmt.Errorf("failed to insert: %w", err)
 	}
 	return nil
 }

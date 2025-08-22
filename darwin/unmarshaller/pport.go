@@ -6,9 +6,9 @@ import (
 	"fmt"
 )
 
-// PushPort version 18.0
+// Built for Darwin PushPort version 18.0
 type PushPortMessage struct {
-	// Timestamp is in the ISO 8601 YYYY-MM-DDTHH:MM:SS.sssssssss±HH:MM format.
+	// Timestamp is in the ISO 8601 YYYY-MM-DDTHH:MM:SS.sssssssss±HH:MM format (time.RFC3339Nano).
 	Timestamp string `xml:"ts,attr"`
 	Version   string `xml:"version,attr"`
 
@@ -20,14 +20,14 @@ type PushPortMessage struct {
 	SnapshotResponse  *Response       `xml:"sR"`
 }
 
-func NewPushPortMessage(xmlData string) (*PushPortMessage, error) {
+func NewPushPortMessage(xmlData string) (pport PushPortMessage, err error) {
 	d := xml.NewDecoder(bytes.NewReader([]byte(xmlData)))
 	d.Entity = xml.HTMLEntity
-	var pport PushPortMessage
-	if err := d.Decode(&pport); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal message XML: %w", err)
+	if err = d.Decode(&pport); err != nil {
+		err = fmt.Errorf("failed to unmarshal message XML: %w", err)
+		return
 	}
-	return &pport, nil
+	return
 }
 
 // TimetableFiles is sent when there is an update to the timetable reference data, and includes the filenames of the latest versions to be used.
