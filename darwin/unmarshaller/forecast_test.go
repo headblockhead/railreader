@@ -6,7 +6,7 @@ import (
 
 var forecastTestCases = map[string]ForecastTime{
 	// Test decoding every possible field.
-	`<TS rid="012345678901234" uid="A00001" ssd="2006-01-02" isReverseFormation="true">
+	`<TS rid="012345678901234" uid="A00001" ssd="2025-08-23" isReverseFormation="true">
 		<LateReason tiploc="EFGH" near="true">100</LateReason>
 	  <Location tpl="ABCD" wta="00:01" wtd="00:02" wtp="00:03" pta="00:04" ptd="00:05" >
 			<arr et="00:12" wet="00:13" at="00:14" atRemoved="true" atClass="Manual" etmin="00:11" etUnknown="true" delayed="true" src="TRUST" srcInst="Auto"/>
@@ -25,7 +25,7 @@ var forecastTestCases = map[string]ForecastTime{
 		TrainIdentifiers: TrainIdentifiers{
 			RID:                "012345678901234",
 			UID:                "A00001",
-			ScheduledStartDate: "2006-01-02",
+			ScheduledStartDate: "2025-08-23",
 		},
 		ReverseFormation: true,
 		LateReason: &DisruptionReason{

@@ -207,6 +207,7 @@ type ScheduleLocation struct {
 	Activities          *string
 	PlannedActivities   *string
 	Cancelled           bool
+	FormationID         *string
 	AffectedByDiversion bool
 
 	Type                       string

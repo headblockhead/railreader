@@ -111,6 +111,7 @@ type scheduleOriginLocation struct {
 
 func (c scheduleOriginLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeOrigin)
 	if c.src.WorkingArrivalTime != "" {
 		var wta time.Time
 		wta, err = trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
@@ -163,6 +164,7 @@ type scheduleOperationalOriginLocation struct {
 
 func (c scheduleOperationalOriginLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeOperationalOrigin)
 	if c.src.WorkingArrivalTime != "" {
 		var wta time.Time
 		wta, err = trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
@@ -192,6 +194,7 @@ type scheduleIntermediateLocation struct {
 
 func (c scheduleIntermediateLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeIntermediate)
 	var wta time.Time
 	wta, err = trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
 	if err != nil {
@@ -245,6 +248,7 @@ type scheduleOperationalIntermediateLocation struct {
 
 func (c scheduleOperationalIntermediateLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeOperationalIntermediate)
 	var wta time.Time
 	wta, err = trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
 	if err != nil {
@@ -276,6 +280,7 @@ type scheduleIntermediatePassingLocation struct {
 
 func (c scheduleIntermediatePassingLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeIntermediatePassing)
 	var wtp time.Time
 	wtp, err = trainTimeToTime(previousTime, c.src.WorkingPassingTime, startDate)
 	if err != nil {
@@ -300,6 +305,7 @@ type scheduleDestinationLocation struct {
 
 func (c scheduleDestinationLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeDestination)
 	var wta time.Time
 	wta, err = trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
 	if err != nil {
@@ -351,6 +357,7 @@ type scheduleOperationalDestinationLocation struct {
 
 func (c scheduleOperationalDestinationLocation) convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
 	databaseLocation = newDatabaseLocationWithBaseValues(c.log, c.src.LocationBase, sequence)
+	databaseLocation.Type = string(unmarshaller.LocationTypeOperationalDestination)
 	var wta time.Time
 	wta, err = trainTimeToTime(previousTime, c.src.WorkingArrivalTime, startDate)
 	if err != nil {

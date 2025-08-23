@@ -10,7 +10,7 @@ var trainAlertTestCases = map[string]TrainAlert{
 	`<trainAlert>
 		<AlertID>1</AlertID>
 		<AlertServices>
-			<AlertService RID="012345678901234" UID="A00001" SSD="2006-01-02">
+			<AlertService RID="012345678901234" UID="A00001" SSD="2025-08-23">
 				<Location>LDS</Location>
 				<Location>MAN</Location>
 			</AlertService>
@@ -31,7 +31,7 @@ var trainAlertTestCases = map[string]TrainAlert{
 			{
 				RID:                "012345678901234",
 				UID:                "A00001",
-				ScheduledStartDate: "2006-01-02",
+				ScheduledStartDate: "2025-08-23",
 				Locations:          []railreader.TimingPointLocationCode{"LDS", "MAN"},
 			},
 		},

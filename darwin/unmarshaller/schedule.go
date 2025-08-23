@@ -149,7 +149,7 @@ type LocationBase struct {
 	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
 	PlannedActivities string `xml:"planAct,attr"`
 	Cancelled         bool   `xml:"can,attr"`
-	// FormationID is the ID of the train formation that is used at this location.
+	// FormationID is the optionally provided ID of the train formation that is used at this location.
 	// Formations 'ripple' forward from locations with a FormationID, until the next cancelled location, or the next FormationID.
 	FormationID         string `xml:"fid,attr"`
 	AffectedByDiversion bool   `xml:"affectedByDiversion,attr"`

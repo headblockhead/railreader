@@ -7,7 +7,7 @@ import (
 )
 
 var scheduleTestCases = map[string]Schedule{
-	`<schedule rid="012345678901234" uid="A00001" trainId="2C04" rsid="GW123456" ssd="2006-01-02" toc="GW" status="B" trainCat="BR" isPassengerSvc="true" isActive="true" deleted="true" isCharter="true">
+	`<schedule rid="012345678901234" uid="A00001" trainId="2C04" rsid="GW123456" ssd="2025-08-23" toc="GW" status="B" trainCat="BR" isPassengerSvc="true" isActive="true" deleted="true" isCharter="true">
 		<OR tpl="MNOP" act="TBT " planAct="TB" can="true" fid="012345678901234-001" affectedByDiversion="true" pta="00:01" ptd="00:02" wta="00:03" wtd="00:04" fd="QRST">
 			<cancelReason tiploc="UVWX" near="true">102</cancelReason>
 		</OR>
@@ -24,7 +24,7 @@ var scheduleTestCases = map[string]Schedule{
 		TrainIdentifiers: TrainIdentifiers{
 			RID:                "012345678901234",
 			UID:                "A00001",
-			ScheduledStartDate: "2006-01-02",
+			ScheduledStartDate: "2025-08-23",
 		},
 		Headcode:         "2C04",
 		RetailServiceID:  "GW123456",
