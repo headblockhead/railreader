@@ -20,7 +20,6 @@ type TrainAlert struct {
 	Audience         TrainAlertAudience `xml:"Audience"`
 	Type             TrainAlertType     `xml:"AlertType"`
 	// Message is a basic HTML string. (containing only <p> and <a> tags).
-	// WARNING: This is not output in the same format as StationMessages, character entities inside of elements (like &nbsp;) ARE decoded! See trainalert_test.go for an example.
 	Message string `xml:"AlertText"`
 }
 

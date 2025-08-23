@@ -1,5 +1,10 @@
 package unmarshaller
 
+import (
+	"encoding/xml"
+	"fmt"
+)
+
 type StationMessage struct {
 	ID       string                 `xml:"id,attr"`
 	Category StationMessageCategory `xml:"cat,attr"`
@@ -23,8 +28,24 @@ type StationCRS struct {
 
 type XHTMLBody struct {
 	// Content is a basic HTML string, containing only <p> and <a> tags.
-	// WARNING: This is not output in the same format as TrainAlerts, character entities inside of elements (like &nbsp;) ARE NOT decoded! See stationmessage_test.go for an example.
 	Content string `xml:",innerxml"`
+}
+
+func (x *XHTMLBody) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	// Alias type created used to avoid recursion.
+	type Alias XHTMLBody
+	var xhtml Alias
+
+	d.Strict = false
+	if err := d.DecodeElement(&xhtml, &start); err != nil {
+		return fmt.Errorf("error decoding XHTMLBody: %w", err)
+	}
+	d.Strict = true
+
+	// Convert the alias back to the original type.
+	*x = XHTMLBody(xhtml)
+
+	return nil
 }
 
 type StationMessageCategory string

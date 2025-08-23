@@ -1,7 +1,6 @@
 package unmarshaller
 
 import (
-	"bytes"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -12,9 +11,7 @@ import (
 func TestUnmarshal[T any](cases map[string]T) error {
 	for inputXML, expectedOutput := range cases {
 		var actualOutput T
-		d := xml.NewDecoder(bytes.NewReader([]byte(inputXML)))
-		d.Entity = xml.HTMLEntity
-		if err := d.Decode(&actualOutput); err != nil {
+		if err := xml.Unmarshal([]byte(inputXML), &actualOutput); err != nil {
 			return fmt.Errorf("failed to unmarshal input %q: %w", inputXML, err)
 		}
 		if !cmp.Equal(expectedOutput, actualOutput) {

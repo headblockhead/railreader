@@ -1,7 +1,6 @@
 package unmarshaller
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
 )
@@ -21,9 +20,7 @@ type PushPortMessage struct {
 }
 
 func NewPushPortMessage(xmlData string) (pport PushPortMessage, err error) {
-	d := xml.NewDecoder(bytes.NewReader([]byte(xmlData)))
-	d.Entity = xml.HTMLEntity
-	if err = d.Decode(&pport); err != nil {
+	if err = xml.Unmarshal([]byte(xmlData), &pport); err != nil {
 		err = fmt.Errorf("failed to unmarshal message XML: %w", err)
 		return
 	}
@@ -35,15 +32,15 @@ type TimetableFiles struct {
 	TimetableFile          string `xml:"ttfile,attr"`
 	TimetableReferenceFile string `xml:"ttreffile,attr"`
 	// TimeTableId is the exact time the timetable data was written - in the format YYYYMMDDHHMMSS.
-	// This is present in the prefix for the filenames of the timetable data, and is provied for convenience.
+	// This is present in the prefix for the filenames of the timetable data, and is provied for convenience to grab files of different schema versions.
 	TimeTableId string `xml:",chardata"`
 }
 
 // Status is a response sent periodically to indicate the status of the system, or to repsond to a bad request.
 type Status struct {
-	// RequestSourceSystem is optionally provided by the requestor to indicate who they are.
+	// SourceSystem is optionally provided by the requestor to indicate who they are.
 	// This is usually a CISCode.
-	RequestSourceSystem string `xml:"requestSource,attr"`
+	SourceSystem string `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
 	RequestID string     `xml:"requestID,attr"`
 	Code      StatusCode `xml:"code,attr"`

@@ -45,18 +45,18 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 	log := m.log.With(slog.String("message_id", capsule.MessageID))
 	log.Debug("unmarshalled new message's JSON into a messageCapsule! (ID is now known)")
 	if err := insertMessageCapsule(m.ctx, log, m.db, capsule); err != nil {
-		return fmt.Errorf("failed to insert messageCapsule into database: %w", err)
+		return fmt.Errorf("failed to insert messageCapsule into database for message %s: %w", capsule.MessageID, err)
 	}
 	log.Debug("creating a new PushPortMessage from the messageCapsule's XML")
 	pport, err := unmarshaller.NewPushPortMessage(capsule.XML)
 	if err != nil {
-		return fmt.Errorf("failed to create new PushPortMessage: %w", err)
+		return fmt.Errorf("failed to create new PushPortMessage for message %s: %w", capsule.MessageID, err)
 	}
 	if pport.Version != expectedPushPortVersion {
 		log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", expectedPushPortVersion), slog.String("actual_version", pport.Version))
 	}
 	if err := interpretPushPortMessage(m.ctx, log, m.db, capsule.MessageID, pport); err != nil {
-		return fmt.Errorf("failed to interpret PushPortMessage: %w", err)
+		return fmt.Errorf("failed to interpret PushPortMessage for message %s: %w", capsule.MessageID, err)
 	}
 	return nil
 }

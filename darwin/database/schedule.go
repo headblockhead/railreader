@@ -9,6 +9,10 @@ import (
 	"golang.org/x/net/context"
 )
 
+type ScheduleRepository interface {
+	Insert(schedule Schedule) error
+}
+
 type PGXScheduleRepository struct {
 	ctx context.Context
 	log *slog.Logger
@@ -23,11 +27,12 @@ func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) 
 	}
 }
 
-func (sr PGXScheduleRepository) Insert(s *Schedule) error {
+func (sr PGXScheduleRepository) Insert(s Schedule) error {
 	sr.log.Info("inserting schedule")
 
 	_, err := sr.tx.Exec(sr.ctx, `
-		DELETE FROM schedules WHERE schedule_id = @schedule_id;
+		DELETE FROM schedules 
+			WHERE	schedule_id = @schedule_id;
 		`, pgx.NamedArgs{
 		"schedule_id": s.ScheduleID,
 	})
@@ -38,9 +43,6 @@ func (sr PGXScheduleRepository) Insert(s *Schedule) error {
 
 	namedArguments := pgx.StrictNamedArgs{
 		"message_id":                        s.MessageID,
-		"last_updated":                      s.LastUpdated,
-		"source":                            s.Source,
-		"source_system":                     s.SourceSystem,
 		"schedule_id":                       s.ScheduleID,
 		"uid":                               s.UID,
 		"scheduled_start_date":              s.ScheduledStartDate,
@@ -66,9 +68,6 @@ func (sr PGXScheduleRepository) Insert(s *Schedule) error {
 			VALUES (
 				@schedule_id,
 				@message_id,
-				@last_updated,
-				@source,
-				@source_system,
 				@uid,
 				@scheduled_start_date,
 				@headcode, 
@@ -86,7 +85,8 @@ func (sr PGXScheduleRepository) Insert(s *Schedule) error {
 				@late_reason_location_id, 
 				@late_reason_near_location, 
 				@diverted_via_location_id
-			);`, namedArguments); err != nil {
+			);
+		`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
 
@@ -154,10 +154,6 @@ type Schedule struct {
 	ScheduleID string
 
 	MessageID string
-
-	LastUpdated  time.Time
-	Source       string
-	SourceSystem string
 
 	UID                     string
 	ScheduledStartDate      time.Time

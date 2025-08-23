@@ -20,10 +20,10 @@ var pportTestCases = map[string]PushPortMessage{
 		Timestamp: "2006-01-02T15:04:05.999999999-07:00",
 		Version:   "18.0",
 		StatusUpdate: &Status{
-			RequestSourceSystem: "CIS1",
-			RequestID:           "01234567",
-			Code:                StatusCodeOK,
-			Description:         "Darwin Status Response",
+			SourceSystem: "CIS1",
+			RequestID:    "01234567",
+			Code:         StatusCodeOK,
+			Description:  "Darwin Status Response",
 		},
 	},
 	`<Pport ts="2006-01-02T15:04:05.999999999-07:00" version="18.0">

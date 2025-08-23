@@ -7,22 +7,19 @@ import (
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
-type trainTimeTestCase struct {
-	// Inputs
-	StartDate    time.Time
-	PreviousTime time.Time
-	CurrentTime  unmarshaller.TrainTime
-
-	// Expected outputs
-	ExpectedCurrentTime time.Time
-}
-
 func TestTrainTime(t *testing.T) {
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
 		t.Fatalf("Failed to load location: %v", err)
 	}
-	testCases := []trainTimeTestCase{
+	testCases := []struct {
+		// Inputs
+		StartDate    time.Time
+		PreviousTime time.Time
+		CurrentTime  unmarshaller.TrainTime
+		// Expected outputs
+		ExpectedCurrentTime time.Time
+	}{
 		// Time crossing midnight forwards
 		{
 			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location),   // 2025-08-10
@@ -64,6 +61,13 @@ func TestTrainTime(t *testing.T) {
 			PreviousTime:        time.Date(2025, 8, 11, 8, 0, 0, 0, location), // 2025-08-11 08:00
 			CurrentTime:         "08:05",
 			ExpectedCurrentTime: time.Date(2025, 8, 11, 8, 5, 0, 0, location), // 2025-08-11 08:05
+		},
+		// Time containing a seconds component
+		{
+			StartDate:           time.Date(2025, 8, 10, 0, 0, 0, 0, location), // 2025-08-10
+			PreviousTime:        time.Date(2025, 8, 10, 8, 0, 0, 0, location), // 2025-08-10 08:00
+			CurrentTime:         "08:05:30",
+			ExpectedCurrentTime: time.Date(2025, 8, 10, 8, 5, 30, 0, location), // 2025-08-10 08:05:30
 		},
 	}
 	for _, tc := range testCases {

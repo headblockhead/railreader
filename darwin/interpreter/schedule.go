@@ -9,14 +9,11 @@ import (
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
-func interpretSchedule(log *slog.Logger, messageID string, lastUpdated time.Time, source string, sourceSystem string, scheduleRepository scheduleRepository, schedule unmarshaller.Schedule) error {
+func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository database.ScheduleRepository, schedule unmarshaller.Schedule) error {
 	log.Debug("interpreting a Schedule")
 	var databaseSchedule database.Schedule
 	databaseSchedule.ScheduleID = schedule.RID
 	databaseSchedule.MessageID = messageID
-	databaseSchedule.LastUpdated = lastUpdated
-	databaseSchedule.Source = source
-	databaseSchedule.SourceSystem = sourceSystem
 	databaseSchedule.UID = schedule.UID
 	log.Debug("parsing ScheduledStartDate", slog.String("value", schedule.ScheduledStartDate))
 	location, err := time.LoadLocation("Europe/London")
@@ -74,10 +71,7 @@ func interpretSchedule(log *slog.Logger, messageID string, lastUpdated time.Time
 		databaseSchedule.Locations = append(databaseSchedule.Locations, databaseLocation)
 	}
 
-	if err := scheduleRepository.Insert(&databaseSchedule); err != nil {
-		return fmt.Errorf("failed to insert schedule %s: %w", schedule.RID, err)
-	}
-	return nil
+	return scheduleRepository.Insert(databaseSchedule)
 }
 
 type databaseableScheduleLocation interface {

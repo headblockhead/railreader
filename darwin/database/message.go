@@ -8,6 +8,10 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type MessageXMLRepository interface {
+	Insert(messageXML MessageXML) error
+}
+
 type PGXMessageXMLRepository struct {
 	ctx context.Context
 	log *slog.Logger
@@ -29,15 +33,15 @@ type MessageXML struct {
 }
 
 func (mr PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
-	mr.log.Info("inserting message")
+	mr.log.Info("inserting MessageXML")
 	if _, err := mr.tx.Exec(mr.ctx, `
-		INSERT INTO message_ids_xml
+		INSERT INTO message_xml
 			VALUES (
 				@message_id,
 				@xml
 			) 
-			ON CONFLICT (message_id) DO UPDATE
-				SET xml = EXCLUDED.xml
+			ON CONFLICT (message_id) DO
+			NOTHING;
 	`, pgx.StrictNamedArgs{
 		"message_id": messageXML.MessageID,
 		"xml":        messageXML.XML,

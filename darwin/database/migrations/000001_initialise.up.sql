@@ -28,9 +28,24 @@ CREATE TABLE IF NOT EXISTS locations (
 				name text NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS message_ids_xml (
+CREATE TABLE IF NOT EXISTS message_xml (
 				message_id text PRIMARY KEY,
 				xml xml NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS messages (
+				message_id text PRIMARY KEY,
+				sent_at timestamp NOT NULL,
+				last_received_at timestamp NOT NULL,
+				version text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS message_response (
+				message_id text PRIMARY KEY,
+				snapshot boolean NOT NULL,
+				source text,
+				source_system text,
+				request_id text
 );
 
 CREATE TABLE IF NOT EXISTS schedules (
@@ -38,11 +53,6 @@ CREATE TABLE IF NOT EXISTS schedules (
 
 				-- PushPortMessage
 				message_id text NOT NULL,
-
-				-- Response
-				last_updated timestamp NOT NULL,
-				source text,
-				source_system text,
 
 				-- TrainIdentifiers
 				uid text NOT NULL,

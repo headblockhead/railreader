@@ -15,7 +15,9 @@ type UnitOfWork struct {
 	messageID string
 	tx        pgx.Tx
 
-	scheduleRepository scheduleRepository
+	messageRepository  database.MessageRepository
+	responseRepository database.ResponseRepository
+	scheduleRepository database.ScheduleRepository
 }
 
 func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database) (unit UnitOfWork, err error) {
@@ -25,6 +27,8 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 		return
 	}
 	scheduleRepository := database.NewPGXScheduleRepository(ctx, log, tx)
+	responseRepository := database.NewPGXResponseRepository(ctx, log, tx)
+	messageRepository := database.NewPGXMessageRepository(ctx, log, tx)
 	unit = UnitOfWork{
 		ctx:       ctx,
 		log:       log,
@@ -32,6 +36,8 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 		tx:        tx,
 
 		scheduleRepository: scheduleRepository,
+		responseRepository: responseRepository,
+		messageRepository:  messageRepository,
 	}
 	return
 }
@@ -48,8 +54,4 @@ func (u *UnitOfWork) Rollback() error {
 		return fmt.Errorf("failed to rollback transaction: %w", err)
 	}
 	return nil
-}
-
-type scheduleRepository interface {
-	Insert(schedule *database.Schedule) error
 }

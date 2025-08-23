@@ -19,7 +19,7 @@ var trainAlertTestCases = map[string]TrainAlert{
 		<SentAlertByEmail>true</SentAlertByEmail>
 		<SentAlertByTwitter>true</SentAlertByTwitter>
 		<Source>NRCC</Source>
-		<AlertText>&lt;p&gt;Line 0.&lt;/p&gt;&lt;p&gt;Line 1.&lt;/p&gt;&lt;p&gt;Line 2 and an &lt;a href="http://example.com"&gt;example link&lt;/a&gt;, an emoji 🇬🇧 &amp; some other&nbsp;text.&lt;/p&gt;</AlertText>
+		<AlertText>&lt;p&gt;Line 0.&lt;/p&gt;&lt;p&gt;Line 1.&lt;/p&gt;&lt;p&gt;Line 2 and an &lt;a href=&quot;http://example.com&quot;&gt;example link&lt;/a&gt;, an emoji 🇬🇧 &amp;amp; some other&amp;nbsp;text.&lt;/p&gt;</AlertText>
 		<Audience>Customer</Audience>
 		<AlertType>Normal</AlertType>
 		<CopiedFromAlertID>2</CopiedFromAlertID>
@@ -42,7 +42,7 @@ var trainAlertTestCases = map[string]TrainAlert{
 		CopiedFromSource: "NT",
 		Audience:         "Customer",
 		Type:             TrainAlertTypeNormal,
-		Message:          `<p>Line 0.</p><p>Line 1.</p><p>Line 2 and an <a href="http://example.com">example link</a>, an emoji 🇬🇧 & some other` + "\u00a0" + `text.</p>`,
+		Message:          `<p>Line 0.</p><p>Line 1.</p><p>Line 2 and an <a href="http://example.com">example link</a>, an emoji 🇬🇧 &amp; some other&nbsp;text.</p>`,
 	},
 }
 
