@@ -120,7 +120,6 @@ func (sr PGXScheduleRepository) Insert(s Schedule) error {
 }
 
 func (sr PGXScheduleRepository) insertLocation(log *slog.Logger, scheduleID string, location ScheduleLocation) error {
-	log = log.With(slog.Int("sequence", location.Sequence))
 	log.Info("inserting schedule location")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                       scheduleID,

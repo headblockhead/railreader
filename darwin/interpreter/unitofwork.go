@@ -26,9 +26,9 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 		err = fmt.Errorf("failed to begin new transaction: %w", err)
 		return
 	}
-	scheduleRepository := database.NewPGXScheduleRepository(ctx, log, tx)
-	responseRepository := database.NewPGXResponseRepository(ctx, log, tx)
-	messageRepository := database.NewPGXMessageRepository(ctx, log, tx)
+	scheduleRepository := database.NewPGXScheduleRepository(ctx, log.With(slog.String("repository", "Schedule")), tx)
+	responseRepository := database.NewPGXResponseRepository(ctx, log.With(slog.String("repository", "Response")), tx)
+	messageRepository := database.NewPGXMessageRepository(ctx, log.With(slog.String("repository", "Message")), tx)
 	unit = UnitOfWork{
 		ctx:       ctx,
 		log:       log,
