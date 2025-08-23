@@ -33,7 +33,7 @@ type MessageXML struct {
 }
 
 func (mr PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
-	mr.log.Info("inserting MessageXML")
+	mr.log.Debug("inserting MessageXML")
 	if _, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_xml
 			VALUES (

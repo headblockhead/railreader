@@ -28,18 +28,8 @@ func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) 
 }
 
 func (sr PGXScheduleRepository) Insert(s Schedule) error {
-	sr.log.Info("inserting schedule")
-
-	_, err := sr.tx.Exec(sr.ctx, `
-		DELETE FROM schedules 
-			WHERE	schedule_id = @schedule_id;
-		`, pgx.NamedArgs{
-		"schedule_id": s.ScheduleID,
-	})
-	if err != pgx.ErrNoRows && err != nil {
-		return fmt.Errorf("failed to delete existing schedule for schedule %s: %w", s.ScheduleID, err)
-	}
-	// schedules_locations rows should CASCADE from the above delete.
+	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
+	log.Info("inserting schedule")
 
 	namedArguments := pgx.StrictNamedArgs{
 		"message_id":                        s.MessageID,
@@ -85,13 +75,43 @@ func (sr PGXScheduleRepository) Insert(s Schedule) error {
 				@late_reason_location_id, 
 				@late_reason_near_location, 
 				@diverted_via_location_id
-			);
+			) ON CONFLICT (schedule_id) DO 
+			UPDATE 
+				SET
+					message_id = EXCLUDED.message_id,
+					uid = EXCLUDED.uid,
+					scheduled_start_date = EXCLUDED.scheduled_start_date,
+					headcode = EXCLUDED.headcode,
+					retail_service_id = EXCLUDED.retail_service_id,
+					train_operating_company_id = EXCLUDED.train_operating_company_id,
+					service = EXCLUDED.service,
+					category = EXCLUDED.category,
+					is_active = EXCLUDED.is_active,
+					is_deleted = EXCLUDED.is_deleted,
+					is_charter = EXCLUDED.is_charter,
+					cancellation_reason_id = EXCLUDED.cancellation_reason_id,
+					cancellation_reason_location_id = EXCLUDED.cancellation_reason_location_id,
+					cancellation_reason_is_near_location = EXCLUDED.cancellation_reason_is_near_location,
+					late_reason_id = EXCLUDED.late_reason_id,
+					late_reason_location_id = EXCLUDED.late_reason_location_id,
+					late_reason_is_near_location = EXCLUDED.late_reason_is_near_location,
+					diverted_via_location_id = EXCLUDED.diverted_via_location_id;
 		`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
 
+	_, err := sr.tx.Exec(sr.ctx, `
+		DELETE FROM schedules_locations
+			WHERE	schedule_id = @schedule_id;
+		`, pgx.NamedArgs{
+		"schedule_id": s.ScheduleID,
+	})
+	if err != pgx.ErrNoRows && err != nil {
+		return fmt.Errorf("failed to delete existing schedule for schedule %s: %w", s.ScheduleID, err)
+	}
+
 	for _, loc := range s.Locations {
-		if err := sr.insertLocation(s.ScheduleID, &loc); err != nil {
+		if err := sr.insertLocation(log.With(slog.Int("sequence", loc.Sequence)), s.ScheduleID, loc); err != nil {
 			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
 		}
 	}
@@ -99,8 +119,8 @@ func (sr PGXScheduleRepository) Insert(s Schedule) error {
 	return nil
 }
 
-func (sr PGXScheduleRepository) insertLocation(scheduleID string, location *ScheduleLocation) error {
-	log := sr.log.With(slog.Int("sequence", location.Sequence))
+func (sr PGXScheduleRepository) insertLocation(log *slog.Logger, scheduleID string, location ScheduleLocation) error {
+	log = log.With(slog.Int("sequence", location.Sequence))
 	log.Info("inserting schedule location")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                       scheduleID,

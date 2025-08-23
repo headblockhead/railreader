@@ -35,7 +35,7 @@ type Message struct {
 }
 
 func (mr PGXMessageRepository) Insert(message Message) error {
-	mr.log.Info("inserting Message")
+	mr.log.Debug("inserting Message")
 	_, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO messages
 			VALUES (
@@ -85,7 +85,7 @@ type Response struct {
 }
 
 func (mr PGXResponseRepository) Insert(repsonse Response) error {
-	mr.log.Info("inserting Response")
+	mr.log.Debug("inserting Response")
 	_, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_response
 			VALUES (
