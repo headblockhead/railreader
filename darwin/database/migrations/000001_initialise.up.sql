@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				activities text,
 				planned_activities text,
 				is_cancelled boolean NOT NULL,
+				formation_id text,
 				is_affected_by_diversion boolean NOT NULL,
 
 				type text NOT NULL,

@@ -60,14 +60,16 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository da
 	}
 
 	previousTime := time.Time{}
+	previousFormationID := ""
 	for sequence, scheduleLocation := range schedule.Locations {
 		locationLog := log.With(slog.Int("sequence", sequence), slog.String("type", string(scheduleLocation.Type)))
 		locationLog.Debug("parsing schedule location")
-		databaseLocation, nextTime, err := convertScheduleLocationToDatabaseLocation(locationLog, sequence, startDate, previousTime, scheduleLocation)
+		databaseLocation, nextTime, nextFormationID, err := convertScheduleLocationToDatabaseLocation(locationLog, sequence, startDate, previousTime, previousFormationID, scheduleLocation)
 		if err != nil {
 			return fmt.Errorf("failed to parse schedule location at sequence %d: %w", sequence, err)
 		}
 		previousTime = nextTime
+		previousFormationID = nextFormationID
 		databaseSchedule.Locations = append(databaseSchedule.Locations, databaseLocation)
 	}
 
@@ -78,7 +80,7 @@ type databaseableScheduleLocation interface {
 	convertToDatabaseLocation(sequence int, previousTime time.Time, startDate time.Time) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error)
 }
 
-func convertScheduleLocationToDatabaseLocation(log *slog.Logger, sequence int, startDate time.Time, previousTime time.Time, scheduleLocation unmarshaller.ScheduleLocation) (databaseLocation database.ScheduleLocation, nextTime time.Time, err error) {
+func convertScheduleLocationToDatabaseLocation(log *slog.Logger, sequence int, startDate time.Time, previousTime time.Time, previousFormationID string, scheduleLocation unmarshaller.ScheduleLocation) (databaseLocation database.ScheduleLocation, nextTime time.Time, nextFormationID string, err error) {
 	log.Debug("converting location")
 	var location databaseableScheduleLocation
 	switch scheduleLocation.Type {
@@ -97,9 +99,29 @@ func convertScheduleLocationToDatabaseLocation(log *slog.Logger, sequence int, s
 	case unmarshaller.LocationTypeOperationalDestination:
 		location = scheduleOperationalDestinationLocation{log: log, src: scheduleLocation.OperationalDestination}
 	default:
-		return databaseLocation, nextTime, fmt.Errorf("unknown location type %s", scheduleLocation.Type)
+		err = fmt.Errorf("unknown location type %s", scheduleLocation.Type)
+		return
 	}
-	return location.convertToDatabaseLocation(sequence, previousTime, startDate)
+	databaseLocation, nextTime, err = location.convertToDatabaseLocation(sequence, previousTime, startDate)
+	if err != nil {
+		err = fmt.Errorf("failed to convert location to database location: %w", err)
+		return
+	}
+	if databaseLocation.Cancelled {
+		log.Debug("location is marked as cancelled")
+		nextFormationID = ""
+		return
+	}
+	if databaseLocation.FormationID == nil && previousFormationID != "" {
+		log.Debug("carrying forward previous FormationID", slog.String("FormationID", previousFormationID))
+		databaseLocation.FormationID = &previousFormationID
+		return
+	}
+	if databaseLocation.FormationID != nil {
+		log.Debug("updating previous FormationID", slog.String("FormationID", *databaseLocation.FormationID))
+		nextFormationID = *databaseLocation.FormationID
+	}
+	return
 }
 
 type scheduleOriginLocation struct {
@@ -392,6 +414,10 @@ func newDatabaseLocationWithBaseValues(log *slog.Logger, baseValues unmarshaller
 	if baseValues.PlannedActivities != "" {
 		log.Debug("PlannedActivities is set")
 		databaseLocation.PlannedActivities = &baseValues.PlannedActivities
+	}
+	if baseValues.FormationID != "" {
+		log.Debug("FormationID is set")
+		databaseLocation.FormationID = &baseValues.FormationID
 	}
 	databaseLocation.Cancelled = baseValues.Cancelled
 	databaseLocation.AffectedByDiversion = baseValues.AffectedByDiversion
