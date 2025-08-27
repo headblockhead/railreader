@@ -289,8 +289,95 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 		},
-		// Test that FormationIDs ripple between locations correctly
-		//{},
+		// Test that FormationIDs ripple between locations correctly (not a valid schedule)
+		{
+			Schedule: unmarshaller.Schedule{
+				TrainIdentifiers: unmarshaller.TrainIdentifiers{
+					ScheduledStartDate: "2025-08-23",
+				},
+				Locations: []unmarshaller.ScheduleLocation{
+					// set a formationid
+					{
+						Type: unmarshaller.LocationTypeIntermediate,
+						Intermediate: &unmarshaller.IntermediateLocation{
+							LocationBase: unmarshaller.LocationBase{
+								FormationID: "012345678901234-001",
+							},
+							WorkingArrivalTime:   "00:03",
+							WorkingDepartureTime: "00:04",
+						},
+					},
+					// test that a formationid will ripple to the next location
+					{
+						Type: unmarshaller.LocationTypeIntermediate,
+						Intermediate: &unmarshaller.IntermediateLocation{
+							LocationBase: unmarshaller.LocationBase{
+								// should have formationid 012345678901234-001
+							},
+							WorkingArrivalTime:   "00:05",
+							WorkingDepartureTime: "00:06",
+						},
+					},
+					// test that a formationid will be nil if a cancelled location is given
+					{
+						Type: unmarshaller.LocationTypeIntermediate,
+						Intermediate: &unmarshaller.IntermediateLocation{
+							LocationBase: unmarshaller.LocationBase{
+								Cancelled: true,
+								// should have formationid = nil
+							},
+							WorkingArrivalTime:   "00:07",
+							WorkingDepartureTime: "00:08",
+						},
+					},
+					// set a formationid
+					{
+						Type: unmarshaller.LocationTypeIntermediate,
+						Intermediate: &unmarshaller.IntermediateLocation{
+							LocationBase: unmarshaller.LocationBase{
+								Cancelled:   true,
+								FormationID: "012345678901234-002",
+							},
+							WorkingArrivalTime:   "00:09",
+							WorkingDepartureTime: "00:10",
+						},
+					},
+					//
+					{
+						Type: unmarshaller.LocationTypeIntermediate,
+						Intermediate: &unmarshaller.IntermediateLocation{
+							LocationBase: unmarshaller.LocationBase{
+								// should have formationid = nil
+							},
+							WorkingArrivalTime:   "00:09",
+							WorkingDepartureTime: "00:10",
+						},
+					},
+				},
+			},
+			MessageID: "message3",
+			ExpectedDatabaseSchedule: database.Schedule{
+				MessageID:          "message3",
+				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
+				Service:            string(railreader.ServicePassengerOrParcelTrain),
+				Category:           string(railreader.CategoryPassenger),
+				Active:             true,
+				Locations: []database.ScheduleLocation{
+					{
+						Sequence:             0,
+						LocationID:           "ABCD",
+						Type:                 string(unmarshaller.LocationTypeOrigin),
+						WorkingDepartureTime: pointerTo(time.Date(2025, 8, 23, 0, 4, 0, 0, location)),
+					},
+					{
+						Sequence:           1,
+						LocationID:         "EFGH",
+						Type:               string(unmarshaller.LocationTypeDestination),
+						WorkingArrivalTime: pointerTo(time.Date(2025, 8, 23, 0, 16, 0, 0, location)),
+					},
+				},
+			},
+		},
 	}
 	for _, tc := range testCases {
 		if err := interpretSchedule(log, tc.MessageID, sr, tc.Schedule); err != nil {
