@@ -9,13 +9,13 @@ import (
 
 // Reference version 4
 type Reference struct {
-	Locations                        []Location              `xml:"LocationRef"`
-	TrainOperatingCompanies          []TrainOperatingCompany `xml:"TocRef"`
-	LateReasons                      []ReasonDescription     `xml:"LateRunningReasons>Reason"`
-	CancellationReasons              []ReasonDescription     `xml:"CancellationReasons>Reason"`
-	ViaTexts                         []ViaCondition          `xml:"Via"`
-	CustomerInformationSystemSources []CISSource             `xml:"CISSource"`
-	LoadingCategories                []LoadingCategory       `xml:"LoadingCategories>category"`
+	Locations                        []Location                 `xml:"LocationRef"`
+	TrainOperatingCompanies          []TrainOperatingCompany    `xml:"TocRef"`
+	LateReasons                      []ReasonDescription        `xml:"LateRunningReasons>Reason"`
+	CancellationReasons              []ReasonDescription        `xml:"CancellationReasons>Reason"`
+	ViaTexts                         []ViaCondition             `xml:"Via"`
+	CustomerInformationSystemSources []CISSource                `xml:"CISSource"`
+	LoadingCategories                []LoadingCategoryReference `xml:"LoadingCategories>category"`
 }
 
 func NewReference(xmlData string) (ref Reference, err error) {

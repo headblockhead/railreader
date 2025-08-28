@@ -48,13 +48,13 @@ var referenceTestCases = map[string]Reference{
 				URL:  "http://www.nationalrail.co.uk/tocs_maps/tocs/NR.aspx",
 			},
 		},
-		LateReasons: []Reason{
+		LateReasons: []ReasonDescription{
 			{
 				ReasonID:    100,
 				Description: "This train has been delayed by a broken down train",
 			},
 		},
-		CancellationReasons: []Reason{
+		CancellationReasons: []ReasonDescription{
 			{
 				ReasonID:    100,
 				Description: "This train has been cancelled because of a broken down train",
@@ -66,7 +66,7 @@ var referenceTestCases = map[string]Reference{
 				Name: "Leeds LICC",
 			},
 		},
-		ViaTexts: []ViaConditions{
+		ViaTexts: []ViaCondition{
 			{
 				DisplayAt:                "BSK",
 				RequiredDestination:      "YORK",
@@ -75,7 +75,7 @@ var referenceTestCases = map[string]Reference{
 				Text:                     "via Coventry & Leeds",
 			},
 		},
-		LoadingCategories: []LoadingCategory{
+		LoadingCategories: []LoadingCategoryReference{
 			{
 				ID:                  "A",
 				Name:                "Few seats taken",

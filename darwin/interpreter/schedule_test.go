@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"errors"
 	"log/slog"
 	"testing"
 	"time"
@@ -19,6 +20,14 @@ type testingScheduleRepository struct {
 func (sr *testingScheduleRepository) Insert(schedule database.ScheduleRow) error {
 	sr.Schedules[schedule.ScheduleID] = schedule
 	return nil
+}
+
+func (sr *testingScheduleRepository) Select(scheduleID string) (schedule database.ScheduleRow, err error) {
+	schedule, ok := sr.Schedules[scheduleID]
+	if !ok {
+		return database.ScheduleRow{}, errors.New("not found")
+	}
+	return schedule, nil
 }
 
 func TestInterpretSchedule(t *testing.T) {
