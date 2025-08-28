@@ -142,6 +142,7 @@ func (c scheduleOriginLocation) convertToDatabaseLocation(sequence int, previous
 			return
 		}
 		databaseLocation.WorkingArrivalTime = &wta
+		previousTime = wta
 	}
 	var wtd time.Time
 	wtd, err = trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
@@ -150,6 +151,7 @@ func (c scheduleOriginLocation) convertToDatabaseLocation(sequence int, previous
 		return
 	}
 	databaseLocation.WorkingDepartureTime = &wtd
+	previousTime = wtd
 	if c.src.PublicArrivalTime != "" {
 		var pta time.Time
 		pta, err = trainTimeToTime(previousTime, c.src.PublicArrivalTime, startDate)
@@ -158,6 +160,7 @@ func (c scheduleOriginLocation) convertToDatabaseLocation(sequence int, previous
 			return
 		}
 		databaseLocation.PublicArrivalTime = &pta
+		previousTime = pta
 	}
 	if c.src.PublicDepartureTime != "" {
 		var ptd time.Time
@@ -167,6 +170,7 @@ func (c scheduleOriginLocation) convertToDatabaseLocation(sequence int, previous
 			return
 		}
 		databaseLocation.PublicDepartureTime = &ptd
+		previousTime = ptd
 	}
 	if c.src.FalseDestination != "" {
 		fd := string(c.src.FalseDestination)
@@ -195,6 +199,7 @@ func (c scheduleOperationalOriginLocation) convertToDatabaseLocation(sequence in
 			return
 		}
 		databaseLocation.WorkingArrivalTime = &wta
+		previousTime = wta
 	}
 	var wtd time.Time
 	wtd, err = trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
@@ -203,6 +208,8 @@ func (c scheduleOperationalOriginLocation) convertToDatabaseLocation(sequence in
 		return
 	}
 	databaseLocation.WorkingDepartureTime = &wtd
+	previousTime = wtd
+
 	nextTime = wtd
 	return
 }
@@ -224,6 +231,7 @@ func (c scheduleIntermediateLocation) convertToDatabaseLocation(sequence int, pr
 		return
 	}
 	databaseLocation.WorkingArrivalTime = &wta
+	previousTime = wta
 	var wtd time.Time
 	wtd, err = trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
 	if err != nil {
@@ -231,6 +239,7 @@ func (c scheduleIntermediateLocation) convertToDatabaseLocation(sequence int, pr
 		return
 	}
 	databaseLocation.WorkingDepartureTime = &wtd
+	previousTime = wtd
 	if c.src.PublicArrivalTime != "" {
 		var pta time.Time
 		pta, err = trainTimeToTime(previousTime, c.src.PublicArrivalTime, startDate)
@@ -239,6 +248,7 @@ func (c scheduleIntermediateLocation) convertToDatabaseLocation(sequence int, pr
 			return
 		}
 		databaseLocation.PublicArrivalTime = &pta
+		previousTime = pta
 	}
 	if c.src.PublicDepartureTime != "" {
 		var ptd time.Time
@@ -248,6 +258,7 @@ func (c scheduleIntermediateLocation) convertToDatabaseLocation(sequence int, pr
 			return
 		}
 		databaseLocation.PublicDepartureTime = &ptd
+		previousTime = ptd
 	}
 	if c.src.FalseDestination != "" {
 		fd := string(c.src.FalseDestination)
@@ -278,6 +289,7 @@ func (c scheduleOperationalIntermediateLocation) convertToDatabaseLocation(seque
 		return
 	}
 	databaseLocation.WorkingArrivalTime = &wta
+	previousTime = wta
 	var wtd time.Time
 	wtd, err = trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
 	if err != nil {
@@ -285,6 +297,7 @@ func (c scheduleOperationalIntermediateLocation) convertToDatabaseLocation(seque
 		return
 	}
 	databaseLocation.WorkingDepartureTime = &wtd
+	previousTime = wtd
 	if c.src.RoutingDelay != 0 {
 		rd := time.Duration(c.src.RoutingDelay) * time.Minute
 		databaseLocation.RoutingDelay = &rd
@@ -310,6 +323,7 @@ func (c scheduleIntermediatePassingLocation) convertToDatabaseLocation(sequence 
 		return
 	}
 	databaseLocation.WorkingPassingTime = &wtp
+	previousTime = wtp
 	if c.src.RoutingDelay != 0 {
 		rd := time.Duration(c.src.RoutingDelay) * time.Minute
 		databaseLocation.RoutingDelay = &rd
@@ -335,6 +349,7 @@ func (c scheduleDestinationLocation) convertToDatabaseLocation(sequence int, pre
 		return
 	}
 	databaseLocation.WorkingArrivalTime = &wta
+	previousTime = wta
 	if c.src.WorkingDepartureTime != "" {
 		var wtd time.Time
 		wtd, err = trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
@@ -343,6 +358,7 @@ func (c scheduleDestinationLocation) convertToDatabaseLocation(sequence int, pre
 			return
 		}
 		databaseLocation.WorkingDepartureTime = &wtd
+		previousTime = wtd
 	}
 	if c.src.PublicArrivalTime != "" {
 		var pta time.Time
@@ -352,6 +368,7 @@ func (c scheduleDestinationLocation) convertToDatabaseLocation(sequence int, pre
 			return
 		}
 		databaseLocation.PublicArrivalTime = &pta
+		previousTime = pta
 	}
 	if c.src.PublicDepartureTime != "" {
 		var ptd time.Time
@@ -361,6 +378,7 @@ func (c scheduleDestinationLocation) convertToDatabaseLocation(sequence int, pre
 			return
 		}
 		databaseLocation.PublicDepartureTime = &ptd
+		previousTime = ptd
 	}
 	if c.src.RoutingDelay != 0 {
 		rd := time.Duration(c.src.RoutingDelay) * time.Minute
@@ -387,6 +405,7 @@ func (c scheduleOperationalDestinationLocation) convertToDatabaseLocation(sequen
 		return
 	}
 	databaseLocation.WorkingArrivalTime = &wta
+	previousTime = wta
 	if c.src.WorkingDepartureTime != "" {
 		var wtd time.Time
 		wtd, err = trainTimeToTime(previousTime, c.src.WorkingDepartureTime, startDate)
@@ -395,6 +414,7 @@ func (c scheduleOperationalDestinationLocation) convertToDatabaseLocation(sequen
 			return
 		}
 		databaseLocation.WorkingDepartureTime = &wtd
+		previousTime = wtd
 	}
 	if c.src.RoutingDelay != 0 {
 		rd := time.Duration(c.src.RoutingDelay) * time.Minute
