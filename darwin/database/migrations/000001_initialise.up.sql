@@ -1,8 +1,8 @@
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS outbox (
-	railreader_darwin_message_id SERIAL PRIMARY KEY, -- unique for messages coming out of railreader's Darwin source.
-	body jsonb NOT NULL,
+				railreader_darwin_message_id SERIAL PRIMARY KEY, -- unique for messages coming out of railreader's Darwin source.
+				body jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS train_operating_companies (
