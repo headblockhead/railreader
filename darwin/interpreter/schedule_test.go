@@ -13,16 +13,16 @@ import (
 
 type testingScheduleRepository struct {
 	// Schedules is a map of ScheduleID to Schedule, used to fake a database.
-	Schedules map[string]database.Schedule
+	Schedules map[string]database.ScheduleRow
 }
 
-func (sr *testingScheduleRepository) Insert(schedule database.Schedule) error {
+func (sr *testingScheduleRepository) Insert(schedule database.ScheduleRow) error {
 	sr.Schedules[schedule.ScheduleID] = schedule
 	return nil
 }
 
 func TestInterpretSchedule(t *testing.T) {
-	sr := &testingScheduleRepository{Schedules: make(map[string]database.Schedule)}
+	sr := &testingScheduleRepository{Schedules: make(map[string]database.ScheduleRow)}
 	log := slog.New(slog.NewTextHandler(nil, nil))
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
@@ -33,7 +33,7 @@ func TestInterpretSchedule(t *testing.T) {
 		Schedule  unmarshaller.Schedule
 		MessageID string
 		// Expected outputs
-		ExpectedDatabaseSchedule database.Schedule
+		ExpectedDatabaseSchedule database.ScheduleRow
 	}{
 		// Minimum valid schedule
 		{
@@ -71,7 +71,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message1",
-			ExpectedDatabaseSchedule: database.Schedule{
+			ExpectedDatabaseSchedule: database.ScheduleRow{
 				ScheduleID:              "012345678901234",
 				MessageID:               "message1",
 				UID:                     "A00001",
@@ -81,7 +81,7 @@ func TestInterpretSchedule(t *testing.T) {
 				Service:                 string(railreader.ServicePassengerOrParcelTrain),
 				Category:                string(railreader.CategoryPassenger),
 				Active:                  true,
-				Locations: []database.ScheduleLocation{
+				Locations: []database.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						LocationID:           "ABCD",
@@ -203,7 +203,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message2",
-			ExpectedDatabaseSchedule: database.Schedule{
+			ExpectedDatabaseSchedule: database.ScheduleRow{
 				ScheduleID:                     "012345678901234",
 				MessageID:                      "message2",
 				UID:                            "A00001",
@@ -222,7 +222,7 @@ func TestInterpretSchedule(t *testing.T) {
 				LateReasonID:                   pointerTo(101),
 				LateReasonLocationID:           pointerTo("IJKL"),
 				LateReasonNearLocation:         pointerTo(true),
-				Locations: []database.ScheduleLocation{
+				Locations: []database.ScheduleLocationRow{
 					{
 						Sequence:                       0,
 						Type:                           string(unmarshaller.LocationTypeOrigin),
@@ -379,10 +379,10 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message3",
-			ExpectedDatabaseSchedule: database.Schedule{
+			ExpectedDatabaseSchedule: database.ScheduleRow{
 				MessageID:          "message3",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
-				Locations: []database.ScheduleLocation{
+				Locations: []database.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						Type:                 string(unmarshaller.LocationTypeIntermediate),
@@ -491,10 +491,10 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message4",
-			ExpectedDatabaseSchedule: database.Schedule{
+			ExpectedDatabaseSchedule: database.ScheduleRow{
 				MessageID:          "message4",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
-				Locations: []database.ScheduleLocation{
+				Locations: []database.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						Type:                 string(unmarshaller.LocationTypeIntermediate),

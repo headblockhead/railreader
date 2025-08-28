@@ -1,5 +1,10 @@
 BEGIN;
 
+CREATE TABLE IF NOT EXISTS outbox (
+	railreader_darwin_message_id SERIAL PRIMARY KEY, -- unique for messages coming out of railreader's Darwin source.
+	body jsonb NOT NULL,
+);
+
 CREATE TABLE IF NOT EXISTS train_operating_companies (
 				train_operating_company_id text PRIMARY KEY,
 				name text NOT NULL,
@@ -48,6 +53,14 @@ CREATE TABLE IF NOT EXISTS message_response (
 				request_id text
 );
 
+CREATE TABLE IF NOT EXISTS alarms (
+		  	alarm_id int PRIMARY KEY,
+				has_cleared boolean NOT NULL,
+				train_describer_failure text, -- a specific train describer that is suspected to have failed
+				all_train_describers_failed boolean,
+				tyrell_failed boolean
+);
+
 CREATE TABLE IF NOT EXISTS schedules (
 				schedule_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
 
@@ -70,10 +83,12 @@ CREATE TABLE IF NOT EXISTS schedules (
 
 				cancellation_reason_id int,
 				cancellation_reason_location_id text,
+				CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id),
 				cancellation_reason_is_near_location boolean,
 
 				late_reason_id int,
 				late_reason_location_id text,
+				CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id),
 				late_reason_is_near_location boolean,
 
 				diverted_via_location_id text
@@ -87,6 +102,7 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 
 				-- Schedule
 				location_id text NOT NULL,
+				CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id),
 				activities text,
 				planned_activities text,
 				is_cancelled boolean NOT NULL,
@@ -101,9 +117,11 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				working_departure_time timestamp,
 				routing_delay interval,
 				false_destination_location_id text,
+				CONSTRAINT fk_false_destination_location FOREIGN KEY(false_destination_location_id) REFERENCES locations(location_id),
 
 				cancellation_reason_id int,
 				cancellation_reason_location_id text,
+				CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id),
 				cancellation_reason_is_near_location boolean
 );
 
