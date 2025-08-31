@@ -19,35 +19,22 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
-type ServeCommand struct {
+type InjestCommand struct {
 	Darwin struct {
 		// TODO: secrets management tool?
 		Kafka struct {
 			Host              string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_HOST" required:"" help:"Kafka server hostname and port."`
-			GroupID           string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_GROUP" required:"" name:"group"`
+			Group             string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_GROUP" required:""`
 			Topic             string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_TOPIC" required:""`
 			Username          string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_USERNAME" required:""`
 			Password          string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_PASSWORD" required:""`
-			ConnectionTimeout time.Duration `group:"Darwin Push Port client:" default:"10s"`
+			ConnectionTimeout time.Duration `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"10s"`
 		} `embed:"" prefix:"kafka."`
-
 		Database struct {
 			URL string `group:"Darwin Push Port client:" env:"DARWIN_POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store Darwin data in."`
 		} `embed:"" prefix:"database."`
-
-		QueueSize int `group:"Darwin Push Port client:" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
+		QueueSize int `group:"Darwin Push Port client:" env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
 	} `embed:"" prefix:"darwin."`
-
-	Socket struct {
-		Enable bool `group:"Socket:" default:"true" help:"Enable local control of the database via an unauthenticated socket. Access can be limited using file permissions."`
-		// TODO: grab location from SYSTEMD.
-		Location string `group:"Socket:" help:"Path of the socket file to create."`
-		Mode     string `group:"Socket:" default:"600" help:"File mode for the socket. The socket file is owned by the user running the program."`
-	} `embed:"" prefix:"socket."`
-
-	/* HTTP struct {*/
-	/*Host string `group:"HTTP Server:" env:"HTTP_HOST" default:":8080" help:"HTTP server hostname and port."`*/
-	/*} `embed:"" prefix:"http."`*/
 
 	Logging struct {
 		Level string `enum:"debug,info,warn,error" default:"warn"`
@@ -70,7 +57,7 @@ type messageHandler interface {
 	Handle(msg kafka.Message) error
 }
 
-func (c ServeCommand) Run() error {
+func (c InjestCommand) Run() error {
 	log := getLogger(c.Logging.Level, c.Logging.Type == "json")
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
@@ -102,7 +89,7 @@ func (c ServeCommand) Run() error {
 	kafkaContext := context.Background()
 	darwinKafkaConnection := darwinconn.New(kafkaContext, log.With(slog.String("source", "darwin.connection")), kafka.ReaderConfig{
 		Brokers: []string{c.Darwin.Kafka.Host},
-		GroupID: c.Darwin.Kafka.GroupID,
+		GroupID: c.Darwin.Kafka.Group,
 		Topic:   c.Darwin.Kafka.Topic,
 		Dialer: &kafka.Dialer{
 			Timeout:   c.Darwin.Kafka.ConnectionTimeout,

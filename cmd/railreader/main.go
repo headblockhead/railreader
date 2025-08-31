@@ -8,9 +8,7 @@ import (
 )
 
 type CLI struct {
-	Serve ServeCommand `group:"Server:" cmd:"serve" help:"Run the railreader server."`
-
-	Interpret InterpretCommand `group:"Client:" cmd:"interpret" help:"Interpret data from a single message, and write it to the database."`
+	Injest InjestCommand `cmd:"injest" help:"Injest data from National Rail into the database."`
 }
 
 func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
@@ -40,7 +38,7 @@ func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
 
 func main() {
 	var cli CLI
-	kctx := kong.Parse(&cli, kong.Description("Middleman between National Rail and Network Rail's datafeeds, and your project!"), kong.UsageOnError())
+	kctx := kong.Parse(&cli, kong.Description("Middleman between National Rail's datafeeds and your project!"), kong.UsageOnError())
 
 	if err := kctx.Run(); err != nil {
 		// Assume logs should be output in JSON if the option cannot be obtained from the CLI.

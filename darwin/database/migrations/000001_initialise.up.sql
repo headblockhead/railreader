@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS schedules (
 				train_operating_company_id text NOT NULL, -- no foreign key contraint here, reference data on TOCs is not complete.
 				service text NOT NULL,
 				category text NOT NULL,
+				is_passenger_service boolean NOT NULL,
 				is_active boolean NOT NULL,
 				is_deleted boolean NOT NULL,
 				is_charter boolean NOT NULL,

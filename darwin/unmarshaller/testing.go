@@ -20,7 +20,7 @@ func testUnmarshal[T any](t *testing.T, cases []unmarshalTestCase[T]) {
 			if err := xml.Unmarshal([]byte(tc.xml), &actual); err != nil {
 				t.Fatalf("failed to unmarshal case XML: %v", err)
 			}
-			if !cmp.Equal(tc.expected, actual) {
+			if !cmp.Equal(actual, tc.expected) {
 				t.Fatalf("actual result and expected result differ: %s", cmp.Diff(actual, tc.expected))
 			}
 		})
