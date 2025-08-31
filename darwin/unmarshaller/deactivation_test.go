@@ -2,14 +2,18 @@ package unmarshaller
 
 import "testing"
 
-var deactivationTestCases = map[string]Deactivation{
-	`<deactivated rid="012345678901234" />`: {
-		RID: "012345678901234",
+var deactivationTestCases = []unmarshalTestCase[Deactivation]{
+	{
+		name: "all_fields_are_stored",
+		xml: `
+		<deactivated rid="012345678901234" />
+		`,
+		expected: Deactivation{
+			RID: "012345678901234",
+		},
 	},
 }
 
 func TestUnmarshalDeactivation(t *testing.T) {
-	if err := TestUnmarshal(deactivationTestCases); err != nil {
-		t.Error(err)
-	}
+	testUnmarshal(t, deactivationTestCases)
 }

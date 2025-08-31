@@ -21,6 +21,7 @@ type ScheduleRow struct {
 	TrainOperatingCompanyID string
 	Service                 string
 	Category                string
+	PassengerService        bool
 	Active                  bool
 	Deleted                 bool
 	Charter                 bool
@@ -125,6 +126,7 @@ func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
 		"train_operating_company_id":           s.TrainOperatingCompanyID,
 		"service":                              s.Service,
 		"category":                             s.Category,
+		"is_passenger_service":                 s.PassengerService,
 		"is_active":                            s.Active,
 		"is_deleted":                           s.Deleted,
 		"is_charter":                           s.Charter,
@@ -149,6 +151,7 @@ func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
 				@train_operating_company_id, 
 				@service, 
 				@category, 
+				@is_passenger_service,
 				@is_active, 
 				@is_deleted,
 				@is_charter, 
@@ -170,6 +173,7 @@ func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
 					train_operating_company_id = EXCLUDED.train_operating_company_id,
 					service = EXCLUDED.service,
 					category = EXCLUDED.category,
+					is_passenger_service = EXCLUDED.is_passenger_service,
 					is_active = EXCLUDED.is_active,
 					is_deleted = EXCLUDED.is_deleted,
 					is_charter = EXCLUDED.is_charter,

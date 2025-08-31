@@ -40,9 +40,9 @@ type TimetableFiles struct {
 type Status struct {
 	// SourceSystem is optionally provided by the requestor to indicate who they are.
 	// This is usually a CISCode.
-	SourceSystem string `xml:"requestSource,attr"`
+	SourceSystem *string `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
-	RequestID string     `xml:"requestID,attr"`
+	RequestID *string    `xml:"requestID,attr"`
 	Code      StatusCode `xml:"code,attr"`
 
 	Description string `xml:",chardata"`
@@ -75,11 +75,11 @@ func (s StatusCode) String() string {
 // Darwin broadcasts the new state(s) of the data to all subscribers using this message.
 type Response struct {
 	// Source is optionally provided by the requestor to indicate which system the update originated from (eg "Darwin" or "CIS").
-	Source string `xml:"updateOrigin,attr"`
+	Source *string `xml:"updateOrigin,attr"`
 	// SourceSystem is optionally provided by the requestor to indicate who they are. If Source is "CIS", it is most likely a CISCode.
-	SourceSystem string `xml:"requestSource,attr"`
+	SourceSystem *string `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
-	RequestID string `xml:"requestID,attr"`
+	RequestID *string `xml:"requestID,attr"`
 
 	// 0 or more of any of these updated elements can be present in a response.
 	// This includes 0 of all, which is a valid response.

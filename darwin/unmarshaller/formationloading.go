@@ -19,9 +19,9 @@ type CoachLoading struct {
 	// CoachIdentifier is the public readable identifier of the coach (eg "A", "B", "1", "2", etc.)
 	CoachIdentifier string `xml:"coachNumber,attr"`
 	// Source is optional.
-	Source string `xml:"src,attr"`
+	Source *string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
-	SourceSystem string `xml:"srcInst,attr"`
+	SourceSystem *string `xml:"srcInst,attr"`
 
 	Percentage int `xml:",chardata"`
 }

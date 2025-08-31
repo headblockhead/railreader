@@ -25,27 +25,27 @@ func (sr *testingScheduleRepository) Insert(schedule database.ScheduleRow) error
 func (sr *testingScheduleRepository) Select(scheduleID string) (schedule database.ScheduleRow, err error) {
 	schedule, ok := sr.Schedules[scheduleID]
 	if !ok {
-		return database.ScheduleRow{}, errors.New("not found")
+		err = errors.New("not found")
+		return
 	}
-	return schedule, nil
+	return
 }
 
 func TestInterpretSchedule(t *testing.T) {
 	sr := &testingScheduleRepository{Schedules: make(map[string]database.ScheduleRow)}
-	log := slog.New(slog.NewTextHandler(nil, nil))
+	log := slog.New(slog.NewTextHandler(t.Output(), &slog.HandlerOptions{Level: slog.LevelDebug}))
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
 		t.Fatalf("Failed to load location: %v", err)
 	}
-	testCases := []struct {
-		// Inputs
+	testCases := map[string]struct {
 		Schedule  unmarshaller.Schedule
 		MessageID string
-		// Expected outputs
-		ExpectedDatabaseSchedule database.ScheduleRow
+
+		ExpectedScheduleRow database.ScheduleRow
 	}{
-		// Minimum valid schedule
-		{
+		// This is an example of a minimal valid schedule.
+		"non_required_fields_are_null": {
 			Schedule: unmarshaller.Schedule{
 				TrainIdentifiers: unmarshaller.TrainIdentifiers{
 					RID:                "012345678901234",
@@ -80,7 +80,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message1",
-			ExpectedDatabaseSchedule: database.ScheduleRow{
+			ExpectedScheduleRow: database.ScheduleRow{
 				ScheduleID:              "012345678901234",
 				MessageID:               "message1",
 				UID:                     "A00001",
@@ -89,6 +89,7 @@ func TestInterpretSchedule(t *testing.T) {
 				TrainOperatingCompanyID: "NT",
 				Service:                 string(railreader.ServicePassengerOrParcelTrain),
 				Category:                string(railreader.CategoryPassenger),
+				PassengerService:        true,
 				Active:                  true,
 				Locations: []database.ScheduleLocationRow{
 					{
@@ -106,8 +107,8 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 		},
-		// Schedule with all fields populated
-		{
+		// This is an imaginary schedule object where all possible fields have been changed from their defaults.
+		"all_fields_are_stored": {
 			Schedule: unmarshaller.Schedule{
 				TrainIdentifiers: unmarshaller.TrainIdentifiers{
 					RID:                "012345678901234",
@@ -212,7 +213,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message2",
-			ExpectedDatabaseSchedule: database.ScheduleRow{
+			ExpectedScheduleRow: database.ScheduleRow{
 				ScheduleID:                     "012345678901234",
 				MessageID:                      "message2",
 				UID:                            "A00001",
@@ -222,6 +223,7 @@ func TestInterpretSchedule(t *testing.T) {
 				TrainOperatingCompanyID:        "NT",
 				Service:                        string(railreader.ServiceBus),
 				Category:                       string(railreader.CategoryBusReplacement),
+				PassengerService:               true,
 				Active:                         true,
 				Deleted:                        true,
 				Charter:                        true,
@@ -298,8 +300,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 		},
-		// Test that FormationIDs ripple between locations correctly
-		{
+		"formationids_ripple": {
 			Schedule: unmarshaller.Schedule{
 				TrainIdentifiers: unmarshaller.TrainIdentifiers{
 					ScheduledStartDate: "2025-08-23",
@@ -388,7 +389,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message3",
-			ExpectedDatabaseSchedule: database.ScheduleRow{
+			ExpectedScheduleRow: database.ScheduleRow{
 				MessageID:          "message3",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
 				Locations: []database.ScheduleLocationRow{
@@ -442,8 +443,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 		},
-		// Test that schedule locations can cross midnight, forwards & backwards
-		{
+		"dates_are_correct_when_times_cross_midnight": {
 			Schedule: unmarshaller.Schedule{
 				TrainIdentifiers: unmarshaller.TrainIdentifiers{
 					ScheduledStartDate: "2025-08-23",
@@ -500,7 +500,7 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 			MessageID: "message4",
-			ExpectedDatabaseSchedule: database.ScheduleRow{
+			ExpectedScheduleRow: database.ScheduleRow{
 				MessageID:          "message4",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
 				Locations: []database.ScheduleLocationRow{
@@ -544,18 +544,18 @@ func TestInterpretSchedule(t *testing.T) {
 			},
 		},
 	}
-	for _, tc := range testCases {
-		if err := interpretSchedule(log, tc.MessageID, sr, tc.Schedule); err != nil {
-			t.Error(err)
-			continue
-		}
-		actual, ok := sr.Schedules[tc.Schedule.RID]
-		if !ok {
-			t.Error("Schedule not added to repository")
-			continue
-		}
-		if !cmp.Equal(actual, tc.ExpectedDatabaseSchedule) {
-			t.Error(cmp.Diff(tc.ExpectedDatabaseSchedule, actual))
-		}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			if err := interpretSchedule(log, tc.MessageID, sr, tc.Schedule); err != nil {
+				t.Fatal(err)
+			}
+			actual, ok := sr.Schedules[tc.Schedule.RID]
+			if !ok {
+				t.Error("Schedule not added to repository")
+			}
+			if !cmp.Equal(actual, tc.ExpectedScheduleRow) {
+				t.Error(cmp.Diff(actual, tc.ExpectedScheduleRow))
+			}
+		})
 	}
 }

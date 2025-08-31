@@ -2,49 +2,75 @@ package unmarshaller
 
 import (
 	"testing"
+
+	"github.com/headblockhead/railreader"
 )
 
-var alarmTestCases = map[string]Alarm{
-	// Test that main string-based elements can be decoded.
-	`<alarm>
-		<clear>132</clear>
-		<set id="325">
-			<tdAreaFail>Y2</tdAreaFail>
-		</set>
-	</alarm>`: {
-		ClearedAlarm: 132,
-		NewAlarm: &NewAlarm{
-			ID:                 325,
-			TDFailure:          "Y2",
-			TDTotalFailure:     false,
-			TyrellTotalFailure: false,
+var alarmTestCases = []unmarshalTestCase[Alarm]{
+	{
+		name: "all_fields_are_stored",
+		xml: `
+		<alarm>
+			<clear>132</clear>
+			<set id="325">
+				<tdAreaFail>Y2</tdAreaFail>
+				<tdFeedFail/>
+				<tyrellFeedFail/>
+			</set>
+		</alarm>
+		`,
+		expected: Alarm{
+			ClearedAlarm: pointerTo(132),
+			NewAlarm: &NewAlarm{
+				ID:                 325,
+				TDFailure:          pointerTo(railreader.TrainDescriber("Y2")),
+				TDTotalFailure:     true,
+				TyrellTotalFailure: true,
+			},
 		},
 	},
-	// Test that the absence of a failure element is treated as false.
-	`<alarm>
-		<set id="329">
-			<tyrellFeedFail/>
-		</set>
-	</alarm>`: {
-		ClearedAlarm: 0,
-		NewAlarm: &NewAlarm{
-			ID:                 329,
-			TDFailure:          "",
-			TDTotalFailure:     false,
-			TyrellTotalFailure: true,
+	{
+		name: "feed_failures_are_false_when_not_given",
+		xml: `
+		<alarm>
+			<set id="578">
+				<tdAreaFail>Y1</tdAreaFail>
+			</set>
+		</alarm>
+		`,
+		expected: Alarm{
+			NewAlarm: &NewAlarm{
+				ID:        578,
+				TDFailure: pointerTo(railreader.TrainDescriber("Y1")),
+			},
 		},
 	},
-	// Test that the absence of a set element creates a nil pointer.
-	`<alarm>
-		<clear>132</clear>
-	</alarm>`: {
-		ClearedAlarm: 132,
-		NewAlarm:     nil,
+	{
+		name: "cleared_alarm_is_nil_when_not_set",
+		xml: `
+		<alarm>
+			<set id="863"></set>
+		</alarm>
+		`,
+		expected: Alarm{
+			ClearedAlarm: nil,
+			NewAlarm:     &NewAlarm{ID: 863},
+		},
+	},
+	{
+		name: "new_alarm_is_nil_when_not_set",
+		xml: `
+		<alarm>
+			<clear>132</clear>
+		</alarm>
+		`,
+		expected: Alarm{
+			ClearedAlarm: pointerTo(132),
+			NewAlarm:     nil,
+		},
 	},
 }
 
 func TestUnmarshalAlarm(t *testing.T) {
-	if err := TestUnmarshal(alarmTestCases); err != nil {
-		t.Error(err)
-	}
+	testUnmarshal(t, alarmTestCases)
 }

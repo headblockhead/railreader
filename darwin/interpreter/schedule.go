@@ -35,6 +35,7 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository da
 	databaseSchedule.TrainOperatingCompanyID = string(schedule.TOC)
 	databaseSchedule.Service = string(schedule.Service)
 	databaseSchedule.Category = string(schedule.Category)
+	databaseSchedule.PassengerService = schedule.PassengerService
 	databaseSchedule.Active = schedule.Active
 	databaseSchedule.Deleted = schedule.Deleted
 	databaseSchedule.Charter = schedule.Charter

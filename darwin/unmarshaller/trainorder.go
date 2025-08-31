@@ -13,8 +13,8 @@ type TrainOrder struct {
 
 	// only one of:
 	// ClearOrder is true when the current train order should be cleared from the platform.
-	ClearOrder TrueIfPresent      `xml:"clear"`
-	Services   TrainOrderServices `xml:"set"`
+	ClearOrder TrueIfPresent       `xml:"clear"`
+	Services   *TrainOrderServices `xml:"set"`
 }
 
 type TrainOrderServices struct {
@@ -28,8 +28,8 @@ type TrainOrderServices struct {
 // or (if it is not included in Darwin) by its headcode.
 type TrainOrderService struct {
 	// only one of:
-	RIDAndTime OrderedService `xml:"rid"`
-	Headcode   string         `xml:"trainID"`
+	RIDAndTime *OrderedService `xml:"rid"`
+	Headcode   *string         `xml:"trainID"`
 }
 
 type OrderedService struct {

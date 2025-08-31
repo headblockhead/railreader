@@ -29,17 +29,17 @@ func NewReference(xmlData string) (ref Reference, err error) {
 type Location struct {
 	Location railreader.TimingPointLocationCode `xml:"tpl,attr"`
 	// CRS is optional.
-	CRS string `xml:"crs,attr"`
+	CRS *string `xml:"crs,attr"`
 	// TOC is optional.
-	TOC  string `xml:"toc,attr"`
-	Name string `xml:"locname,attr"`
+	TOC  *string `xml:"toc,attr"`
+	Name string  `xml:"locname,attr"`
 }
 
 type TrainOperatingCompany struct {
 	ID   string `xml:"toc,attr"`
 	Name string `xml:"tocname,attr"`
 	// URL is optional.
-	URL string `xml:"url,attr"`
+	URL *string `xml:"url,attr"`
 }
 
 type ReasonDescription struct {
@@ -56,7 +56,7 @@ type ViaCondition struct {
 	RequiredDestination      railreader.TimingPointLocationCode `xml:"dest,attr"`
 	RequiredCallingLocation1 railreader.TimingPointLocationCode `xml:"loc1,attr"`
 	// RequiredCallingLocation2 is optionally provided, but if it is provided it must be after RequiredCallingLocation1 in the schedule for the 'via' message to be displayed.
-	RequiredCallingLocation2 railreader.TimingPointLocationCode `xml:"loc2,attr"`
+	RequiredCallingLocation2 *railreader.TimingPointLocationCode `xml:"loc2,attr"`
 
 	// Text is the message to be displayed.
 	Text string `xml:"viatext,attr"`
@@ -72,7 +72,7 @@ type LoadingCategoryReference struct {
 	// Name is the name of the loading category, eg "Few seats taken".
 	Name string `xml:"Name,attr"`
 	// TOC is optional.
-	TOC string `xml:"Toc,attr"`
+	TOC *string `xml:"Toc,attr"`
 
 	// TypicalDescription should be shown when ServiceLoading.LoadingCategory.Type == LoadingCategoryTypeTypical
 	TypicalDescription string `xml:"TypicalDescription"`

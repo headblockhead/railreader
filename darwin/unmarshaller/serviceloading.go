@@ -23,12 +23,12 @@ type ServiceLoading struct {
 // Struct embedding is not used here because it (for unknown reasons) breaks XML unmarshalling of the chardata when a custom UnmarshalXML method is defined for the base struct.
 
 type LoadingCategory struct {
-	// Type is optional, it can be "Expected" or "Typical", and defaults to "Typical" if not specified.
+	// Type can be "Expected" or "Typical", and defaults to "Typical" if not specified.
 	Type LoadingCategoryType `xml:"type,attr"`
 	// Source is optional.
-	Source string `xml:"src,attr"`
+	Source *string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
-	SourceSystem string `xml:"srcInst,attr"`
+	SourceSystem *string `xml:"srcInst,attr"`
 
 	// Category is between 1 and 4 characters, and can be looked up in the reference data.
 	Category LoadingCategoryID `xml:",chardata"`
@@ -62,12 +62,12 @@ func (lc *LoadingCategory) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 }
 
 type LoadingPercentage struct {
-	// Type is optional, but defaults to "Typical" if not specified.
+	// Type defaults to "Typical" if not specified.
 	Type string `xml:"type,attr"`
 	// Source is optional.
-	Source string `xml:"src,attr"`
+	Source *string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it is most likely a CISCode.
-	SourceSystem string `xml:"srcInst,attr"`
+	SourceSystem *string `xml:"srcInst,attr"`
 
 	// Percentage is between 0 and 100, inclusive.
 	Percentage int `xml:",chardata"`

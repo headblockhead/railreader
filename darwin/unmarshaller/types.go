@@ -6,6 +6,10 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
+func pointerTo[T any](v T) *T {
+	return &v
+}
+
 // TrueIfPresent implements xml.Unmarshaler.
 // It unmarshals to true if the element of this type exists.
 type TrueIfPresent bool
@@ -26,11 +30,11 @@ func (p *TrueIfPresent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 // This is useful for circular routes, where a train may visit the same TIPLOC multiple times in a single schedule.
 type LocationTimeIdentifiers struct {
 	// at least one of:
-	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   TrainTime `xml:"wtp,attr"`
-	PublicArrivalTime    TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   *TrainTime `xml:"wta,attr"`
+	WorkingDepartureTime *TrainTime `xml:"wtd,attr"`
+	WorkingPassingTime   *TrainTime `xml:"wtp,attr"`
+	PublicArrivalTime    *TrainTime `xml:"pta,attr"`
+	PublicDepartureTime  *TrainTime `xml:"ptd,attr"`
 }
 
 // TrainIdentifiers is used as a base struct.
@@ -46,7 +50,7 @@ type TrainIdentifiers struct {
 
 type DisruptionReason struct {
 	// TIPLOC is the optionally provided location code for the position of the disruption.
-	TIPLOC railreader.TimingPointLocationCode `xml:"tiploc,attr"`
+	TIPLOC *railreader.TimingPointLocationCode `xml:"tiploc,attr"`
 	// Near is true if the disruption should be interpreted as being near the provided TIPLOC, rather than at the exact location.
 	Near bool `xml:"near,attr"`
 

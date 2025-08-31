@@ -2,21 +2,27 @@ package unmarshaller
 
 import (
 	"encoding/xml"
-	"errors"
-	"fmt"
+	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestUnmarshal[T any](cases map[string]T) error {
-	for inputXML, expectedOutput := range cases {
-		var actualOutput T
-		if err := xml.Unmarshal([]byte(inputXML), &actualOutput); err != nil {
-			return fmt.Errorf("failed to unmarshal input %q: %w", inputXML, err)
-		}
-		if !cmp.Equal(expectedOutput, actualOutput) {
-			return errors.New(cmp.Diff(expectedOutput, actualOutput))
-		}
+type unmarshalTestCase[T any] struct {
+	name     string
+	xml      string
+	expected T
+}
+
+func testUnmarshal[T any](t *testing.T, cases []unmarshalTestCase[T]) {
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var actual T
+			if err := xml.Unmarshal([]byte(tc.xml), &actual); err != nil {
+				t.Fatalf("failed to unmarshal case XML: %v", err)
+			}
+			if !cmp.Equal(tc.expected, actual) {
+				t.Fatalf("actual result and expected result differ: %s", cmp.Diff(actual, tc.expected))
+			}
+		})
 	}
-	return nil
 }

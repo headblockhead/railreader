@@ -8,8 +8,9 @@ import (
 type Alarm struct {
 	// only one of:
 	// ClearedAlarm may contain the ID of an alarm that has been cleared.
-	ClearedAlarm int       `xml:"clear"`
-	NewAlarm     *NewAlarm `xml:"set"`
+	ClearedAlarm *int `xml:"clear"`
+	// NewAlarm may contain details of a new alarm that has been raised.
+	NewAlarm *NewAlarm `xml:"set"`
 }
 
 type NewAlarm struct {
@@ -17,7 +18,7 @@ type NewAlarm struct {
 
 	// only one of:
 	// TDFailure gives the code of a specific Train Describer that Darwin has not received any data from for a period of time (darwin suspects that the TD has failed)
-	TDFailure railreader.TrainDescriber `xml:"tdAreaFail"`
+	TDFailure *railreader.TrainDescriber `xml:"tdAreaFail"`
 	// TDTotalFailure is true if Darwin has not received any data from any Train Describers for a period of time.
 	TDTotalFailure TrueIfPresent `xml:"tdFeedFail"`
 	// TyrellTotalFailure is true if Darwin's connection to Tyrell (a disruption alert notification system - see https://www.nexusalpha.com/tyrell-io) has failed.
