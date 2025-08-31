@@ -45,8 +45,8 @@ type ScheduleLocationRow struct {
 
 	LocationID string
 
-	Activities          *string
-	PlannedActivities   *string
+	Activities          *[]string
+	PlannedActivities   *[]string
 	Cancelled           bool
 	FormationID         *string
 	AffectedByDiversion bool

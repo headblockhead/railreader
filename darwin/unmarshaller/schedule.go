@@ -64,7 +64,7 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// ScheduleLocation is a generic struct that contains (nullable pointers to) all the possible location types.
+// ScheduleLocation is a generic struct that contains (nilable pointers to) all the possible location types.
 type ScheduleLocation struct {
 	Type LocationType
 

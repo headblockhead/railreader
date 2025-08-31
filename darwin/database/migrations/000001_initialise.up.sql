@@ -103,8 +103,8 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				-- Schedule
 				location_id text NOT NULL,
 				CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id),
-				activities text,
-				planned_activities text,
+				activities text ARRAY,
+				planned_activities text ARRAY,
 				is_cancelled boolean NOT NULL,
 				formation_id text,
 				is_affected_by_diversion boolean NOT NULL,

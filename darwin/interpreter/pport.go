@@ -63,17 +63,17 @@ func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response
 	var databaseResponse database.Response
 	databaseResponse.MessageID = u.messageID
 	databaseResponse.Snapshot = snapshot
-	if resp.Source != "" {
+	if resp.Source != nil && *resp.Source != "" {
 		u.log.Debug("source is set")
-		databaseResponse.Source = &resp.Source
+		databaseResponse.Source = resp.Source
 	}
-	if resp.SourceSystem != "" {
+	if resp.SourceSystem != nil && *resp.SourceSystem != "" {
 		u.log.Debug("source system is set")
-		databaseResponse.SourceSystem = &resp.SourceSystem
+		databaseResponse.SourceSystem = resp.SourceSystem
 	}
-	if resp.RequestID != "" {
+	if resp.RequestID != nil && *resp.RequestID != "" {
 		u.log.Debug("request ID is set")
-		databaseResponse.RequestID = &resp.RequestID
+		databaseResponse.RequestID = resp.RequestID
 	}
 	if err := u.responseRepository.Insert(databaseResponse); err != nil {
 		return fmt.Errorf("failed to insert response record: %w", err)

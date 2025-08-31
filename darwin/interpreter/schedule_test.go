@@ -45,7 +45,7 @@ func TestInterpretSchedule(t *testing.T) {
 		ExpectedScheduleRow database.ScheduleRow
 	}{
 		// This is an example of a minimal valid schedule.
-		"non_required_fields_are_null": {
+		"non_required_fields_are_nil": {
 			Schedule: unmarshaller.Schedule{
 				TrainIdentifiers: unmarshaller.TrainIdentifiers{
 					RID:                "012345678901234",
@@ -116,7 +116,7 @@ func TestInterpretSchedule(t *testing.T) {
 					ScheduledStartDate: "2025-08-23",
 				},
 				Headcode:         "2C04",
-				RetailServiceID:  "NT123456",
+				RetailServiceID:  pointerTo("NT123456"),
 				TOC:              "NT",
 				Service:          railreader.ServiceBus,
 				Category:         railreader.CategoryBusReplacement,
@@ -125,13 +125,13 @@ func TestInterpretSchedule(t *testing.T) {
 				Deleted:          true,
 				Charter:          true,
 				CancellationReason: &unmarshaller.DisruptionReason{
-					TIPLOC:   "ABCD",
+					TIPLOC:   pointerTo(railreader.TimingPointLocationCode("ABCD")),
 					Near:     true,
 					ReasonID: 100,
 				},
-				DivertedVia: "EFGH",
+				DivertedVia: pointerTo(railreader.TimingPointLocationCode("EFGH")),
 				DiversionReason: &unmarshaller.DisruptionReason{
-					TIPLOC:   "IJKL",
+					TIPLOC:   pointerTo(railreader.TimingPointLocationCode("IJKL")),
 					Near:     true,
 					ReasonID: 101,
 				},
@@ -141,40 +141,40 @@ func TestInterpretSchedule(t *testing.T) {
 						Origin: &unmarshaller.OriginLocation{
 							LocationBase: unmarshaller.LocationBase{
 								TIPLOC:              "MNOP",
-								Activities:          "TBT ",
-								PlannedActivities:   "TB",
+								Activities:          pointerTo("TBT "),
+								PlannedActivities:   pointerTo("TB"),
 								Cancelled:           true,
-								FormationID:         "012345678901234-001",
+								FormationID:         pointerTo("012345678901234-001"),
 								AffectedByDiversion: true,
 								CancellationReason: &unmarshaller.DisruptionReason{
-									TIPLOC:   "UVWX",
+									TIPLOC:   pointerTo(railreader.TimingPointLocationCode("UVWX")),
 									Near:     true,
 									ReasonID: 102,
 								},
 							},
-							PublicArrivalTime:    "00:01",
-							PublicDepartureTime:  "00:02",
-							WorkingArrivalTime:   "00:03",
-							WorkingDepartureTime: "00:04",
-							FalseDestination:     "QRST",
+							PublicArrivalTime:    pointerTo(unmarshaller.TrainTime("00:01")),
+							PublicDepartureTime:  pointerTo(unmarshaller.TrainTime("00:02")),
+							WorkingArrivalTime:   pointerTo(unmarshaller.TrainTime("00:03")),
+							WorkingDepartureTime: unmarshaller.TrainTime("00:04"),
+							FalseDestination:     pointerTo(railreader.TimingPointLocationCode("QRST")),
 						},
 					},
 					{
 						Type: unmarshaller.LocationTypeOperationalOrigin,
 						OperationalOrigin: &unmarshaller.OperationalOriginLocation{
-							WorkingArrivalTime:   "00:05",
+							WorkingArrivalTime:   pointerTo(unmarshaller.TrainTime("00:05")),
 							WorkingDepartureTime: "00:06",
 						},
 					},
 					{
 						Type: unmarshaller.LocationTypeIntermediate,
 						Intermediate: &unmarshaller.IntermediateLocation{
-							PublicArrivalTime:    "00:07",
-							PublicDepartureTime:  "00:08",
+							PublicArrivalTime:    pointerTo(unmarshaller.TrainTime("00:07")),
+							PublicDepartureTime:  pointerTo(unmarshaller.TrainTime("00:08")),
 							WorkingArrivalTime:   "00:09",
 							WorkingDepartureTime: "00:10",
-							RoutingDelay:         2,
-							FalseDestination:     "YZAB",
+							RoutingDelay:         pointerTo(2),
+							FalseDestination:     pointerTo(railreader.TimingPointLocationCode("YZAB")),
 						},
 					},
 					{
@@ -182,32 +182,32 @@ func TestInterpretSchedule(t *testing.T) {
 						OperationalIntermediate: &unmarshaller.OperationalIntermediateLocation{
 							WorkingArrivalTime:   "00:11",
 							WorkingDepartureTime: "00:12",
-							RoutingDelay:         3,
+							RoutingDelay:         pointerTo(3),
 						},
 					},
 					{
 						Type: unmarshaller.LocationTypeIntermediatePassing,
 						IntermediatePassing: &unmarshaller.IntermediatePassingLocation{
 							WorkingPassingTime: "00:13",
-							RoutingDelay:       4,
+							RoutingDelay:       pointerTo(4),
 						},
 					},
 					{
 						Type: unmarshaller.LocationTypeDestination,
 						Destination: &unmarshaller.DestinationLocation{
-							PublicArrivalTime:    "00:14",
-							PublicDepartureTime:  "00:15",
+							PublicArrivalTime:    pointerTo(unmarshaller.TrainTime("00:14")),
+							PublicDepartureTime:  pointerTo(unmarshaller.TrainTime("00:15")),
 							WorkingArrivalTime:   "00:16",
-							WorkingDepartureTime: "00:17",
-							RoutingDelay:         5,
+							WorkingDepartureTime: pointerTo(unmarshaller.TrainTime("00:17")),
+							RoutingDelay:         pointerTo(5),
 						},
 					},
 					{
 						Type: unmarshaller.LocationTypeOperationalDestination,
 						OperationalDestination: &unmarshaller.OperationalDestinationLocation{
 							WorkingArrivalTime:   "00:18",
-							WorkingDepartureTime: "00:19",
-							RoutingDelay:         6,
+							WorkingDepartureTime: pointerTo(unmarshaller.TrainTime("00:19")),
+							RoutingDelay:         pointerTo(6),
 						},
 					},
 				},
@@ -238,8 +238,8 @@ func TestInterpretSchedule(t *testing.T) {
 						Sequence:                       0,
 						Type:                           string(unmarshaller.LocationTypeOrigin),
 						LocationID:                     "MNOP",
-						Activities:                     pointerTo("TBT "),
-						PlannedActivities:              pointerTo("TB"),
+						Activities:                     pointerTo([]string{"TB", "T "}),
+						PlannedActivities:              pointerTo([]string{"TB"}),
 						Cancelled:                      true,
 						FormationID:                    pointerTo("012345678901234-001"),
 						AffectedByDiversion:            true,
@@ -311,7 +311,7 @@ func TestInterpretSchedule(t *testing.T) {
 						Type: unmarshaller.LocationTypeIntermediate,
 						Intermediate: &unmarshaller.IntermediateLocation{
 							LocationBase: unmarshaller.LocationBase{
-								FormationID: "012345678901234-001",
+								FormationID: pointerTo("012345678901234-001"),
 							},
 							WorkingArrivalTime:   "00:03",
 							WorkingDepartureTime: "00:04",
@@ -346,7 +346,7 @@ func TestInterpretSchedule(t *testing.T) {
 						Intermediate: &unmarshaller.IntermediateLocation{
 							LocationBase: unmarshaller.LocationBase{
 								Cancelled:   true,
-								FormationID: "012345678901234-002",
+								FormationID: pointerTo("012345678901234-002"),
 							},
 							WorkingArrivalTime:   "00:09",
 							WorkingDepartureTime: "00:10",
@@ -368,7 +368,7 @@ func TestInterpretSchedule(t *testing.T) {
 						Type: unmarshaller.LocationTypeIntermediate,
 						Intermediate: &unmarshaller.IntermediateLocation{
 							LocationBase: unmarshaller.LocationBase{
-								FormationID: "",
+								FormationID: pointerTo(""),
 								// should have formationid = nil
 							},
 							WorkingArrivalTime:   "00:13",
@@ -443,6 +443,39 @@ func TestInterpretSchedule(t *testing.T) {
 				},
 			},
 		},
+		"empty_activities_produces_activitynone": {
+			Schedule: unmarshaller.Schedule{
+				TrainIdentifiers: unmarshaller.TrainIdentifiers{
+					ScheduledStartDate: "2025-08-23",
+				},
+				Locations: []unmarshaller.ScheduleLocation{
+					{
+						Type: unmarshaller.LocationTypeIntermediate,
+						Intermediate: &unmarshaller.IntermediateLocation{
+							LocationBase: unmarshaller.LocationBase{
+								Activities: pointerTo(""),
+							},
+							WorkingArrivalTime:   "00:03",
+							WorkingDepartureTime: "00:04",
+						},
+					},
+				},
+			},
+			MessageID: "message4",
+			ExpectedScheduleRow: database.ScheduleRow{
+				MessageID:          "message4",
+				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
+				Locations: []database.ScheduleLocationRow{
+					{
+						Sequence:             0,
+						Type:                 string(unmarshaller.LocationTypeIntermediate),
+						Activities:           pointerTo([]string{"  "}),
+						WorkingArrivalTime:   pointerTo(time.Date(2025, 8, 23, 0, 3, 0, 0, location)),
+						WorkingDepartureTime: pointerTo(time.Date(2025, 8, 23, 0, 4, 0, 0, location)),
+					},
+				},
+			},
+		},
 		"dates_are_correct_when_times_cross_midnight": {
 			Schedule: unmarshaller.Schedule{
 				TrainIdentifiers: unmarshaller.TrainIdentifiers{
@@ -499,9 +532,9 @@ func TestInterpretSchedule(t *testing.T) {
 					},
 				},
 			},
-			MessageID: "message4",
+			MessageID: "message5",
 			ExpectedScheduleRow: database.ScheduleRow{
-				MessageID:          "message4",
+				MessageID:          "message5",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
 				Locations: []database.ScheduleLocationRow{
 					{
