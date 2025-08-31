@@ -19,9 +19,8 @@ import (
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
-type InjestCommand struct {
+type IngestCommand struct {
 	Darwin struct {
-		// TODO: secrets management tool?
 		Kafka struct {
 			Host              string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_HOST" required:"" help:"Kafka server hostname and port."`
 			Group             string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_GROUP" required:""`
@@ -37,8 +36,8 @@ type InjestCommand struct {
 	} `embed:"" prefix:"darwin."`
 
 	Logging struct {
-		Level string `enum:"debug,info,warn,error" default:"warn"`
-		Type  string `enum:"json,console" default:"json"`
+		Level string `enum:"debug,info,warn,error" env:"LOGGING_LEVEL" default:"warn"`
+		Type  string `enum:"json,console" env:"LOGGING_TYPE" default:"json"`
 	} `embed:"" prefix:"logging."`
 }
 
@@ -57,7 +56,7 @@ type messageHandler interface {
 	Handle(msg kafka.Message) error
 }
 
-func (c InjestCommand) Run() error {
+func (c IngestCommand) Run() error {
 	log := getLogger(c.Logging.Level, c.Logging.Type == "json")
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
