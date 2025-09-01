@@ -12,13 +12,13 @@ import (
 )
 
 type SFTPCommand struct {
-	Address        string `env:"SFTP_ADDRESS" help:"SFTP server address to listen on for file transfers" default:"127.0.0.1:8022"`
-	HashedPassword string `env:"SFTP_HASHED_PASSWORD" help:"bcrypt hashed password for incoming SFTP connections" required:""`
-	PrivateKey     []byte `env:"SFTP_PRIVATE_KEY_FILE" help:"Path to the private key file for the SFTP server" type:"filecontent" required:""`
+	Address        string `env:"SFTP_ADDRESS" help:"Address to listen on for file transfers from the Rail Data Marketplace." default:"127.0.0.1:8022"`
+	HashedPassword string `env:"SFTP_HASHED_PASSWORD" help:"Password for incoming SFTP connections (bcrypt hashed)" required:""`
+	PrivateKey     []byte `env:"SFTP_PRIVATE_KEY_FILE" help:"SFTP server's private key file" type:"filecontent" required:""`
 	Logging        struct {
-		Level string `enum:"debug,info,warn,error" env:"LOGGING_LEVEL" default:"warn"`
-		Type  string `enum:"json,console" env:"LOGGING_TYPE" default:"json"`
-	} `embed:"" prefix:"logging."`
+		Level string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
+		Type  string `enum:"json,console" env:"LOG_TYPE" default:"json"`
+	} `embed:"" prefix:"log."`
 }
 
 func (c *SFTPCommand) Run() error {
@@ -26,12 +26,13 @@ func (c *SFTPCommand) Run() error {
 
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			log.Info("Login attempt", slog.String("username", conn.User()))
-			err := bcrypt.CompareHashAndPassword([]byte(c.HashedPassword), pass)
+			log.Info("new login attempt", slog.String("username", conn.User()))
+			err := bcrypt.CompareHashAndPassword([]byte(c.HashedPassword), pass) // constant time comparison
 			if err == nil {
-				log.Info("Login successful", slog.String("username", conn.User()))
+				log.Info("successful login attempt", slog.String("username", conn.User()))
 				return nil, nil
 			}
+			log.Info("unsuccessful login attempt", slog.String("username", conn.User()), slog.String("error", err.Error()))
 			return nil, fmt.Errorf("password rejected for %q", conn.User())
 		},
 	}

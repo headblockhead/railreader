@@ -22,23 +22,23 @@ import (
 type IngestCommand struct {
 	Darwin struct {
 		Kafka struct {
-			Host              string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_HOST" required:"" help:"Kafka server hostname and port."`
-			Group             string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_GROUP" required:""`
-			Topic             string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_TOPIC" required:""`
-			Username          string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_USERNAME" required:""`
-			Password          string        `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_PASSWORD" required:""`
-			ConnectionTimeout time.Duration `group:"Darwin Push Port client:" env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"10s"`
+			Address           string        `env:"DARWIN_KAFKA_ADDRESS" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka server address to connect to for Darwin Real Time Train Information from the Rail Data Marketplace."`
+			Topic             string        `env:"DARWIN_KAFKA_TOPIC" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
+			Group             string        `env:"DARWIN_KAFKA_GROUP" required:"" help:"Consumer group."`
+			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"Consumer username."`
+			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:"" help:"Consumer password."`
+			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"10s" help:"Timeout for connecting to the Kafka broker."`
 		} `embed:"" prefix:"kafka."`
 		Database struct {
-			URL string `group:"Darwin Push Port client:" env:"DARWIN_POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store Darwin data in."`
+			URL string `env:"DARWIN_POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store Darwin data in."`
 		} `embed:"" prefix:"database."`
-		QueueSize int `group:"Darwin Push Port client:" env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
+		QueueSize int `env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
 	} `embed:"" prefix:"darwin."`
 
 	Logging struct {
-		Level string `enum:"debug,info,warn,error" env:"LOGGING_LEVEL" default:"warn"`
-		Type  string `enum:"json,console" env:"LOGGING_TYPE" default:"json"`
-	} `embed:"" prefix:"logging."`
+		Level string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
+		Type  string `enum:"json,console" env:"LOG_TYPE" default:"json"`
+	} `embed:"" prefix:"log."`
 }
 
 type kafkaConnection interface {
@@ -87,7 +87,7 @@ func (c IngestCommand) Run() error {
 
 	kafkaContext := context.Background()
 	darwinKafkaConnection := darwinconn.New(kafkaContext, log.With(slog.String("source", "darwin.connection")), kafka.ReaderConfig{
-		Brokers: []string{c.Darwin.Kafka.Host},
+		Brokers: []string{c.Darwin.Kafka.Address},
 		GroupID: c.Darwin.Kafka.Group,
 		Topic:   c.Darwin.Kafka.Topic,
 		Dialer: &kafka.Dialer{

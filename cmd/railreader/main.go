@@ -8,8 +8,8 @@ import (
 )
 
 type CLI struct {
-	Ingest IngestCommand `cmd:"ingest" help:"Ingest data from National Rail into the database."`
-	SFTP   SFTPCommand   `cmd:"sftp" help:"Fetch data from National Rail's SFTP server."`
+	Ingest IngestCommand `cmd:"ingest" help:"Ingest data into the database from the message feeds."`
+	SFTP   SFTPCommand   `cmd:"sftp" help:"Host an SFTP server for data to be uploaded to."`
 }
 
 func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
