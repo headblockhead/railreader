@@ -57,7 +57,9 @@ func (c IngestCommand) Run() error {
 	log := getLogger(c.Logging.Level, c.Logging.Format == "json")
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
-	go cancelOnSignal(messageFetcherCancel, log)
+	go onSignal(log, func() {
+		messageFetcherCancel()
+	})
 
 	darwinDatabase, err := darwindb.New(context.Background(), log.With(slog.String("source", "darwin.database")), c.Darwin.Database.URL)
 	if err != nil {

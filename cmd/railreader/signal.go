@@ -1,14 +1,13 @@
 package main
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-func cancelOnSignal(cancel context.CancelFunc, log *slog.Logger) {
+func onSignal(log *slog.Logger, f func()) {
 	signalchan := make(chan os.Signal, 1)
 	defer close(signalchan)
 	signal.Notify(signalchan, syscall.SIGINT, syscall.SIGTERM)
@@ -22,6 +21,6 @@ func cancelOnSignal(cancel context.CancelFunc, log *slog.Logger) {
 		}
 		alreadyTerminating = true
 		log.Info(signal.String() + " received, stopping gracefully...")
-		cancel()
+		f()
 	}
 }
