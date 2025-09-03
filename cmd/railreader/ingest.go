@@ -5,10 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/headblockhead/railreader/darwin"
@@ -36,8 +33,8 @@ type IngestCommand struct {
 	} `embed:"" prefix:"darwin."`
 
 	Logging struct {
-		Level string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
-		Type  string `enum:"json,console" env:"LOG_TYPE" default:"json"`
+		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
+		Format string `enum:"json,console" env:"LOG_FORMAT" default:"json"`
 	} `embed:"" prefix:"log."`
 }
 
@@ -57,30 +54,12 @@ type messageHandler interface {
 }
 
 func (c IngestCommand) Run() error {
-	log := getLogger(c.Logging.Level, c.Logging.Type == "json")
+	log := getLogger(c.Logging.Level, c.Logging.Format == "json")
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
+	go cancelOnSignal(messageFetcherCancel, log)
 
-	go func() {
-		signalchan := make(chan os.Signal, 1)
-		defer close(signalchan)
-		signal.Notify(signalchan, syscall.SIGINT, syscall.SIGTERM)
-
-		alreadyTerminating := false
-		for {
-			signal := <-signalchan // block until a signal is received
-			if alreadyTerminating {
-				log.Warn("received multiple exit signals, exiting immediately")
-				os.Exit(130)
-			}
-			alreadyTerminating = true
-			log.Warn(signal.String() + " received, stopping gracefully...")
-			messageFetcherCancel()
-		}
-	}()
-
-	databaseContext := context.Background()
-	darwinDatabase, err := darwindb.New(databaseContext, log.With(slog.String("source", "darwin.database")), c.Darwin.Database.URL)
+	darwinDatabase, err := darwindb.New(context.Background(), log.With(slog.String("source", "darwin.database")), c.Darwin.Database.URL)
 	if err != nil {
 		return fmt.Errorf("error connecting to darwin database: %w", err)
 	}
