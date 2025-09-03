@@ -17,11 +17,11 @@ func cancelOnSignal(cancel context.CancelFunc, log *slog.Logger) {
 	for {
 		signal := <-signalchan // block until a signal is received
 		if alreadyTerminating {
-			log.Warn("received multiple exit signals, exiting immediately")
+			log.Error("received multiple exit signals, exiting immediately")
 			os.Exit(130)
 		}
 		alreadyTerminating = true
-		log.Warn(signal.String() + " received, stopping gracefully...")
+		log.Info(signal.String() + " received, stopping gracefully...")
 		cancel()
 	}
 }

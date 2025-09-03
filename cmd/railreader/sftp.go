@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -13,11 +13,9 @@ import (
 )
 
 type SFTPCommand struct {
-	EnableIPv4         bool   `env:"SFTP_ENABLE_IPV4" help:"Whether to listen on IPv4." default:"true"`
-	EnableIPv6         bool   `env:"SFTP_ENABLE_IPV6" help:"Whether to listen on IPv6." default:"false"`
 	Address            string `env:"SFTP_ADDRESS" help:"Address (v4 or v6) to listen on for file transfers from the Rail Data Marketplace." default:"127.0.0.1:2022"`
 	HashedPasswordFile []byte `env:"SFTP_HASHED_PASSWORD_FILE" help:"File containing a bcrypt hashed password to authenticate incoming SFTP connections" type:"filecontent" required:""`
-	PrivateKeyFile     []byte `env:"SFTP_PRIVATE_KEY_FILE" help:"File containing the SFTP server's private key" type:"filecontent" required:""`
+	PrivateHostKeyFile []byte `env:"SFTP_PRIVATE_HOST_KEY_FILE" help:"File containing the SFTP server's private key" type:"filecontent" required:""`
 	Logging            struct {
 		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
 		Format string `enum:"json,console" env:"LOG_FORMAT" default:"json"`
@@ -27,100 +25,115 @@ type SFTPCommand struct {
 func (c *SFTPCommand) Run() error {
 	log := getLogger(c.Logging.Level, c.Logging.Format == "json")
 
-	listenerContext, listenerCancel := context.WithCancel(context.Background())
-	go cancelOnSignal(listenerCancel, log)
+	//listenerContext, listenerCancel := context.WithCancel(context.Background())
+	//go cancelOnSignal(listenerCancel, log)
 
 	config := &ssh.ServerConfig{
-		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-			log.Info("new login attempt", slog.String("username", conn.User()), slog.String("local-addr-network", conn.LocalAddr().Network()), slog.String("local-addr", conn.LocalAddr().String()), slog.String("remote-addr-network", conn.RemoteAddr().Network()), slog.String("remote-addr", conn.RemoteAddr().String()))
-			err := bcrypt.CompareHashAndPassword(c.HashedPasswordFile, pass) // constant time comparison
-			if err == nil {
-				log.Info("successful login attempt", slog.String("username", conn.User()))
-				return nil, nil
-			}
-			log.Info("unsuccessful login attempt", slog.String("username", conn.User()), slog.String("error", err.Error()))
-			return nil, fmt.Errorf("password rejected for %q", conn.User())
-		},
+		MaxAuthTries: 1,
 	}
-	private, err := ssh.ParsePrivateKey(c.PrivateKeyFile)
+	privateKey, err := ssh.ParsePrivateKey(c.PrivateHostKeyFile)
 	if err != nil {
-		return fmt.Errorf("failed to parse private key: %w", err)
+		return fmt.Errorf("failed to parse private host key: %w", err)
 	}
-	config.AddHostKey(private)
-	go listen()
-	return nil
-}
+	config.AddHostKey(privateKey)
 
-func listen() {
 	listener, err := net.Listen("tcp", c.Address)
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", c.Address, err)
 	}
-	log.Info("Listening on", slog.String("address", c.Address))
-
+	log.Info("listening on", slog.String("address", c.Address))
 	for {
-		// Block until we get a new connection
-		nConn, err := listener.Accept()
+		// Block until new connection to the server
+		connection, err := listener.Accept()
 		if err != nil {
-			return fmt.Errorf("failed to accept incoming connection: %w", err)
+			log.Error("error accepting an incoming connection", slog.Any("error", err))
+			continue
 		}
-		_, chans, reqs, err := ssh.NewServerConn(nConn, config)
+		connectionGroup := slog.GroupAttrs("connection", slog.String("localAddress", connection.LocalAddr().String()), slog.String("remoteAddress", connection.RemoteAddr().String()))
+		connectionLog := log.With(connectionGroup)
+		connectionLog.Debug("recieved new connection")
+
+		config.PasswordCallback = func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+			if conn.User() != "darwin" {
+				return nil, errors.New("incorrect username")
+			}
+			// bcrypt.CompareHashAndPassword is a constant time comparison
+			if err := bcrypt.CompareHashAndPassword(c.HashedPasswordFile, pass); err != nil {
+				return nil, fmt.Errorf("password rejected for %s", conn.User())
+			}
+			return nil, nil
+		}
+		config.AuthLogCallback = func(conn ssh.ConnMetadata, method string, err error) {
+			sshConnectionGroup := slog.GroupAttrs("ssh", slog.String("username", conn.User()), slog.Any("sessionID", conn.SessionID()))
+			attemptGroup := slog.GroupAttrs("attempt", slog.String("method", method))
+			attemptLog := connectionLog.With(sshConnectionGroup, attemptGroup)
+			if err != nil {
+				if err == ssh.ErrNoAuth {
+					attemptLog.Debug("authentication attempt started")
+					return
+				}
+				attemptLog.Info("unsuccessful authentication attempt", slog.Any("error", err))
+				return
+			}
+			if method == "password" {
+				attemptLog.Info("successful authentication attempt")
+			}
+		}
+
+		sshConnection, channels, reqs, err := ssh.NewServerConn(connection, config)
 		if err != nil {
-			return fmt.Errorf("failed to handshake: %w", err)
+			log.Error("error performing SSH handshake", slog.Any("error", err))
+			continue
 		}
 		go ssh.DiscardRequests(reqs)
+		sshConnectionGroup := slog.GroupAttrs("ssh", slog.String("username", sshConnection.User()), slog.Any("sessionID", sshConnection.SessionID()))
+		sshLog := connectionLog.With(sshConnectionGroup)
+		sshLog.Debug("completed SSH handshake")
 
-		for newChannel := range chans {
-			log.Info("New channel", slog.String("type", newChannel.ChannelType()))
-			if newChannel.ChannelType() != "session" {
-				newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
-				log.Warn("Unknown channel type", slog.String("type", newChannel.ChannelType()))
+		for channel := range channels {
+			channelGroup := slog.GroupAttrs("channel", slog.String("type", channel.ChannelType()))
+			channelLog := connectionLog.With(channelGroup)
+			channelLog.Debug("handling channel creation request")
+			// Handle only "session" channels
+			if channel.ChannelType() != "session" {
+				channel.Reject(ssh.UnknownChannelType, "unknown channel type")
+				log.Warn("rejected request to create channel of unhandled type (type != 'session')")
 				continue
 			}
-			channel, requests, err := newChannel.Accept()
+			channel, requests, err := channel.Accept()
 			if err != nil {
-				return fmt.Errorf("could not accept channel: %w", err)
+				log.Error("error accepting channel creation request", slog.Any("error", err))
 			}
-			log.Info("Channel accepted")
+			log.Debug("accepted channel creation request")
 
-			// Sessions have out-of-band requests such as "shell",
-			// "pty-req" and "env".  Here we handle only the
-			// "subsystem" request.
-			go func(in <-chan *ssh.Request) {
-				for req := range in {
-					log.Info("Request", slog.String("type", req.Type), slog.Bool("want-reply", req.WantReply))
-					ok := false
-					switch req.Type {
-					case "subsystem":
-						log.Info("Subsystem", slog.String("name", string(req.Payload[4:])))
-						if string(req.Payload[4:]) == "sftp" {
-							ok = true
-						}
+			go func() {
+				for request := range requests {
+					requestGroup := slog.GroupAttrs("request", slog.String("type", request.Type), slog.Bool("wantReply", request.WantReply))
+					requestLog := channelLog.With(requestGroup)
+					requestLog.Debug("recieved request", slog.String("type", request.Type), slog.Bool("wantReply", request.WantReply))
+					if request.Type != "subsystem" {
+						requestLog.Warn("rejected request of unhandled type (type != 'subsystem')")
+						continue
 					}
-					log.Info("Request processed", slog.String("type", req.Type), slog.Bool("accepted", ok))
-					req.Reply(ok, nil)
+					// TODO: check SFTP
+					requestLog.Debug("request OK")
+					request.Reply(true, nil)
 				}
-			}(requests)
+			}()
 
-			serverOptions := []sftp.ServerOption{}
-
-			server, err := sftp.NewServer(
-				channel,
-				serverOptions...,
-			)
+			server, err := sftp.NewServer(channel)
 			if err != nil {
-				log.Error("Failed to start sftp server:", slog.String("error", err.Error()))
+				channelLog.Error("error while initialising STFP session", slog.Any("error", err))
 				continue
 			}
 			if err := server.Serve(); err != nil {
 				if err != io.EOF {
-					log.Error("sftp server completed with error:", slog.String("error", err.Error()))
+					channelLog.Error("error while running SFTP session", slog.Any("error", err))
 				} else {
-					log.Info("sftp server completed session.")
+					channelLog.Info("SFTP server session completed successfully")
 				}
 			}
 			server.Close()
 		}
 	}
-
 }

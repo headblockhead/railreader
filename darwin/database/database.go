@@ -80,7 +80,7 @@ func (c Database) Close(timeout time.Duration) error {
 	if err := c.conn.Close(ctx); err != nil {
 		return fmt.Errorf("failed to close pgx connection: %w", err)
 	}
-	c.log.Debug("connection closed")
+	c.log.Debug("closed connection")
 	return nil
 }
 
