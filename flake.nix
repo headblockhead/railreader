@@ -1,5 +1,5 @@
 {
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   outputs = { self, nixpkgs }:
     let
       systems = [
@@ -16,15 +16,15 @@
       packages = forAllSystems (
         { pkgs }:
         rec {
-          railreader = pkgs.buildGoModule {
+          railreader = pkgs.buildGo125Module {
             pname = "railreader";
             version = "0.1";
             src = ./.;
-            vendorHash = "";
+            vendorHash = "sha256-imuE8g3wPjUN79tFy1x3wYmJoSSGJp0DRMAP+HEu4HI=";
           };
           default = railreader;
           railreader-docker = pkgs.dockerTools.buildLayeredImage {
-            name = "registry.edwardh.dev/railreader"; # TODO
+            name = "ghcr.io/headblockhead/railreader";
             tag = "latest";
             config.Cmd = "${railreader}/bin/railreader";
           };
