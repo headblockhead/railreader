@@ -23,7 +23,7 @@
             vendorHash = "sha256-imuE8g3wPjUN79tFy1x3wYmJoSSGJp0DRMAP+HEu4HI=";
           };
           default = railreader;
-          railreader-docker = pkgs.dockerTools.buildLayeredImage {
+          railreader-docker = pkgs.dockerTools.buildImage {
             name = "ghcr.io/headblockhead/railreader";
             tag = "latest";
             config.Cmd = "${railreader}/bin/railreader";
