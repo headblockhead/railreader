@@ -23,13 +23,9 @@
           config.Entrypoint = [ "${railreader}/bin/railreader" ];
         };
       });
-      nixosModules = forEachSystem (pkgs: {
-        railreader = { config, ... }: import ./service.nix {
-          inherit config;
-          lib = pkgs.lib;
-          railreader = packages.${pkgs.system}.railreader;
-        };
-      });
-    }
-  ;
+      nixosModules.railreader = { config, options, lib, pkgs, ... }: import ./service.nix {
+        inherit config options lib;
+        railreader = packages.${pkgs.system}.railreader;
+      };
+    };
 }
