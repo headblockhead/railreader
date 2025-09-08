@@ -17,7 +17,7 @@ import (
 
 type SFTPCommand struct {
 	Addresses          []string `env:"SFTP_ADDRESSES" help:"A list of addresses to listen to." default:"127.0.0.1:822"`
-	HashedPasswordFile []byte   `env:"SFTP_HASHED_PASSWORD_FILE" help:"File containing a bcrypt hashed password to authenticate incoming SFTP connections." type:"filecontent" required:""`
+	HashedPassword     string   `env:"SFTP_HASHED_PASSWORD" help:"A bcrypt hashed password to authenticate incoming SFTP connections." required:""`
 	PrivateHostKeyFile []byte   `env:"SFTP_PRIVATE_HOST_KEY_FILE" help:"File containing the SFTP server's SSH private key." type:"filecontent" required:""`
 	DarwinDirectory    string   `env:"SFTP_DARWIN_DIRECTORY" help:"Directory to store Darwin's SFTP data in. The ingest command must have access to this directory." default:"./darwin" type:"existingdir" required:""`
 	Logging            struct {
@@ -82,13 +82,14 @@ func (c *SFTPCommand) Run() error {
 func (c *SFTPCommand) handleConnection(handlerGroup *sync.WaitGroup, log *slog.Logger, connection net.Conn, privateKey ssh.Signer) {
 	log.Debug("recieved new connection")
 
+	bytesOfHashedPassword := []byte(c.HashedPassword)
 	config := &ssh.ServerConfig{
 		PasswordCallback: func(conn ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
 			if conn.User() != "darwin" {
 				return nil, errors.New("incorrect username")
 			}
 			// bcrypt.CompareHashAndPassword is a constant time comparison
-			if err := bcrypt.CompareHashAndPassword(c.HashedPasswordFile, pass); err != nil {
+			if err := bcrypt.CompareHashAndPassword(bytesOfHashedPassword, pass); err != nil {
 				return nil, fmt.Errorf("password rejected for %s", conn.User())
 			}
 			return nil, nil

@@ -13,7 +13,10 @@
         railreader = pkgs.buildGo125Module {
           pname = "railreader";
           version = "0.1";
-          src = ./.;
+          src = pkgs.lib.cleanSourceWith {
+            src = ./.;
+            filter = path: type: !(pkgs.lib.hasSuffix ".nix" path);
+          };
           vendorHash = "sha256-imuE8g3wPjUN79tFy1x3wYmJoSSGJp0DRMAP+HEu4HI=";
         };
         default = railreader;
@@ -23,8 +26,8 @@
           config.Entrypoint = [ "${railreader}/bin/railreader" ];
         };
       });
-      nixosModules.railreader = { config, options, lib, pkgs, ... }: import ./service.nix {
-        inherit config options lib;
+      nixosModules.railreader = { config, lib, pkgs, ... }: import ./service.nix {
+        inherit config pkgs lib;
         railreader = packages.${pkgs.system}.railreader;
       };
     };

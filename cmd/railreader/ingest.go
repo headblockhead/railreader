@@ -17,18 +17,16 @@ import (
 )
 
 type IngestCommand struct {
-	Darwin struct {
+	DatabaseURL string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
+	Darwin      struct {
 		Kafka struct {
 			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
 			Topic             string        `env:"DARWIN_KAFKA_TOPIC" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
 			Group             string        `env:"DARWIN_KAFKA_GROUP" required:"" help:"Consumer group."`
-			UsernameFile      string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"File containing the consumer username in plaintext." type:"filecontent"`
-			PasswordFile      string        `env:"DARWIN_KAFKA_PASSWORD_FILE" required:"" help:"File containing the consumer password in plaintext." type:"filecontent"`
+			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"Cnsumer username."`
+			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:"" help:"Consumer password."`
 			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"30s" help:"Timeout for connecting to the Kafka broker."`
 		} `embed:"" prefix:"kafka."`
-		Database struct {
-			URL string `env:"DARWIN_POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store Darwin data in."`
-		} `embed:"" prefix:"database."`
 		QueueSize int `env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
 	} `embed:"" prefix:"darwin."`
 
@@ -61,7 +59,7 @@ func (c IngestCommand) Run() error {
 		messageFetcherCancel()
 	})
 
-	darwinDatabase, err := darwindb.New(context.Background(), log.With(slog.String("source", "darwin.database")), c.Darwin.Database.URL)
+	darwinDatabase, err := darwindb.New(context.Background(), log.With(slog.String("source", "darwin.database")), c.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to darwin database: %w", err)
 	}
@@ -75,8 +73,8 @@ func (c IngestCommand) Run() error {
 			Timeout:   c.Darwin.Kafka.ConnectionTimeout,
 			DualStack: true,
 			SASLMechanism: plain.Mechanism{
-				Username: c.Darwin.Kafka.UsernameFile,
-				Password: c.Darwin.Kafka.PasswordFile,
+				Username: c.Darwin.Kafka.Username,
+				Password: c.Darwin.Kafka.Password,
 			},
 			TLS: &tls.Config{},
 		},
