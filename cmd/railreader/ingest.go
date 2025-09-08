@@ -22,7 +22,7 @@ type IngestCommand struct {
 			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
 			Topic             string        `env:"DARWIN_KAFKA_TOPIC" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
 			Group             string        `env:"DARWIN_KAFKA_GROUP" required:"" help:"Consumer group."`
-			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"Consumer username."`
+			UsernameFile      string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"File containing the consumer username in plaintext." type:"filecontent"`
 			PasswordFile      string        `env:"DARWIN_KAFKA_PASSWORD_FILE" required:"" help:"File containing the consumer password in plaintext." type:"filecontent"`
 			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"30s" help:"Timeout for connecting to the Kafka broker."`
 		} `embed:"" prefix:"kafka."`
