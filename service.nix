@@ -1,17 +1,11 @@
 { config, lib, railreader, ... }:
 let
   types = lib.types;
+  cfg = config.services.railreader;
 in
 {
   options.services.railreader = {
     enable = lib.mkEnableOption "Whether to enable the railreader service.";
-    openFirewall = lib.mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Whether to automatically open ports in the firewall for railreader.
-      '';
-    };
     sftp = {
       hashedPasswordFile = lib.mkOption {
         type = types.path;
@@ -34,7 +28,7 @@ in
         '';
       };
       listenAddresses = lib.mkOption {
-        type = lib.listOf (lib.submodule {
+        type = types.listOf (types.submodule {
           options = {
             host = lib.mkOption {
               type = types.nullOr types.str;
@@ -79,9 +73,9 @@ in
           brokers = lib.mkOption {
             type = types.listOf types.str;
             default = [ "pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" ];
-            description = ''  
-                        The list of Kafka broker(s) to connect to.
-                      '';
+            description = ''
+              The list of Kafka broker(s) to connect to.
+            '';
           };
           topic = lib.mkOption {
             type = types.str;
@@ -123,96 +117,81 @@ in
         };
       };
     };
-  } // (
-    let
-      cfg = config.services.railreader;
-    in
+  };
+  config = lib.mkIf (config.services.railreader.enable) (lib.mkMerge [
     {
-      config = {
-        services.postgresql = lib.mkIf cfg.enable {
-          enable = true;
-          ensureDatabases = [
-            cfg.ingest.darwin.dbname
-          ];
-          ensureUsers = [
-            {
-              name = cfg.ingest.darwin.database.username;
-              ensureDBOwnership = true;
-            }
-          ];
-        };
-        networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [
-          (lib.concatMapStrings (addr: if addr.port == null then [ ] else [ toString addr.port ]) cfg.sftp.listenAddresses)
+      services.postgresql = {
+        enable = true;
+        ensureDatabases = [
+          cfg.ingest.darwin.database.name
         ];
-        systemd.targets.railreader-base.target = lib.mkIf cfg.enable {
-          description = "Common base for all railreader services.";
+        ensureUsers = [
+          {
+            name = cfg.ingest.darwin.database.name;
+            ensureDBOwnership = true;
+          }
+        ];
+      };
+      systemd.targets.railreader-base = {
+        description = "Common base for all railreader services.";
+        unitConfig = {
           StateDirectory = "railreader";
           StateDirectoryMode = "0700";
         };
-        systemd.services.railreader-sftp = lib.mkIf cfg.enable (
-          let sftpcfg = cfg.sftp; in {
-            description = "Railreader SFTP Server";
-            requires = [ "railreader-base.target" ];
-            after = [ "network.target" ];
-            wants = [ "network.target" ];
-            wantedBy = [ "railreader.target" ];
-            partOf = [ "railreader.target" ];
-            environment = {
-              SFTP_ADDRESSES = lib.concatMapStrings
-                (addr:
-                  let
-                    a = if addr.addr == null then "" else "--addr " + addr.addr;
-                    p = if addr.port == null then "" else "--port " + toString addr.port;
-                  in
-                  " " + a + " " + p
-                )
-                sftpcfg.listenAddresses;
-              SFTP_DARWIN_DIRECTORY = "/var/lib/railreader/darwin";
-            };
-            serviceConfig = {
-              ExecStart = ''
-                ${railreader}/bin/railreader sftp --hashedPasswordFile=$CREDENTIALS_DIRECTORY/sftpHashedPassword --privateHostKeyFile=$CREDENTIALS_DIRECTORY/sftpPrivateHostKey
-              '';
-              LoadCredential = [ "sftpHashedPassword:${sftpcfg.hashedPasswordFile}" "sftpPrivateHostKey:${toString sftpcfg.privateHostKeyFile}" ];
-            };
-          }
-        );
-        systemd.services.railreader-ingest = lib.mkIf cfg.enable (
-          let ingcfg = cfg.ingest; in {
-            description = "Railreader Ingest";
-            requires = [ "railreader-base.target" "postgresql.service" "railreader-sftp.service" ];
-            after = [ "network.target" "postgresql.service" "railreader-sftp.service" ];
-            wants = [ "network.target" ];
-            wantedBy = [ "railreader.target" ];
-            partOf = [ "railreader.target" ];
-            environment = {
-              DARWIN_KAFKA_BROKERS = lib.concatStringsSep "," ingcfg.darwin.kafka.brokers;
-              DARWIN_KAFKA_TOPIC = ingcfg.darwin.kafka.topic;
-              DARWIN_KAFKA_GROUP = ingcfg.darwin.kafka.group;
-              DARWIN_KAFKA_CONNECTION_TIMEOUT = "${toString ingcfg.darwin.kafka.connectionTimeout}s";
-              DARWIN_POSTGRESQL_URL = "postgresql://${ingcfg.darwin.database.name}@127.0.0.1:${config.services.postgresql.settings.port}/${ingcfg.darwin.database.name}";
-              DARWIN_QUEUE_SIZE = toString ingcfg.darwin.queueSize;
-            };
-            serviceConfig = {
-              ExecStart = ''
-                ${railreader}/bin/railreader ingest --darwin.kafka.password=$CREDENTIALS_DIRECTORY/darwinKafkaPassword
-              '';
-              LoadCredential = [ "darwinKafkaUsername:${cfg.ingest.darwin.kafka.usernameFile}" "darwinKafkaPassword:${cfg.ingest.darwin.kafka.passwordFile}" ];
-            };
-          }
-        );
-        systemd.targets.railreader.target = lib.mkIf cfg.enable {
-          description = "Common target for all railreader services.";
-          wantedBy = [ "multi-user.target" ];
+      };
+      systemd.services.railreader-sftp = let sftpcfg = cfg.sftp; in {
+        description = "Railreader SFTP Server";
+        requires = [ "railreader-base.target" ];
+        wants = [ "network-online.target" ];
+        after = [ "network-online.target" ];
+        wantedBy = [ "railreader.target" ];
+        partOf = [ "railreader.target" ];
+        environment = {
+          SFTP_ADDRESSES = lib.strings.concatMapStringsSep ","
+            (addr:
+              let
+                h = if addr.host == null then "" else addr.host;
+                p = if addr.port == null then "" else toString addr.port;
+              in
+              if h == "" && p == "" then ""
+              else if h == "" then ":" + p
+              else if p == "" then h
+              else h + ":" + p
+            )
+            sftpcfg.listenAddresses;
+          SFTP_DARWIN_DIRECTORY = "/var/lib/railreader/darwin";
+        };
+        script = "${railreader}/bin/railreader sftp";
+        scriptArgs = "--hashed-password-file=$CREDENTIALS_DIRECTORY/sftpHashedPassword --private-host-key-file=$CREDENTIALS_DIRECTORY/sftpPrivateHostKey";
+        serviceConfig = {
+          LoadCredential = [ "sftpHashedPassword:${sftpcfg.hashedPasswordFile}" "sftpPrivateHostKey:${sftpcfg.privateHostKeyFile}" ];
         };
       };
+      systemd.services.railreader-ingest = let ingcfg = cfg.ingest; in {
+        description = "Railreader Ingest";
+        requires = [ "railreader-base.target" "postgresql.service" "railreader-sftp.service" ];
+        wants = [ "network-online.target" "postgresql.service" "railreader-sftp.service" ];
+        after = [ "network-online.target" "postgresql.service" "railreader-sftp.service" ];
+        wantedBy = [ "railreader.target" ];
+        partOf = [ "railreader.target" ];
+        environment = {
+          DARWIN_KAFKA_BROKERS = lib.concatStringsSep "," ingcfg.darwin.kafka.brokers;
+          DARWIN_KAFKA_TOPIC = ingcfg.darwin.kafka.topic;
+          DARWIN_KAFKA_GROUP = ingcfg.darwin.kafka.group;
+          DARWIN_KAFKA_CONNECTION_TIMEOUT = "${toString ingcfg.darwin.kafka.connectionTimeout}s";
+          DARWIN_POSTGRESQL_URL = "postgresql://${ingcfg.darwin.database.name}@/$(DARWIN_POSTGRESQL_DBNAME)";
+          DARWIN_QUEUE_SIZE = toString ingcfg.darwin.queueSize;
+        };
+        script = "${railreader}/bin/railreader ingest";
+        scriptArgs = "--darwin.kafka.username-file=$CREDENTIALS_DIRECTORY/darwinKafkaUsername --darwin.kafka.password-file=$CREDENTIALS_DIRECTORY/darwinKafkaPassword --darwin.postgresql.dbname=${ingcfg.darwin.database.name}";
+        serviceConfig = {
+          LoadCredential = [ "darwinKafkaUsername:${cfg.ingest.darwin.kafka.usernameFile}" "darwinKafkaPassword:${cfg.ingest.darwin.kafka.passwordFile}" ];
+        };
+      };
+      systemd.targets.railreader = {
+        description = "Common target for all railreader services.";
+        wantedBy = [ "multi-user.target" ];
+      };
     }
-  );
+  ]);
 }
-
-
-
-
-
-
-
