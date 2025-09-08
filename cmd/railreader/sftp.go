@@ -16,10 +16,10 @@ import (
 )
 
 type SFTPCommand struct {
-	Address            string `env:"SFTP_ADDRESS" help:"Address (v4 or v6) to listen on for file transfers from the Rail Data Marketplace." default:"127.0.0.1:2022"`
-	HashedPasswordFile []byte `env:"SFTP_HASHED_PASSWORD_FILE" help:"File containing a bcrypt hashed password to authenticate incoming SFTP connections" type:"filecontent" required:""`
-	PrivateHostKeyFile []byte `env:"SFTP_PRIVATE_HOST_KEY_FILE" help:"File containing the SFTP server's private key" type:"filecontent" required:""`
-	DarwinDirectory    string `env:"SFTP_DARWIN_DIRECTORY" help:"Directory to store Darwin's SFTP data in." default:"./darwin" type:"existingdir" required:""`
+	Addresses          []string `env:"SFTP_ADDRESSES" help:"A list of addresses to listen to." default:"127.0.0.1:822"`
+	HashedPasswordFile []byte   `env:"SFTP_HASHED_PASSWORD_FILE" help:"File containing a bcrypt hashed password to authenticate incoming SFTP connections." type:"filecontent" required:""`
+	PrivateHostKeyFile []byte   `env:"SFTP_PRIVATE_HOST_KEY_FILE" help:"File containing the SFTP server's SSH private key." type:"filecontent" required:""`
+	DarwinDirectory    string   `env:"SFTP_DARWIN_DIRECTORY" help:"Directory to store Darwin's SFTP data in. The ingest command must have access to this directory." default:"./darwin" type:"existingdir" required:""`
 	Logging            struct {
 		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
 		Format string `enum:"json,console" env:"LOG_FORMAT" default:"json"`
@@ -34,34 +34,46 @@ func (c *SFTPCommand) Run() error {
 		return fmt.Errorf("failed to parse private host key: %w", err)
 	}
 
-	listener, err := net.Listen("tcp", c.Address)
-	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", c.Address, err)
+	var listenerGroup sync.WaitGroup
+	var listeners []net.Listener
+	for _, address := range c.Addresses {
+		listener, err := net.Listen("tcp", address)
+		if err != nil {
+			return fmt.Errorf("failed to listen on %s: %w", address, err)
+		}
+		log.Info("listening on", slog.String("address", address))
+		listeners = append(listeners, listener)
 	}
-	log.Info("listening on", slog.String("address", c.Address))
 
 	var handlerGroup sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	go onSignal(log, func() {
 		cancel()
-		listener.Close()
+		for _, listener := range listeners {
+			listener.Close()
+		}
 	})
 
-	for {
-		// Block until there is a new connection to the server or the listener is closed.
-		connection, err := listener.Accept()
-		if err != nil {
-			// If the context has been cancelled, don't show an error message, the error is intentional.
-			if ctx.Err() == nil {
-				log.Error("error accepting an incoming connection", slog.Any("error", err))
+	for _, listener := range listeners {
+		listenerGroup.Go(func() {
+			for {
+				// Block until there is a new connection to the server or the listener is closed.
+				connection, err := listener.Accept()
+				if err != nil {
+					// If the context has been cancelled, don't show an error message, the error is intentional.
+					if ctx.Err() == nil {
+						log.Error("error accepting an incoming connection", slog.Any("error", err))
+					}
+					break
+				}
+				connectionGroup := slog.GroupAttrs("connection", slog.String("localAddress", connection.LocalAddr().String()), slog.String("remoteAddress", connection.RemoteAddr().String()))
+				connectionLog := log.With(connectionGroup)
+				go c.handleConnection(&handlerGroup, connectionLog, connection, privateKey)
 			}
-			break
-		}
-		connectionGroup := slog.GroupAttrs("connection", slog.String("localAddress", connection.LocalAddr().String()), slog.String("remoteAddress", connection.RemoteAddr().String()))
-		connectionLog := log.With(connectionGroup)
-		go c.handleConnection(&handlerGroup, connectionLog, connection, privateKey)
+		})
 	}
 
+	listenerGroup.Wait()
 	handlerGroup.Wait()
 
 	return nil

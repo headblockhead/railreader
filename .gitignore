@@ -31,6 +31,5 @@ go.work.sum
 # .idea/
 # .vscode/
 
-# Captured and reproduced data stream for testing
-cmd/railreader/capture
-cmd/railreader/output
+# Nix build output
+result
