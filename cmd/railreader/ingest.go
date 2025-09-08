@@ -75,7 +75,7 @@ func (c IngestCommand) Run() error {
 			Timeout:   c.Darwin.Kafka.ConnectionTimeout,
 			DualStack: true,
 			SASLMechanism: plain.Mechanism{
-				Username: c.Darwin.Kafka.Username,
+				Username: c.Darwin.Kafka.UsernameFile,
 				Password: c.Darwin.Kafka.PasswordFile,
 			},
 			TLS: &tls.Config{},
