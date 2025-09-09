@@ -139,6 +139,7 @@ in
         wantedBy = [ "railreader.target" ];
         partOf = [ "railreader.target" ];
         environment = {
+          LOG_LEVEL = "debug";
           SFTP_ADDRESSES = lib.strings.concatMapStringsSep ","
             (addr:
               let
@@ -176,6 +177,7 @@ in
         wantedBy = [ "railreader.target" ];
         partOf = [ "railreader.target" ];
         environment = {
+          LOG_LEVEL = "debug";
           POSTGRESQL_URL = "postgresql:///${cfg.database.name}?host=/run/postgresql&sslmode=disable";
           DARWIN_KAFKA_BROKERS = lib.concatStringsSep "," ingcfg.darwin.kafka.brokers;
           DARWIN_KAFKA_TOPIC = ingcfg.darwin.kafka.topic;
