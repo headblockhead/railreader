@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -187,16 +188,17 @@ func (c *SFTPCommand) handleSFTPChannel(log *slog.Logger, channel ssh.Channel) e
 		return fmt.Errorf("failed to open root directory: %w", err)
 	}
 	defer root.Close()
-	handlers := newSFTPHandlers(log, root.FS())
+	handlers := newSFTPHandlers(log, root)
 	server := sftp.NewRequestServer(channel, handlers)
 	log.Debug("serving sftp session")
 	defer server.Close()
 	return server.Serve()
 }
 
-func newSFTPHandlers(log *slog.Logger, root fs.FS) sftp.Handlers {
+func newSFTPHandlers(log *slog.Logger, root *os.Root) sftp.Handlers {
 	doer := sftpFileDoer{
 		log:  log,
+		mtx:  &sync.Mutex{},
 		root: root,
 	}
 	return sftp.Handlers{
@@ -209,22 +211,97 @@ func newSFTPHandlers(log *slog.Logger, root fs.FS) sftp.Handlers {
 
 type sftpFileDoer struct {
 	log  *slog.Logger
-	root fs.FS
+	mtx  *sync.Mutex
+	root *os.Root
+}
+
+func addReqToLog(log *slog.Logger, req *sftp.Request) *slog.Logger {
+	return log.With(slog.GroupAttrs("file", slog.String("method", req.Method), slog.String("filepath", req.Filepath)))
 }
 
 func (d sftpFileDoer) Fileread(req *sftp.Request) (io.ReaderAt, error) {
-	d.log.Debug("file read request", slog.String("filename", req.Filepath))
-	return nil, nil
+	log := addReqToLog(d.log, req)
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	log.Debug("file read request")
+	file, err := d.root.Open(strings.TrimPrefix(req.Filepath, "/"))
+	if err != nil {
+		log.Error("error opening file for read", slog.Any("error", err))
+		return nil, err
+	}
+	return file, nil
 }
 func (d sftpFileDoer) Filewrite(req *sftp.Request) (io.WriterAt, error) {
-	d.log.Debug("file write request", slog.String("filename", req.Filepath))
-	return nil, nil
+	log := addReqToLog(d.log, req)
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	log.Debug("file write request")
+	file, err := d.root.OpenFile(strings.TrimPrefix(req.Filepath, "/"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		d.log.Error("error opening file for write", slog.Any("error", err))
+		return nil, err
+	}
+	return file, nil
 }
 func (d sftpFileDoer) Filecmd(req *sftp.Request) error {
-	d.log.Debug("file command request", slog.String("filename", req.Filepath), slog.String("method", req.Method))
+	log := addReqToLog(d.log, req)
+	log.Debug("file command request")
 	return nil
 }
+
+type listerat []os.FileInfo
+
+// Modeled after strings.Reader's ReadAt() implementation
+func (f listerat) ListAt(ls []os.FileInfo, offset int64) (int, error) {
+	var n int
+	if offset >= int64(len(f)) {
+		return 0, io.EOF
+	}
+	n = copy(ls, f[offset:])
+	if n < len(ls) {
+		return n, io.EOF
+	}
+	return n, nil
+}
+
+func readdir(f fs.FS, pathname string) ([]os.FileInfo, error) {
+	dir, err := fs.ReadDir(f, pathname)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []os.FileInfo
+
+	for _, file := range dir {
+		info, err := file.Info()
+		if err != nil {
+			return nil, err
+		}
+		files = append(files, info)
+	}
+
+	return files, nil
+}
+
 func (d sftpFileDoer) Filelist(req *sftp.Request) (sftp.ListerAt, error) {
-	d.log.Debug("file list request", slog.String("filename", req.Filepath))
-	return nil, nil
+	log := addReqToLog(d.log, req)
+	log.Debug("file list request")
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	switch req.Method {
+	case "List":
+		files, err := readdir(d.root.FS(), strings.TrimPrefix(req.Filepath, "/"))
+		if err != nil {
+			return nil, err
+		}
+		return listerat(files), nil
+	case "Stat":
+		file, err := fs.Lstat(d.root.FS(), strings.TrimPrefix(req.Filepath, "/"))
+		if err != nil {
+			return nil, err
+		}
+		return listerat{file}, nil
+	}
+	log.Warn("unsupported file list method")
+	return nil, errors.New("unsupported")
 }
