@@ -30,10 +30,10 @@ in
       privateHostKeyFile = lib.mkOption {
         type = types.path;
         description = ''
-          Path to a private host key file for the SFTP server.
+          Path to a private RSA host key file for the SFTP server.
           You can generate a new keypair using:
           ```
-            ssh-keygen -t ed25519 -f host_key -N ""
+            ssh-keygen -t rsa -f host_key -N ""
           ```
         '';
       };
