@@ -153,8 +153,8 @@ func (c *SFTPCommand) handleSSHConnection(log *slog.Logger, channels <-chan ssh.
 				requestLog := channelLog.With(requestGroup)
 				requestLog.Debug("recieved request")
 				if request.Type != "subsystem" {
-					requestLog.Warn("rejected request of unhandled type (type != 'subsystem')")
-					request.Reply(false, nil)
+					requestLog.Warn("ignoring request of unhandled type (type != 'subsystem')")
+					request.Reply(true, nil) // Reply OK to please the Rail Data Marketplace STFP validator
 					continue
 				}
 				if len(request.Payload) > 4 {
