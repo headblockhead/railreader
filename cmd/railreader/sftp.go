@@ -265,6 +265,14 @@ func (f listerat) ListAt(ls []os.FileInfo, offset int64) (int, error) {
 }
 
 func readdir(f fs.FS, pathname string) ([]os.FileInfo, error) {
+	info, err := fs.Lstat(f, pathname)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return []os.FileInfo{info}, nil
+	}
+
 	dir, err := fs.ReadDir(f, pathname)
 	if err != nil {
 		return nil, err
