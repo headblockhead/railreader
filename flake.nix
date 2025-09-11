@@ -17,7 +17,7 @@
             src = ./.;
             filter = path: type: !(pkgs.lib.hasSuffix ".nix" path);
           };
-          vendorHash = "sha256-imuE8g3wPjUN79tFy1x3wYmJoSSGJp0DRMAP+HEu4HI=";
+          vendorHash = "sha256-4hEiIL6Pkzc5hwsWjOZjv/8DHdo+JdZ43R9YJ+dK/h4=";
         };
         default = railreader;
         railreader-docker = pkgs.dockerTools.buildLayeredImage {
