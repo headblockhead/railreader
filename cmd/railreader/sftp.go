@@ -65,7 +65,6 @@ func (c *SFTPCommand) Run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	var listenerGroup sync.WaitGroup
 	var listeners []net.Listener
 	for _, address := range c.Addresses {
 		listener, err := net.Listen("tcp", address)
@@ -84,6 +83,7 @@ func (c *SFTPCommand) Run() error {
 		}
 	})
 
+	var listenerGroup sync.WaitGroup
 	var handlerGroup sync.WaitGroup
 
 	for _, listener := range listeners {
@@ -112,7 +112,7 @@ func (c *SFTPCommand) Run() error {
 
 func (c *SFTPCommand) handleConnection(handlerGroup *sync.WaitGroup, log *slog.Logger, connection net.Conn, config *ssh.ServerConfig) {
 	netLog := log.With(slog.GroupAttrs("net", slog.String("localAddress", connection.LocalAddr().String()), slog.String("remoteAddress", connection.RemoteAddr().String())))
-	netLog.Debug("recieved new net connection")
+	netLog.Debug("received new net connection")
 
 	config.AuthLogCallback = func(conn ssh.ConnMetadata, method string, err error) {
 		sshConnectionGroup := slog.GroupAttrs("ssh", slog.String("username", conn.User()))
@@ -167,7 +167,7 @@ func (c *SFTPCommand) handleSSHChannelRequests(log *slog.Logger, channels <-chan
 		for request := range requests {
 			ok := false
 			requestLog := channelLog.With(slog.GroupAttrs("request", slog.String("type", request.Type), slog.Bool("wantReply", request.WantReply)))
-			requestLog.Debug("recieved request")
+			requestLog.Debug("received request")
 			if request.Type == "subsystem" {
 				if len(request.Payload) >= 4 && bytes.Equal(request.Payload[4:], []byte("sftp")) {
 					requestLog.Debug("request OK")
