@@ -1,4 +1,4 @@
-package unmarshaller
+package reference
 
 import (
 	"encoding/xml"
@@ -18,7 +18,7 @@ type Reference struct {
 	LoadingCategories                []LoadingCategoryReference `xml:"LoadingCategories>category"`
 }
 
-func NewReference(xmlData string) (ref Reference, err error) {
+func New(xmlData string) (ref Reference, err error) {
 	if err = xml.Unmarshal([]byte(xmlData), &ref); err != nil {
 		err = fmt.Errorf("failed to unmarshal message XML: %w", err)
 		return

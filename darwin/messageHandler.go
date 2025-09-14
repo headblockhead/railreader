@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/headblockhead/railreader/darwin/database"
 	"github.com/headblockhead/railreader/darwin/interpreter"
+	"github.com/headblockhead/railreader/darwin/reference"
+	"github.com/headblockhead/railreader/darwin/repositories"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
+	"github.com/headblockhead/railreader/database"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -16,13 +18,15 @@ type MessageHandler struct {
 	log *slog.Logger
 	ctx context.Context
 	db  database.Database
+	ref reference.Connection
 }
 
-func NewMessageHandler(ctx context.Context, log *slog.Logger, db database.Database) MessageHandler {
+func NewMessageHandler(ctx context.Context, log *slog.Logger, db database.Database, ref reference.Connection) MessageHandler {
 	return MessageHandler{
 		ctx: ctx,
 		log: log,
 		db:  db,
+		ref: ref,
 	}
 }
 
@@ -44,7 +48,7 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 	}
 	log := m.log.With(slog.String("message_id", capsule.MessageID))
 	log.Debug("unmarshalled new message's JSON into a messageCapsule! (ID is now known)")
-	if err := insertMessageCapsule(m.ctx, log, m.db, capsule); err != nil {
+	if err := insertMessageCapsule(m.ctx, log, m.db, msg.Offset, capsule); err != nil {
 		return fmt.Errorf("failed to insert messageCapsule into database for message %s: %w", capsule.MessageID, err)
 	}
 	log.Debug("creating a new PushPortMessage from the messageCapsule's XML")
@@ -55,21 +59,21 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 	if pport.Version != expectedPushPortVersion {
 		log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", expectedPushPortVersion), slog.String("actual_version", pport.Version))
 	}
-	if err := interpretPushPortMessage(m.ctx, log, m.db, capsule.MessageID, pport); err != nil {
+	if err := interpretPushPortMessage(m.ctx, log, m.db, m.ref, capsule.MessageID, pport); err != nil {
 		return fmt.Errorf("failed to interpret PushPortMessage for message %s: %w", capsule.MessageID, err)
 	}
 	return nil
 }
 
-func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Database, capsule messageCapsule) error {
+func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Database, offset int64, capsule messageCapsule) error {
 	log.Debug("inserting a messageCapsule (as a database.MessageXML) into the database")
-	messageXML := database.MessageXML{MessageID: capsule.MessageID, XML: capsule.XML}
+	messageXML := repositories.MessageXML{MessageID: capsule.MessageID, XML: capsule.XML}
 	insertMessageXMLTx, err := db.BeginTx()
 	if err != nil {
 		_ = insertMessageXMLTx.Rollback(ctx)
 		return fmt.Errorf("failed to begin MessageXML insertion transaction: %w", err)
 	}
-	mr := database.NewPGXMessageXMLRepository(ctx, log.With(slog.String("repository", "MessageXML")), insertMessageXMLTx)
+	mr := repositories.NewPGXMessageXMLRepository(ctx, log.With(slog.String("repository", "MessageXML")), insertMessageXMLTx)
 	if err := mr.Insert(messageXML); err != nil {
 		_ = insertMessageXMLTx.Rollback(ctx)
 		return fmt.Errorf("failed to insert the MessageXML into the database: %w", err)
@@ -83,9 +87,9 @@ func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Dat
 	return nil
 }
 
-func interpretPushPortMessage(ctx context.Context, log *slog.Logger, db database.Database, messageID string, pport unmarshaller.PushPortMessage) error {
+func interpretPushPortMessage(ctx context.Context, log *slog.Logger, db database.Database, ref reference.Connection, messageID string, pport unmarshaller.PushPortMessage) error {
 	log.Debug("creating a new UnitOfWork for interpreting the PushPortMessage")
-	u, err := interpreter.NewUnitOfWork(ctx, log, messageID, db)
+	u, err := interpreter.NewUnitOfWork(ctx, log, messageID, db, ref)
 	if err != nil {
 		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
 	}

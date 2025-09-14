@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/headblockhead/railreader/darwin/database"
+	"github.com/headblockhead/railreader/darwin/repositories"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
@@ -26,7 +26,7 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
 	}
-	if err := u.messageRepository.Insert(database.Message{
+	if err := u.pportMessageRepository.Insert(repositories.PPortMessage{
 		MessageID:      u.messageID,
 		SentAt:         timestamp.In(location),
 		LastReceivedAt: time.Now().In(location),
@@ -36,8 +36,10 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 	}
 
 	if pport.NewTimetableFiles != nil {
-		// TODO: implement
-		return errors.New("PushPortMessage contains NewTimetableFiles, which is not yet implemented")
+		if err := u.handleNewTimetableFiles(pport.NewTimetableFiles); err != nil {
+			return fmt.Errorf("failed to handle NewTimetableFiles: %w", err)
+		}
+		return nil
 	}
 	if pport.StatusUpdate != nil {
 		// TODO: implement
@@ -58,24 +60,35 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 	return errors.New("PushPortMessage was empty")
 }
 
+var referenceTimetableVersionExension = "_v8.xml.gz"
+var referenceRefVersionExtension = "_ref_v4.xml.gz"
+
+func (u UnitOfWork) handleNewTimetableFiles(tf *unmarshaller.TimetableFiles) error {
+	u.log.Debug("handling NewTimetableFiles")
+	// todo: check each message for specific version extension, and limit to only those versions we support
+	//timtableFile, err := u.ref.Get(tf.TimeTableId + referenceTimetableVersionExension)
+
+	return nil
+}
+
 func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response) error {
-	u.log.Debug("interpreting a Response")
-	var databaseResponse database.Response
-	databaseResponse.MessageID = u.messageID
-	databaseResponse.Snapshot = snapshot
+	u.log.Debug("interpreting a Response", slog.Bool("snapshot", snapshot))
+	var interpretedResponse repositories.Response
+	interpretedResponse.MessageID = u.messageID
+	interpretedResponse.Snapshot = snapshot
 	if resp.Source != nil && *resp.Source != "" {
 		u.log.Debug("source is set")
-		databaseResponse.Source = resp.Source
+		interpretedResponse.Source = resp.Source
 	}
 	if resp.SourceSystem != nil && *resp.SourceSystem != "" {
 		u.log.Debug("source system is set")
-		databaseResponse.SourceSystem = resp.SourceSystem
+		interpretedResponse.SourceSystem = resp.SourceSystem
 	}
 	if resp.RequestID != nil && *resp.RequestID != "" {
 		u.log.Debug("request ID is set")
-		databaseResponse.RequestID = resp.RequestID
+		interpretedResponse.RequestID = resp.RequestID
 	}
-	if err := u.responseRepository.Insert(databaseResponse); err != nil {
+	if err := u.responseRepository.Insert(interpretedResponse); err != nil {
 		return fmt.Errorf("failed to insert response record: %w", err)
 	}
 	for _, schedule := range resp.Schedules {

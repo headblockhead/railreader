@@ -8,10 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/headblockhead/railreader/darwin"
 	darwinconn "github.com/headblockhead/railreader/darwin/connection"
-	darwindb "github.com/headblockhead/railreader/darwin/database"
-	"github.com/jackc/pgx/v5"
+	darwinref "github.com/headblockhead/railreader/darwin/reference"
+	"github.com/headblockhead/railreader/database"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
 )
@@ -20,13 +23,20 @@ type IngestCommand struct {
 	DatabaseURL string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
 	Darwin      struct {
 		Kafka struct {
-			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
-			Topic             string        `env:"DARWIN_KAFKA_TOPIC" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
+			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" required:"" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
+			Topic             string        `env:"DARWIN_KAFKA_TOPIC" required:"" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
 			Group             string        `env:"DARWIN_KAFKA_GROUP" required:"" help:"Consumer group."`
 			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"Cnsumer username."`
 			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:"" help:"Consumer password."`
-			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"30s" help:"Timeout for connecting to the Kafka broker."`
+			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" required:"" default:"30s" help:"Timeout for connecting to the Kafka broker."`
 		} `embed:"" prefix:"kafka."`
+		S3 struct {
+			Bucket    string `env:"DARWIN_S3_BUCKET" required:"" default:"darwin.xmltimetable" help:"AWS S3 bucket to read reference data from."`
+			Prefix    string `env:"DARWIN_S3_PREFIX" required:"" default:"PPTimetable/" help:"Prefix within the bucket to read reference data from."`
+			AccessKey string `env:"DARWIN_S3_ACCESS_KEY" required:""`
+			SecretKey string `env:"DARWIN_S3_SECRET_KEY" required:""`
+			Region    string `env:"DARWIN_S3_REGION" required:"" default:"eu-west-1"`
+		} `embed:"" prefix:"s3."`
 		QueueSize int `env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
 	} `embed:"" prefix:"darwin."`
 
@@ -42,11 +52,6 @@ type kafkaConnection interface {
 	Close() error
 }
 
-type postgreSQLDatabase interface {
-	BeginTx() (pgx.Tx, error)
-	Close(timeout time.Duration) error
-}
-
 type messageHandler interface {
 	Handle(msg kafka.Message) error
 }
@@ -59,10 +64,18 @@ func (c IngestCommand) Run() error {
 		messageFetcherCancel()
 	})
 
-	darwinDatabase, err := darwindb.New(context.Background(), log.With(slog.String("source", "darwin.database")), c.DatabaseURL)
+	db, err := database.New(context.Background(), log.With(slog.String("source", "database")), c.DatabaseURL)
 	if err != nil {
-		return fmt.Errorf("error connecting to darwin database: %w", err)
+		return fmt.Errorf("error connecting to database: %w", err)
 	}
+
+	creds := credentials.NewStaticCredentialsProvider(c.Darwin.S3.AccessKey, c.Darwin.S3.SecretKey, "")
+	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(c.Darwin.S3.Region), config.WithCredentialsProvider(creds))
+	if err != nil {
+		return fmt.Errorf("error creating AWS config: %w", err)
+	}
+	darwinAWSS3Client := s3.NewFromConfig(cfg)
+	darwinReference := darwinref.NewConnection(log.With(slog.String("source", "darwin.reference")), darwinAWSS3Client, c.Darwin.S3.Bucket, c.Darwin.S3.Prefix)
 
 	kafkaContext := context.Background()
 	darwinKafkaConnection := darwinconn.New(kafkaContext, log.With(slog.String("source", "darwin.connection")), kafka.ReaderConfig{
@@ -82,7 +95,7 @@ func (c IngestCommand) Run() error {
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
 
 	messageHandlerContext := context.Background()
-	darwinMessageHandler := darwin.NewMessageHandler(messageHandlerContext, log.With(slog.String("source", "darwin.handler")), darwinDatabase)
+	darwinMessageHandler := darwin.NewMessageHandler(messageHandlerContext, log.With(slog.String("source", "darwin.handler")), db, darwinReference)
 
 	var fetcherGroup sync.WaitGroup
 	fetcherGroup.Go(func() {
@@ -103,7 +116,7 @@ func (c IngestCommand) Run() error {
 	if err := darwinKafkaConnection.Close(); err != nil {
 		log.Error("error closing darwin kafka connection", slog.Any("error", err))
 	}
-	if err := darwinDatabase.Close(5 * time.Second); err != nil {
+	if err := db.Close(5 * time.Second); err != nil {
 		log.Error("error closing darwin database connection", slog.Any("error", err))
 	}
 	return nil

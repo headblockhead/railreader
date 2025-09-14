@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/headblockhead/railreader/darwin/database"
+	"github.com/headblockhead/railreader/darwin/reference"
+	"github.com/headblockhead/railreader/darwin/repositories"
+	"github.com/headblockhead/railreader/database"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -14,30 +16,32 @@ type UnitOfWork struct {
 	log       *slog.Logger
 	messageID string
 	tx        pgx.Tx
+	ref       reference.Connection
 
-	messageRepository  database.MessageRepository
-	responseRepository database.ResponseRepository
-	scheduleRepository database.ScheduleRepository
+	pportMessageRepository repositories.PPortMessageRepository
+	responseRepository     repositories.ResponseRepository
+	scheduleRepository     repositories.ScheduleRepository
 }
 
-func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database) (unit UnitOfWork, err error) {
+func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database, ref reference.Connection) (unit UnitOfWork, err error) {
 	tx, err := db.BeginTx()
 	if err != nil {
 		err = fmt.Errorf("failed to begin new transaction: %w", err)
 		return
 	}
-	scheduleRepository := database.NewPGXScheduleRepository(ctx, log.With(slog.String("repository", "Schedule")), tx)
-	responseRepository := database.NewPGXResponseRepository(ctx, log.With(slog.String("repository", "Response")), tx)
-	messageRepository := database.NewPGXMessageRepository(ctx, log.With(slog.String("repository", "Message")), tx)
+	pportMessageRepository := repositories.NewPGXPPortMessageRepository(ctx, log.With(slog.String("repository", "PPortMessage")), tx)
+	responseRepository := repositories.NewPGXResponseRepository(ctx, log.With(slog.String("repository", "Response")), tx)
+	scheduleRepository := repositories.NewPGXScheduleRepository(ctx, log.With(slog.String("repository", "Schedule")), tx)
 	unit = UnitOfWork{
 		ctx:       ctx,
 		log:       log,
 		messageID: messageID,
 		tx:        tx,
+		ref:       ref,
 
-		scheduleRepository: scheduleRepository,
-		responseRepository: responseRepository,
-		messageRepository:  messageRepository,
+		pportMessageRepository: pportMessageRepository,
+		responseRepository:     responseRepository,
+		scheduleRepository:     scheduleRepository,
 	}
 	return
 }

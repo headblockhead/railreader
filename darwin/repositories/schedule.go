@@ -1,4 +1,4 @@
-package database
+package repositories
 
 import (
 	"fmt"
@@ -93,10 +93,10 @@ func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
 	log.Info("inserting schedule")
 
 	scheduleAlreadyExists := true
-	// If it exists, select the current schedule record to check if it has already been activated/cancelled
+	// If it exists, select the current schedule record to compare against
 	var existingSchedule ScheduleRow
 	row := sr.tx.QueryRow(sr.ctx, `
-		SELECT (is_active, is_deleted) FROM schedules WHERE schedule_id=@schedule_id
+		SELECT * FROM schedules WHERE schedule_id=@schedule_id
 	`, pgx.StrictNamedArgs{
 		"schedule_id": s.ScheduleID,
 	})
@@ -142,48 +142,48 @@ func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
 	if _, err := sr.tx.Exec(sr.ctx, `
 		INSERT INTO schedules 
 			VALUES (
-				@schedule_id,
-				@message_id,
-				@uid,
-				@scheduled_start_date,
-				@headcode, 
-				@retail_service_id, 
-				@train_operating_company_id, 
-				@service, 
-				@category, 
-				@is_passenger_service,
-				@is_active, 
-				@is_deleted,
-				@is_charter, 
-				@cancellation_reason_id, 
-				@cancellation_reason_location_id, 
-				@cancellation_reason_is_near_location, 
-				@late_reason_id, 
-				@late_reason_location_id, 
-				@late_reason_is_near_location, 
-				@diverted_via_location_id
+				@schedule_id
+				,@message_id
+				,@uid
+				,@scheduled_start_date
+				,@headcode,
+				,@retail_service_id,
+				,@train_operating_company_id,
+				,@service,
+				,@category,
+				,@is_passenger_service
+				,@is_active,
+				,@is_deleted
+				,@is_charter,
+				,@cancellation_reason_id,
+				,@cancellation_reason_location_id,
+				,@cancellation_reason_is_near_location,
+				,@late_reason_id,
+				,@late_reason_location_id,
+				,@late_reason_is_near_location,
+				,@diverted_via_location_id
 			) ON CONFLICT (schedule_id) DO 
 			UPDATE 
 				SET
-					message_id = EXCLUDED.message_id,
-					uid = EXCLUDED.uid,
-					scheduled_start_date = EXCLUDED.scheduled_start_date,
-					headcode = EXCLUDED.headcode,
-					retail_service_id = EXCLUDED.retail_service_id,
-					train_operating_company_id = EXCLUDED.train_operating_company_id,
-					service = EXCLUDED.service,
-					category = EXCLUDED.category,
-					is_passenger_service = EXCLUDED.is_passenger_service,
-					is_active = EXCLUDED.is_active,
-					is_deleted = EXCLUDED.is_deleted,
-					is_charter = EXCLUDED.is_charter,
-					cancellation_reason_id = EXCLUDED.cancellation_reason_id,
-					cancellation_reason_location_id = EXCLUDED.cancellation_reason_location_id,
-					cancellation_reason_is_near_location = EXCLUDED.cancellation_reason_is_near_location,
-					late_reason_id = EXCLUDED.late_reason_id,
-					late_reason_location_id = EXCLUDED.late_reason_location_id,
-					late_reason_is_near_location = EXCLUDED.late_reason_is_near_location,
-					diverted_via_location_id = EXCLUDED.diverted_via_location_id;
+					message_id = EXCLUDED.message_id
+					,uid = EXCLUDED.uid
+					,scheduled_start_date = EXCLUDED.scheduled_start_date
+					,headcode = EXCLUDED.headcode
+					,retail_service_id = EXCLUDED.retail_service_id
+					,train_operating_company_id = EXCLUDED.train_operating_company_id
+					,service = EXCLUDED.service
+					,category = EXCLUDED.category
+					,is_passenger_service = EXCLUDED.is_passenger_service
+					,is_active = EXCLUDED.is_active
+					,is_deleted = EXCLUDED.is_deleted
+					,is_charter = EXCLUDED.is_charter
+					,cancellation_reason_id = EXCLUDED.cancellation_reason_id
+					,cancellation_reason_location_id = EXCLUDED.cancellation_reason_location_id
+					,cancellation_reason_is_near_location = EXCLUDED.cancellation_reason_is_near_location
+					,late_reason_id = EXCLUDED.late_reason_id
+					,late_reason_location_id = EXCLUDED.late_reason_location_id
+					,late_reason_is_near_location = EXCLUDED.late_reason_is_near_location
+					,diverted_via_location_id = EXCLUDED.diverted_via_location_id;
 		`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
@@ -233,25 +233,25 @@ func (sr PGXScheduleRepository) insertLocation(log *slog.Logger, scheduleID stri
 	if _, err := sr.tx.Exec(sr.ctx, `
 	INSERT INTO schedules_locations 
 		VALUES (
-			@schedule_id,
-			@sequence,
-			@location_id,
-			@activities,
-			@planned_activities,
-			@is_cancelled,
-			@formation_id,
-			@is_affected_by_diversion,
-			@type,
-			@public_arrival_time,
-			@public_departure_time,
-			@working_arrival_time,
-			@working_passing_time,
-			@working_departure_time,
-			@routing_delay,
-			@false_destination_location_id,
-			@cancellation_reason_id,
-			@cancellation_reason_location_id,
-			@cancellation_reason_is_near_location
+			@schedule_id
+			,@sequence
+			,@location_id
+			,@activities
+			,@planned_activities
+			,@is_cancelled
+			,@formation_id
+			,@is_affected_by_diversion
+			,@type
+			,@public_arrival_time
+			,@public_departure_time
+			,@working_arrival_time
+			,@working_passing_time
+			,@working_departure_time
+			,@routing_delay
+			,@false_destination_location_id
+			,@cancellation_reason_id
+			,@cancellation_reason_location_id
+			,@cancellation_reason_is_near_location
 		);
 	`, namedArgs); err != nil {
 		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)

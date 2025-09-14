@@ -1,4 +1,4 @@
-package database
+package repositories
 
 import (
 	"context"
@@ -29,6 +29,7 @@ func NewPGXMessageXMLRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx
 
 type MessageXML struct {
 	MessageID string
+	Offset    int64
 	XML       string
 }
 
@@ -37,13 +38,15 @@ func (mr PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
 	if _, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_xml
 			VALUES (
-				@message_id,
-				@xml
+				@message_id
+				,@offset
+				,@xml
 			) 
 			ON CONFLICT (message_id) DO
 			NOTHING;
 	`, pgx.StrictNamedArgs{
 		"message_id": messageXML.MessageID,
+		"offset":     messageXML.Offset,
 		"xml":        messageXML.XML,
 	}); err != nil {
 		return fmt.Errorf("failed to insert: %w", err)

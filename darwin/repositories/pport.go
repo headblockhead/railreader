@@ -1,4 +1,4 @@
-package database
+package repositories
 
 import (
 	"context"
@@ -8,41 +8,41 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type MessageRepository interface {
-	Insert(message Message) error
+type PPortMessageRepository interface {
+	Insert(message PPortMessage) error
 }
 
-type PGXMessageRepository struct {
+type PGXPPortMessageRepository struct {
 	ctx context.Context
 	log *slog.Logger
 	tx  pgx.Tx
 }
 
-func NewPGXMessageRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessageRepository {
+func NewPGXPPortMessageRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXPPortMessageRepository {
 	log.Debug("creating new PGXMessageRepository")
-	return PGXMessageRepository{
+	return PGXPPortMessageRepository{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
 	}
 }
 
-type Message struct {
+type PPortMessage struct {
 	MessageID      string
 	SentAt         time.Time
 	LastReceivedAt time.Time
 	Version        string
 }
 
-func (mr PGXMessageRepository) Insert(message Message) error {
-	mr.log.Debug("inserting Message")
+func (mr PGXPPortMessageRepository) Insert(message PPortMessage) error {
+	mr.log.Debug("inserting PPortMessage")
 	_, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO messages
 			VALUES (
-				@message_id,
-				@sent_at,
-				@last_received_at,
-				@version
+				@message_id
+				,@sent_at
+				,@last_received_at
+				,@version
 			) 
 			ON CONFLICT (message_id) DO
 			UPDATE 
@@ -89,11 +89,11 @@ func (mr PGXResponseRepository) Insert(repsonse Response) error {
 	_, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_response
 			VALUES (
-				@message_id,
-				@snapshot,
-				@source,
-				@source_system,
-				@request_id
+				@message_id
+				,@snapshot
+				,@source
+				,@source_system
+				,@request_id
 			) 
 			ON CONFLICT (message_id) DO
 			NOTHING;

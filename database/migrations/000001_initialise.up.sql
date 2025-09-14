@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS locations (
 
 CREATE TABLE IF NOT EXISTS message_xml (
 				message_id text PRIMARY KEY
+				,sequence bigint NOT NULL
 				,xml xml NOT NULL
 );
 
