@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
-	"github.com/headblockhead/railreader/darwin/repositories"
+	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
@@ -26,7 +27,7 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
 	}
-	if err := u.pportMessageRepository.Insert(repositories.PPortMessage{
+	if err := u.pportMessageRepository.Insert(repository.PPortMessageRow{
 		MessageID:      u.messageID,
 		SentAt:         timestamp.In(location),
 		LastReceivedAt: time.Now().In(location),
@@ -35,9 +36,9 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 		return fmt.Errorf("failed to insert message record: %w", err)
 	}
 
-	if pport.NewTimetableFiles != nil {
-		if err := u.handleNewTimetableFiles(pport.NewTimetableFiles); err != nil {
-			return fmt.Errorf("failed to handle NewTimetableFiles: %w", err)
+	if pport.NewFiles != nil {
+		if err := u.handleNewFiles(pport.NewFiles); err != nil {
+			return fmt.Errorf("failed to handle NewFiles: %w", err)
 		}
 		return nil
 	}
@@ -60,35 +61,48 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 	return errors.New("PushPortMessage was empty")
 }
 
-var referenceTimetableVersionExension = "_v8.xml.gz"
-var referenceRefVersionExtension = "_ref_v4.xml.gz"
+var timetableFileExension = "_v8.xml.gz"
+var referenceFileExtension = "_ref_v4.xml.gz"
 
-func (u UnitOfWork) handleNewTimetableFiles(tf *unmarshaller.TimetableFiles) error {
-	u.log.Debug("handling NewTimetableFiles")
-	// todo: check each message for specific version extension, and limit to only those versions we support
-	//timtableFile, err := u.ref.Get(tf.TimeTableId + referenceTimetableVersionExension)
-
+func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
+	u.log.Debug("handling NewFiles")
+	if strings.HasSuffix(tf.ReferenceFile, referenceFileExtension) {
+		u.log.Debug("file with reference extension found, fetching")
+		referenceFile, err := u.fg.Get(tf.ReferenceFile)
+		if err != nil {
+			return fmt.Errorf("failed to get reference file %s: %w", tf.ReferenceFile, err)
+		}
+		u.log.Debug("reference file fetched, unmarshalling")
+		ref, err := unmarshaller.NewReference(string(referenceFile))
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal reference file %s: %w", tf.ReferenceFile, err)
+		}
+		if err := u.interpretReference(ref); err != nil {
+			return fmt.Errorf("failed to interpret reference file %s: %w", tf.ReferenceFile, err)
+		}
+	}
+	// TODO: timetablefiles
 	return nil
 }
 
 func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response) error {
 	u.log.Debug("interpreting a Response", slog.Bool("snapshot", snapshot))
-	var interpretedResponse repositories.Response
-	interpretedResponse.MessageID = u.messageID
-	interpretedResponse.Snapshot = snapshot
+	var row repository.ResponseRow
+	row.MessageID = u.messageID
+	row.Snapshot = snapshot
 	if resp.Source != nil && *resp.Source != "" {
 		u.log.Debug("source is set")
-		interpretedResponse.Source = resp.Source
+		row.Source = resp.Source
 	}
 	if resp.SourceSystem != nil && *resp.SourceSystem != "" {
 		u.log.Debug("source system is set")
-		interpretedResponse.SourceSystem = resp.SourceSystem
+		row.SourceSystem = resp.SourceSystem
 	}
 	if resp.RequestID != nil && *resp.RequestID != "" {
 		u.log.Debug("request ID is set")
-		interpretedResponse.RequestID = resp.RequestID
+		row.RequestID = resp.RequestID
 	}
-	if err := u.responseRepository.Insert(interpretedResponse); err != nil {
+	if err := u.responseRepository.Insert(row); err != nil {
 		return fmt.Errorf("failed to insert response record: %w", err)
 	}
 	for _, schedule := range resp.Schedules {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/headblockhead/railreader/darwin/reference"
-	"github.com/headblockhead/railreader/darwin/repositories"
+	"github.com/headblockhead/railreader/darwin/filegetter"
+	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/database"
 	"github.com/jackc/pgx/v5"
 )
@@ -16,28 +16,28 @@ type UnitOfWork struct {
 	log       *slog.Logger
 	messageID string
 	tx        pgx.Tx
-	ref       reference.Connection
+	fg        filegetter.FileGetter
 
-	pportMessageRepository repositories.PPortMessageRepository
-	responseRepository     repositories.ResponseRepository
-	scheduleRepository     repositories.ScheduleRepository
+	pportMessageRepository repository.PPortMessage
+	responseRepository     repository.Response
+	scheduleRepository     repository.Schedule
 }
 
-func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database, ref reference.Connection) (unit UnitOfWork, err error) {
+func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database, fg filegetter.FileGetter) (unit UnitOfWork, err error) {
 	tx, err := db.BeginTx()
 	if err != nil {
 		err = fmt.Errorf("failed to begin new transaction: %w", err)
 		return
 	}
-	pportMessageRepository := repositories.NewPGXPPortMessageRepository(ctx, log.With(slog.String("repository", "PPortMessage")), tx)
-	responseRepository := repositories.NewPGXResponseRepository(ctx, log.With(slog.String("repository", "Response")), tx)
-	scheduleRepository := repositories.NewPGXScheduleRepository(ctx, log.With(slog.String("repository", "Schedule")), tx)
+	pportMessageRepository := repository.NewPGXPPortMessage(ctx, log.With(slog.String("repository", "PPortMessage")), tx)
+	responseRepository := repository.NewPGXResponse(ctx, log.With(slog.String("repository", "Response")), tx)
+	scheduleRepository := repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx)
 	unit = UnitOfWork{
 		ctx:       ctx,
 		log:       log,
 		messageID: messageID,
 		tx:        tx,
-		ref:       ref,
+		fg:        fg,
 
 		pportMessageRepository: pportMessageRepository,
 		responseRepository:     responseRepository,

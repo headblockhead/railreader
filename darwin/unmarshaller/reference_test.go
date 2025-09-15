@@ -1,4 +1,4 @@
-package reference
+package unmarshaller
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
-var referenceTestCases = []unmarshaller.unmarshalTestCase[Reference]{
+var referenceTestCases = []unmarshalTestCase[Reference]{
 	{
 		name: "all_fields_are_stored",
 		xml: `

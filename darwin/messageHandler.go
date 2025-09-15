@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/headblockhead/railreader/darwin/filegetter"
 	"github.com/headblockhead/railreader/darwin/interpreter"
-	"github.com/headblockhead/railreader/darwin/reference"
-	"github.com/headblockhead/railreader/darwin/repositories"
+	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 	"github.com/headblockhead/railreader/database"
 	"github.com/segmentio/kafka-go"
@@ -18,15 +18,15 @@ type MessageHandler struct {
 	log *slog.Logger
 	ctx context.Context
 	db  database.Database
-	ref reference.Connection
+	fg  filegetter.FileGetter
 }
 
-func NewMessageHandler(ctx context.Context, log *slog.Logger, db database.Database, ref reference.Connection) MessageHandler {
+func NewMessageHandler(ctx context.Context, log *slog.Logger, db database.Database, fg filegetter.FileGetter) MessageHandler {
 	return MessageHandler{
 		ctx: ctx,
 		log: log,
 		db:  db,
-		ref: ref,
+		fg:  fg,
 	}
 }
 
@@ -59,7 +59,7 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 	if pport.Version != expectedPushPortVersion {
 		log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", expectedPushPortVersion), slog.String("actual_version", pport.Version))
 	}
-	if err := interpretPushPortMessage(m.ctx, log, m.db, m.ref, capsule.MessageID, pport); err != nil {
+	if err := interpretPushPortMessage(m.ctx, log, m.db, m.fg, capsule.MessageID, pport); err != nil {
 		return fmt.Errorf("failed to interpret PushPortMessage for message %s: %w", capsule.MessageID, err)
 	}
 	return nil
@@ -67,13 +67,13 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 
 func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Database, offset int64, capsule messageCapsule) error {
 	log.Debug("inserting a messageCapsule (as a database.MessageXML) into the database")
-	messageXML := repositories.MessageXML{MessageID: capsule.MessageID, XML: capsule.XML}
+	messageXML := repository.MessageXMLRow{MessageID: capsule.MessageID, Offset: offset, XML: capsule.XML}
 	insertMessageXMLTx, err := db.BeginTx()
 	if err != nil {
 		_ = insertMessageXMLTx.Rollback(ctx)
 		return fmt.Errorf("failed to begin MessageXML insertion transaction: %w", err)
 	}
-	mr := repositories.NewPGXMessageXMLRepository(ctx, log.With(slog.String("repository", "MessageXML")), insertMessageXMLTx)
+	mr := repository.NewPGXMessageXML(ctx, log.With(slog.String("repository", "MessageXML")), insertMessageXMLTx)
 	if err := mr.Insert(messageXML); err != nil {
 		_ = insertMessageXMLTx.Rollback(ctx)
 		return fmt.Errorf("failed to insert the MessageXML into the database: %w", err)
@@ -87,9 +87,9 @@ func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Dat
 	return nil
 }
 
-func interpretPushPortMessage(ctx context.Context, log *slog.Logger, db database.Database, ref reference.Connection, messageID string, pport unmarshaller.PushPortMessage) error {
+func interpretPushPortMessage(ctx context.Context, log *slog.Logger, db database.Database, fg filegetter.FileGetter, messageID string, pport unmarshaller.PushPortMessage) error {
 	log.Debug("creating a new UnitOfWork for interpreting the PushPortMessage")
-	u, err := interpreter.NewUnitOfWork(ctx, log, messageID, db, ref)
+	u, err := interpreter.NewUnitOfWork(ctx, log, messageID, db, fg)
 	if err != nil {
 		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
 	}

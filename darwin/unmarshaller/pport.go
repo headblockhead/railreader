@@ -13,10 +13,10 @@ type PushPortMessage struct {
 
 	// only one of:
 
-	NewTimetableFiles *TimetableFiles `xml:"TimeTableId"`
-	StatusUpdate      *Status         `xml:"FailureResp"`
-	UpdateResponse    *Response       `xml:"uR"`
-	SnapshotResponse  *Response       `xml:"sR"`
+	NewFiles         *NewFiles `xml:"TimeTableId"`
+	StatusUpdate     *Status   `xml:"FailureResp"`
+	UpdateResponse   *Response `xml:"uR"`
+	SnapshotResponse *Response `xml:"sR"`
 }
 
 func NewPushPortMessage(xmlData string) (pport PushPortMessage, err error) {
@@ -27,13 +27,12 @@ func NewPushPortMessage(xmlData string) (pport PushPortMessage, err error) {
 	return
 }
 
-// TimetableFiles is sent when there is an update to the timetable reference data, and includes the filenames of the latest versions to be used.
-type TimetableFiles struct {
-	TimetableFile          string `xml:"ttfile,attr"`
-	TimetableReferenceFile string `xml:"ttreffile,attr"`
-	// TimeTableId is the exact time the timetable data was written - in the format YYYYMMDDHHMMSS.
-	// This is present in the prefix for the filenames of the timetable data, and is provied for convenience to grab files of different schema versions.
-	TimeTableId string `xml:",chardata"`
+// NewFiles is sent when there is an update to the timetable and/or reference data, and includes the filenames of the latest versions to be used.
+type NewFiles struct {
+	TimetableFile string `xml:"ttfile,attr"`
+	ReferenceFile string `xml:"ttreffile,attr"`
+	// Prefix is used at the start of the filenames of the timetable data.
+	Prefix string `xml:",chardata"`
 }
 
 // Status is a response sent periodically to indicate the status of the system, or to repsond to a bad request.

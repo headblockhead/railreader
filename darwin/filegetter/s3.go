@@ -1,13 +1,14 @@
-package reference
+package filegetter
 
 import (
 	"context"
+	"io"
 	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-type Connection struct {
+type S3 struct {
 	ctx      context.Context
 	log      *slog.Logger
 	s3Client *s3.Client
@@ -15,8 +16,8 @@ type Connection struct {
 	prefix   string
 }
 
-func NewConnection(ctx context.Context, log *slog.Logger, s3Client *s3.Client, bucket string, prefix string) Connection {
-	return Connection{
+func NewS3(ctx context.Context, log *slog.Logger, s3Client *s3.Client, bucket string, prefix string) S3 {
+	return S3{
 		ctx:      ctx,
 		log:      log,
 		s3Client: s3Client,
@@ -25,18 +26,14 @@ func NewConnection(ctx context.Context, log *slog.Logger, s3Client *s3.Client, b
 	}
 }
 
-func (c *Connection) Get(filepath string) ([]byte, error) {
-	key := c.prefix + filepath
+func (c S3) Get(name string) ([]byte, error) {
+	filepath := c.prefix + name
 	object, err := c.s3Client.GetObject(c.ctx, &s3.GetObjectInput{
 		Bucket: &c.bucket,
-		Key:    &key,
+		Key:    &filepath,
 	})
 	if err != nil {
 		return nil, err
 	}
-	var data []byte
-	if _, err := object.Body.Read(data); err != nil {
-		return nil, err
-	}
-	return data, nil
+	return io.ReadAll(object.Body)
 }

@@ -1,4 +1,4 @@
-package repositories
+package repository
 
 import (
 	"fmt"
@@ -65,32 +65,32 @@ type ScheduleLocationRow struct {
 	CancellationReasonNearLocation *bool
 }
 
-type ScheduleRepository interface {
+type Schedule interface {
 	Insert(schedule ScheduleRow) error
 	Select(scheduleID string) (ScheduleRow, error)
 }
 
-type PGXScheduleRepository struct {
+type PGXSchedule struct {
 	ctx context.Context
 	log *slog.Logger
 	tx  pgx.Tx
 }
 
-func NewPGXScheduleRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXScheduleRepository {
-	return PGXScheduleRepository{
+func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedule {
+	return PGXSchedule{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
 	}
 }
 
-func (sr PGXScheduleRepository) Select(scheduleID string) (row ScheduleRow, err error) {
+func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
 	return
 }
 
-func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
+func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
-	log.Info("inserting schedule")
+	log.Info("inserting ScheduleRow")
 
 	scheduleAlreadyExists := true
 	// If it exists, select the current schedule record to compare against
@@ -207,8 +207,8 @@ func (sr PGXScheduleRepository) Insert(s ScheduleRow) error {
 	return nil
 }
 
-func (sr PGXScheduleRepository) insertLocation(log *slog.Logger, scheduleID string, location ScheduleLocationRow) error {
-	log.Info("inserting schedule location")
+func (sr PGXSchedule) insertLocation(log *slog.Logger, scheduleID string, location ScheduleLocationRow) error {
+	log.Info("inserting ScheduleLocationRow")
 	namedArgs := pgx.StrictNamedArgs{
 		"schedule_id":                          scheduleID,
 		"sequence":                             location.Sequence,
@@ -259,35 +259,7 @@ func (sr PGXScheduleRepository) insertLocation(log *slog.Logger, scheduleID stri
 	return nil
 }
 
-func (sr PGXScheduleRepository) generateScheduleMessages(previousSchedule *ScheduleRow, currentSchedule ScheduleRow) error {
-	/* scheduleAlreadyExists := previousSchedule != nil*/
-	/*var activatedTime *time.Time*/
-	/*var deactivatedTime *time.Time*/
-	/*var deletedTime *time.Time*/
-	/*if scheduleAlreadyExists {*/
-	/*if !previousSchedule.Active && currentSchedule.Active {*/
-	/*activatedTime = &currentSchedule.MessageTime*/
-	/*}*/
-	/*if previousSchedule.Active && !currentSchedule.Active {*/
-	/*deactivatedTime = &currentSchedule.MessageTime*/
-	/*}*/
-	/*if !previousSchedule.Deleted && currentSchedule.Deleted {*/
-	/*deletedTime = &currentSchedule.MessageTime*/
-	/*}*/
-	/*} else {*/
-	/*if currentSchedule.Active {*/
-	/*activatedTime = &currentSchedule.MessageTime*/
-	/*}*/
-	/*}*/
+func (sr PGXSchedule) generateScheduleMessages(previousSchedule *ScheduleRow, currentSchedule ScheduleRow) error {
+	// TODO
 	return nil
-}
-
-type ScheduleNewMessage struct {
-	ScheduleID string
-	Time       time.Time
-}
-
-type ScheduleActivationMessage struct {
-	ScheduleID string
-	Time       time.Time
 }

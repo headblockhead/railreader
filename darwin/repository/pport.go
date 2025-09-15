@@ -1,4 +1,4 @@
-package repositories
+package repository
 
 import (
 	"context"
@@ -8,34 +8,34 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type PPortMessageRepository interface {
-	Insert(message PPortMessage) error
+type PPortMessage interface {
+	Insert(message PPortMessageRow) error
 }
 
-type PGXPPortMessageRepository struct {
+type PGXPPortMessage struct {
 	ctx context.Context
 	log *slog.Logger
 	tx  pgx.Tx
 }
 
-func NewPGXPPortMessageRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXPPortMessageRepository {
-	log.Debug("creating new PGXMessageRepository")
-	return PGXPPortMessageRepository{
+func NewPGXPPortMessage(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXPPortMessage {
+	log.Debug("creating new PGXMessage")
+	return PGXPPortMessage{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
 	}
 }
 
-type PPortMessage struct {
+type PPortMessageRow struct {
 	MessageID      string
 	SentAt         time.Time
 	LastReceivedAt time.Time
 	Version        string
 }
 
-func (mr PGXPPortMessageRepository) Insert(message PPortMessage) error {
-	mr.log.Debug("inserting PPortMessage")
+func (mr PGXPPortMessage) Insert(message PPortMessageRow) error {
+	mr.log.Debug("inserting PPortMessageRow")
 	_, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO messages
 			VALUES (
@@ -57,26 +57,26 @@ func (mr PGXPPortMessageRepository) Insert(message PPortMessage) error {
 	return err
 }
 
-type ResponseRepository interface {
-	Insert(response Response) error
+type Response interface {
+	Insert(response ResponseRow) error
 }
 
-type PGXResponseRepository struct {
+type PGXResponse struct {
 	ctx context.Context
 	log *slog.Logger
 	tx  pgx.Tx
 }
 
-func NewPGXResponseRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXResponseRepository {
-	log.Debug("creating new PGXResponseRepository")
-	return PGXResponseRepository{
+func NewPGXResponse(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXResponse {
+	log.Debug("creating new PGXResponse")
+	return PGXResponse{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
 	}
 }
 
-type Response struct {
+type ResponseRow struct {
 	MessageID    string
 	Snapshot     bool
 	Source       *string
@@ -84,8 +84,8 @@ type Response struct {
 	RequestID    *string
 }
 
-func (mr PGXResponseRepository) Insert(repsonse Response) error {
-	mr.log.Debug("inserting Response")
+func (mr PGXResponse) Insert(repsonse ResponseRow) error {
+	mr.log.Debug("inserting ResponseRow")
 	_, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_response
 			VALUES (

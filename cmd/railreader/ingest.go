@@ -2,21 +2,13 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"log/slog"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/headblockhead/railreader/darwin"
-	darwinconn "github.com/headblockhead/railreader/darwin/connection"
-	darwinref "github.com/headblockhead/railreader/darwin/reference"
 	"github.com/headblockhead/railreader/database"
 	"github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
 type IngestCommand struct {
@@ -46,10 +38,10 @@ type IngestCommand struct {
 	} `embed:"" prefix:"log."`
 }
 
-type kafkaConnection interface {
+type messageFetcherCommitter interface {
+	Close() error
 	FetchMessage(ctx context.Context) (kafka.Message, error)
 	CommitMessage(msg kafka.Message) error
-	Close() error
 }
 
 type messageHandler interface {
@@ -69,51 +61,29 @@ func (c IngestCommand) Run() error {
 		return fmt.Errorf("error connecting to database: %w", err)
 	}
 
-	creds := credentials.NewStaticCredentialsProvider(c.Darwin.S3.AccessKey, c.Darwin.S3.SecretKey, "")
-	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(c.Darwin.S3.Region), config.WithCredentialsProvider(creds))
+	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(log.With(slog.String("source", "darwin")), db)
 	if err != nil {
-		return fmt.Errorf("error creating AWS config: %w", err)
+		return fmt.Errorf("error setting up darwin connection: %w", err)
 	}
-	darwinAWSS3Client := s3.NewFromConfig(cfg)
-	darwinReference := darwinref.NewConnection(log.With(slog.String("source", "darwin.reference")), darwinAWSS3Client, c.Darwin.S3.Bucket, c.Darwin.S3.Prefix)
-
-	kafkaContext := context.Background()
-	darwinKafkaConnection := darwinconn.New(kafkaContext, log.With(slog.String("source", "darwin.connection")), kafka.ReaderConfig{
-		Brokers: c.Darwin.Kafka.Brokers,
-		GroupID: c.Darwin.Kafka.Group,
-		Topic:   c.Darwin.Kafka.Topic,
-		Dialer: &kafka.Dialer{
-			Timeout:   c.Darwin.Kafka.ConnectionTimeout,
-			DualStack: true,
-			SASLMechanism: plain.Mechanism{
-				Username: c.Darwin.Kafka.Username,
-				Password: c.Darwin.Kafka.Password,
-			},
-			TLS: &tls.Config{},
-		},
-	})
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
-
-	messageHandlerContext := context.Background()
-	darwinMessageHandler := darwin.NewMessageHandler(messageHandlerContext, log.With(slog.String("source", "darwin.handler")), db, darwinReference)
 
 	var fetcherGroup sync.WaitGroup
 	fetcherGroup.Go(func() {
-		fetchMessages(messageFetcherContext, log.With(slog.String("source", "darwin.fetcher")), darwinKafkaMessages, darwinKafkaConnection)
+		fetchMessages(messageFetcherContext, log.With(slog.String("source", "darwin"), slog.String("process", "fetcher")), darwinKafkaMessages, darwinFetcherCommiter)
 		close(darwinKafkaMessages)
 	})
-	var processorGroup sync.WaitGroup
-	processorGroup.Go(func() {
-		processMessages(log.With(slog.String("source", "darwin.processor")), darwinKafkaMessages, darwinKafkaConnection, darwinMessageHandler)
+	var handlerGroup sync.WaitGroup
+	handlerGroup.Go(func() {
+		handleMessages(log.With(slog.String("source", "darwin"), slog.String("process", "handler")), darwinKafkaMessages, darwinFetcherCommiter, darwinMessageHandler)
 	})
 
 	// The fetcher group will run until messageFetcherContext is cancelled (when the program receives an exit signal).
 	fetcherGroup.Wait()
 	log.Info("waiting to finish processing all queued messages")
-	processorGroup.Wait()
+	handlerGroup.Wait()
 
 	log.Info("closing connections")
-	if err := darwinKafkaConnection.Close(); err != nil {
+	if err := darwinFetcherCommiter.Close(); err != nil {
 		log.Error("error closing darwin kafka connection", slog.Any("error", err))
 	}
 	if err := db.Close(5 * time.Second); err != nil {
@@ -123,10 +93,10 @@ func (c IngestCommand) Run() error {
 }
 
 // fetchMessages will run until the context is cancelled.
-func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.Message, connection kafkaConnection) {
-	log.Debug("starting message fetcher")
+func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.Message, fetcherCommitter messageFetcherCommitter) {
+	log.Debug("starting message fetcher loop")
 	for {
-		message, err := connection.FetchMessage(ctx)
+		message, err := fetcherCommitter.FetchMessage(ctx)
 		if err != nil {
 			if err == context.Canceled {
 				break
@@ -139,18 +109,18 @@ func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.
 	log.Debug("stopped fetching new messages")
 }
 
-// processMessages will run until there are no more messages to process (the channel is closed and there are 0 messages remaining in it).
-func processMessages(log *slog.Logger, messages <-chan kafka.Message, connection kafkaConnection, messageHandler messageHandler) {
-	log.Debug("starting message processor")
+// handleMessages will run until there are no more messages to handle (the channel is closed and there are 0 messages remaining in it).
+func handleMessages(log *slog.Logger, messages <-chan kafka.Message, fetcherCommitter messageFetcherCommitter, handler messageHandler) {
+	log.Debug("starting message handler loop")
 	for msg := range messages {
-		if err := messageHandler.Handle(msg); err != nil {
+		if err := handler.Handle(msg); err != nil {
 			log.Error("error handling message", slog.Any("error", err))
 			continue
 		}
-		if err := connection.CommitMessage(msg); err != nil {
+		if err := fetcherCommitter.CommitMessage(msg); err != nil {
 			log.Error("error committing message", slog.Any("error", err))
 			continue
 		}
 	}
-	log.Debug("all queued messages processed")
+	log.Debug("all queued messages handled")
 }

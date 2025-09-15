@@ -14,9 +14,9 @@ var pportTestCases = []unmarshalTestCase[PushPortMessage]{
 			Timestamp: "2025-08-23T08:00:00.12345+01:00",
 			Version:   "18.0",
 			NewTimetableFiles: &TimetableFiles{
-				TimetableFile:          "20250823080000_v8.xml.gz",
-				TimetableReferenceFile: "20250823080000_ref_v99.xml.gz",
-				TimeTableId:            "20250823080000",
+				TimetableFile: "20250823080000_v8.xml.gz",
+				ReferenceFile: "20250823080000_ref_v99.xml.gz",
+				ID:            "20250823080000",
 			},
 		},
 	},

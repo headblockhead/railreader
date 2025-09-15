@@ -1,4 +1,4 @@
-package repositories
+package repository
 
 import (
 	"context"
@@ -8,33 +8,33 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type MessageXMLRepository interface {
-	Insert(messageXML MessageXML) error
+type MessageXML interface {
+	Insert(messageXML MessageXMLRow) error
 }
 
-type PGXMessageXMLRepository struct {
+type PGXMessageXML struct {
 	ctx context.Context
 	log *slog.Logger
 	tx  pgx.Tx
 }
 
-func NewPGXMessageXMLRepository(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessageXMLRepository {
-	log.Debug("creating new PGXMessageXMLRepository")
-	return PGXMessageXMLRepository{
+func NewPGXMessageXML(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessageXML {
+	log.Debug("creating new PGXMessageXML")
+	return PGXMessageXML{
 		ctx: ctx,
 		log: log,
 		tx:  tx,
 	}
 }
 
-type MessageXML struct {
+type MessageXMLRow struct {
 	MessageID string
 	Offset    int64
 	XML       string
 }
 
-func (mr PGXMessageXMLRepository) Insert(messageXML MessageXML) error {
-	mr.log.Debug("inserting MessageXML")
+func (mr PGXMessageXML) Insert(messageXML MessageXMLRow) error {
+	mr.log.Debug("inserting MessageXMLRow")
 	if _, err := mr.tx.Exec(mr.ctx, `
 		INSERT INTO message_xml
 			VALUES (
