@@ -16,57 +16,6 @@ in
         '';
       };
     };
-    sftp = {
-      hashedPasswordFile = lib.mkOption {
-        type = types.path;
-        description = ''
-          Path to a bcrypt hashed password file for SFTP authentication.
-          You can generate a password hash using:
-          ```
-            nix run nixpkgs#mkpasswd -- -m bcrypt
-          ```
-        '';
-      };
-      privateHostKeyFile = lib.mkOption {
-        type = types.path;
-        description = ''
-          Path to a private RSA host key file for the SFTP server.
-          You can generate a new keypair using:
-          ```
-            ssh-keygen -t rsa -f host_key -N ""
-          ```
-        '';
-      };
-      listenAddresses = lib.mkOption {
-        type = types.listOf (types.submodule {
-          options = {
-            host = lib.mkOption {
-              type = types.nullOr types.str;
-              default = null;
-              description = ''
-                Host, IPv4, or IPv6 address to listen on.
-              '';
-            };
-            port = lib.mkOption {
-              type = types.nullOr types.int;
-              default = null;
-              description = ''
-                Port to listen on.
-              '';
-            };
-          };
-        });
-        default = [
-          {
-            host = "0.0.0.0";
-            port = 64022;
-          }
-        ];
-        description = ''
-          List of addresses to listen on.
-        '';
-      };
-    };
     ingest = {
       darwin = {
         kafka = {
@@ -107,6 +56,41 @@ in
             '';
           };
         };
+        s3 = {
+          bucket = lib.mkOption {
+            type = types.str;
+            default = "darwin.xmltimetable";
+            description = ''
+              Darwin File Information S3 bucket.
+            '';
+          };
+          prefix = lib.mkOption {
+            type = types.str;
+            default = "PPTimetable/";
+            description = ''
+              Prefix within the S3 bucket to read files from.
+            '';
+          };
+          accessKeyFile = lib.mkOption {
+            type = types.path;
+            description = ''
+              File containing the S3 access key in plaintext.
+            '';
+          };
+          secretKeyFile = lib.mkOption {
+            type = types.path;
+            description = ''
+              File containing the S3 secret key in plaintext.
+            '';
+          };
+          region = lib.mkOption {
+            type = types.str;
+            default = "eu-west-1";
+            description = ''
+              AWS region the S3 bucket is located in.
+            '';
+          };
+        };
         queueSize = lib.mkOption {
           type = types.int;
           default = 32;
@@ -132,48 +116,11 @@ in
           }
         ];
       };
-      systemd.services.railreader-sftp = let sftpcfg = cfg.sftp; in {
-        description = "Railreader SFTP Server";
-        wants = [ "network-online.target" ];
-        after = [ "network-online.target" ];
-        wantedBy = [ "railreader.target" ];
-        partOf = [ "railreader.target" ];
-        environment = {
-          LOG_LEVEL = "debug";
-          SFTP_ADDRESSES = lib.strings.concatMapStringsSep ","
-            (addr:
-              let
-                h = if addr.host == null then "" else addr.host;
-                p = if addr.port == null then "" else toString addr.port;
-              in
-              if h == "" && p == "" then ""
-              else if h == "" then ":" + p
-              else if p == "" then h
-              else h + ":" + p
-            )
-            sftpcfg.listenAddresses;
-          SFTP_DARWIN_DIRECTORY = "/var/lib/railreader/sftp/darwin";
-        };
-        script = ''
-          export SFTP_HASHED_PASSWORD=$(${pkgs.systemd}/bin/systemd-creds cat sftpHashedPassword)
-          ${railreader}/bin/railreader sftp --private-host-key-file=$CREDENTIALS_DIRECTORY/sftpPrivateHostKey
-        '';
-        serviceConfig = {
-          DynamicUser = true;
-          User = cfg.database.name;
-          ExecStartPre = ''
-            ${pkgs.coreutils}/bin/mkdir -p $SFTP_DARWIN_DIRECTORY
-          '';
-          LoadCredential = [ "sftpHashedPassword:${sftpcfg.hashedPasswordFile}" "sftpPrivateHostKey:${sftpcfg.privateHostKeyFile}" ];
-          StateDirectory = "railreader";
-          StateDirectoryMode = "0700";
-        };
-      };
       systemd.services.railreader-ingest = let ingcfg = cfg.ingest; in {
         description = "Railreader Ingest";
-        requires = [ "postgresql.service" "railreader-sftp.service" ];
-        wants = [ "network-online.target" "postgresql.service" "railreader-sftp.service" ];
-        after = [ "network-online.target" "postgresql.service" "railreader-sftp.service" ];
+        requires = [ "postgresql.service" ];
+        wants = [ "network-online.target" "postgresql.service" ];
+        after = [ "network-online.target" "postgresql.service" ];
         wantedBy = [ "railreader.target" ];
         partOf = [ "railreader.target" ];
         environment = {
@@ -183,17 +130,27 @@ in
           DARWIN_KAFKA_TOPIC = ingcfg.darwin.kafka.topic;
           DARWIN_KAFKA_GROUP = ingcfg.darwin.kafka.group;
           DARWIN_KAFKA_CONNECTION_TIMEOUT = "${toString ingcfg.darwin.kafka.connectionTimeout}s";
+          DARWIN_S3_BUCKET = ingcfg.darwin.s3.bucket;
+          DARWIN_S3_PREFIX = ingcfg.darwin.s3.prefix;
+          DARWIN_S3_REGION = ingcfg.darwin.s3.region;
           DARWIN_QUEUE_SIZE = toString ingcfg.darwin.queueSize;
         };
         script = ''
           export DARWIN_KAFKA_USERNAME=$(${pkgs.systemd}/bin/systemd-creds cat darwinKafkaUsername)
           export DARWIN_KAFKA_PASSWORD=$(${pkgs.systemd}/bin/systemd-creds cat darwinKafkaPassword)
+          export DARWIN_S3_ACCESS_KEY=$(${pkgs.systemd}/bin/systemd-creds cat darwinS3AccessKey)
+          export DARWIN_S3_SECRET_KEY=$(${pkgs.systemd}/bin/systemd-creds cat darwinS3SecretKey)
           ${railreader}/bin/railreader ingest 
         '';
         serviceConfig = {
           DynamicUser = true;
           User = cfg.database.name;
-          LoadCredential = [ "darwinKafkaUsername:${cfg.ingest.darwin.kafka.usernameFile}" "darwinKafkaPassword:${cfg.ingest.darwin.kafka.passwordFile}" ];
+          LoadCredential = [
+            "darwinKafkaUsername:${cfg.ingest.darwin.kafka.usernameFile}"
+            "darwinKafkaPassword:${cfg.ingest.darwin.kafka.passwordFile}"
+            "darwinS3AccessKey:${cfg.ingest.darwin.s3.accessKeyFile}"
+            "darwinS3SecretKey:${cfg.ingest.darwin.s3.secretKeyFile}"
+          ];
         };
       };
       systemd.targets.railreader = {
