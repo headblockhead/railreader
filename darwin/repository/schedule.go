@@ -85,6 +85,7 @@ func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedul
 }
 
 func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
+	// TODO
 	return
 }
 
@@ -117,7 +118,6 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	}
 
 	namedArguments := pgx.StrictNamedArgs{
-		"message_id":                           s.MessageID,
 		"schedule_id":                          s.ScheduleID,
 		"uid":                                  s.UID,
 		"scheduled_start_date":                 s.ScheduledStartDate,
@@ -143,30 +143,28 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 		INSERT INTO schedules 
 			VALUES (
 				@schedule_id
-				,@message_id
 				,@uid
 				,@scheduled_start_date
-				,@headcode,
-				,@retail_service_id,
-				,@train_operating_company_id,
-				,@service,
-				,@category,
+				,@headcode
+				,@retail_service_id
+				,@train_operating_company_id
+				,@service
+				,@category
 				,@is_passenger_service
-				,@is_active,
+				,@is_active
 				,@is_deleted
-				,@is_charter,
-				,@cancellation_reason_id,
-				,@cancellation_reason_location_id,
-				,@cancellation_reason_is_near_location,
-				,@late_reason_id,
-				,@late_reason_location_id,
-				,@late_reason_is_near_location,
+				,@is_charter
+				,@cancellation_reason_id
+				,@cancellation_reason_location_id
+				,@cancellation_reason_is_near_location
+				,@late_reason_id
+				,@late_reason_location_id
+				,@late_reason_is_near_location
 				,@diverted_via_location_id
 			) ON CONFLICT (schedule_id) DO 
 			UPDATE 
 				SET
-					message_id = EXCLUDED.message_id
-					,uid = EXCLUDED.uid
+					uid = EXCLUDED.uid
 					,scheduled_start_date = EXCLUDED.scheduled_start_date
 					,headcode = EXCLUDED.headcode
 					,retail_service_id = EXCLUDED.retail_service_id
@@ -189,6 +187,18 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	}
 
 	_, err := sr.tx.Exec(sr.ctx, `
+	INSERT INTO schedules_messages (message_id, schedule_id)
+		VALUES (@message_id, @schedule_id)
+		ON CONFLICT (message_id, schedule_id) DO NOTHING;
+	`, pgx.NamedArgs{
+		"schedule_id": s.ScheduleID,
+		"message_id":  s.MessageID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create schedules_messages entry for schedule %s: %w", s.ScheduleID, err)
+	}
+
+	_, err = sr.tx.Exec(sr.ctx, `
 		DELETE FROM schedules_locations
 			WHERE	schedule_id = @schedule_id;
 		`, pgx.NamedArgs{

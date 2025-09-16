@@ -1,19 +1,21 @@
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS outbox (
-				railreader_darwin_message_id SERIAL PRIMARY KEY -- unique for messages coming out of railreader's Darwin source.
+				railreader_message_id SERIAL PRIMARY KEY
 				,body jsonb NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS locations (
+				location_id text PRIMARY KEY
+				,computerised_reservation_system_id text
+				,train_operating_company_id text 
+				,name text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS train_operating_companies (
 				train_operating_company_id text PRIMARY KEY
 				,name text NOT NULL
-				,url text NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS customer_information_system_sources (
-				customer_information_system_source_id text PRIMARY KEY
-				,name text NOT NULL
+				,url text
 );
 
 CREATE TABLE IF NOT EXISTS late_reasons (
@@ -26,12 +28,16 @@ CREATE TABLE IF NOT EXISTS cancellation_reasons (
 				,description text NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS locations (
-				location_id text PRIMARY KEY
-				,computerised_reservation_system_id text NOT NULL
-				,train_operating_company_id text NOT NULL
+-- CREATE TABLE IF NOT EXISTS via_conditions (
+-- );
+
+CREATE TABLE IF NOT EXISTS customer_information_system_sources (
+				customer_information_system_source_id text PRIMARY KEY
 				,name text NOT NULL
 );
+
+-- CREATE TABLE IF NOT EXISTS loading_categories (
+-- );
 
 CREATE TABLE IF NOT EXISTS message_xml (
 				message_id text PRIMARY KEY
@@ -63,10 +69,7 @@ CREATE TABLE IF NOT EXISTS alarms (
 );
 
 CREATE TABLE IF NOT EXISTS schedules (
-				schedule_id text PRIMARY KEY, -- this is the RID, renamed to be consistent with other tables
-
-				-- PushPortMessage
-				,message_id text NOT NULL
+				schedule_id text PRIMARY KEY -- this is the RID, renamed to be consistent with other tables
 
 				-- TrainIdentifiers
 				,uid text NOT NULL
@@ -75,7 +78,7 @@ CREATE TABLE IF NOT EXISTS schedules (
 				-- Schedule
 				,headcode text NOT NULL
 				,retail_service_id text
-				,train_operating_company_id text NOT NULL, -- no foreign key contraint here, reference data on TOCs is not complete
+				,train_operating_company_id text NOT NULL -- no foreign key contraint here, reference data on TOCs is not complete
 				,service text NOT NULL
 				,category text NOT NULL
 				,is_passenger_service boolean NOT NULL
@@ -85,26 +88,28 @@ CREATE TABLE IF NOT EXISTS schedules (
 
 				,cancellation_reason_id int
 				,cancellation_reason_location_id text
-				,CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id)
 				,cancellation_reason_is_near_location boolean
 
 				,late_reason_id int
 				,late_reason_location_id text
-				,CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id)
 				,late_reason_is_near_location boolean
 
 				,diverted_via_location_id text
 );
 
+CREATE TABLE IF NOT EXISTS schedules_messages (
+				schedule_id text
+				,message_id text
+				,PRIMARY KEY (schedule_id, message_id)
+);
+
 CREATE TABLE IF NOT EXISTS schedules_locations (
-				,schedule_id text
-				,CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE
+				schedule_id text
 				,sequence int
 				,PRIMARY KEY (schedule_id, sequence)
 
 				-- Schedule
 				,location_id text NOT NULL
-				,CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id)
 				,activities text ARRAY
 				,planned_activities text ARRAY
 				,is_cancelled boolean NOT NULL
@@ -119,12 +124,22 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				,working_departure_time timestamp
 				,routing_delay interval
 				,false_destination_location_id text
-				,CONSTRAINT fk_false_destination_location FOREIGN KEY(false_destination_location_id) REFERENCES locations(location_id)
 
 				,cancellation_reason_id int
 				,cancellation_reason_location_id text
-				,CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id)
 				,cancellation_reason_is_near_location boolean
 );
 
+ALTER TABLE schedules_messages ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
+ALTER TABLE schedules_messages ADD CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE;
+ALTER TABLE schedules ADD CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id);
+ALTER TABLE schedules ADD CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id);
+ALTER TABLE schedules ADD CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id);
+ALTER TABLE schedules ADD CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id);
+ALTER TABLE schedules ADD CONSTRAINT fk_late_reason FOREIGN KEY(late_reason_id) REFERENCES late_reasons(late_reason_id);
+ALTER TABLE schedules_locations ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
+ALTER TABLE schedules_locations ADD CONSTRAINT fk_cancellation_reason FOREIGN KEY(cancellation_reason_id) REFERENCES cancellation_reasons(cancellation_reason_id);
+ALTER TABLE schedules_locations ADD CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id);
+ALTER TABLE schedules_locations ADD CONSTRAINT fk_false_destination_location FOREIGN KEY(false_destination_location_id) REFERENCES locations(location_id);
+ALTER TABLE schedules_locations ADD CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id);
 COMMIT;

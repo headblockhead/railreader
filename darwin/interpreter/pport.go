@@ -1,12 +1,15 @@
 package interpreter
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/headblockhead/railreader/darwin/filegetter"
 	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
@@ -67,22 +70,45 @@ var referenceFileExtension = "_ref_v4.xml.gz"
 func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 	u.log.Debug("handling NewFiles")
 	if strings.HasSuffix(tf.ReferenceFile, referenceFileExtension) {
-		u.log.Debug("file with reference extension found, fetching")
-		referenceFile, err := u.fg.Get(tf.ReferenceFile)
+		ref, err := GetReference(u.log, u.fg, tf.ReferenceFile)
 		if err != nil {
-			return fmt.Errorf("failed to get reference file %s: %w", tf.ReferenceFile, err)
+			return fmt.Errorf("failed to get reference %s: %w", tf.ReferenceFile, err)
 		}
-		u.log.Debug("reference file fetched, unmarshalling")
-		ref, err := unmarshaller.NewReference(string(referenceFile))
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal reference file %s: %w", tf.ReferenceFile, err)
-		}
-		if err := u.interpretReference(ref); err != nil {
+		if err := u.InterpretReference(ref); err != nil {
 			return fmt.Errorf("failed to interpret reference file %s: %w", tf.ReferenceFile, err)
 		}
 	}
 	// TODO: timetablefiles
 	return nil
+}
+
+func GetReference(log *slog.Logger, fg filegetter.FileGetter, path string) (ref unmarshaller.Reference, err error) {
+	log.Debug("fetching reference file", slog.String("path", path))
+	referenceFile, err := fg.Get(path)
+	if err != nil {
+		err = fmt.Errorf("failed to get from filegetter: %w", err)
+		return
+	}
+	log.Debug("reference file fetched")
+	reader, err := gzip.NewReader(referenceFile)
+	if err != nil {
+		err = fmt.Errorf("failed to create gzip reader: %w", err)
+		return
+	}
+	defer reader.Close()
+	referenceData, err := io.ReadAll(reader)
+	if err != nil {
+		err = fmt.Errorf("failed to read all of gzip reader: %w", err)
+		return
+	}
+	log.Debug("reference file read")
+	ref, err = unmarshaller.NewReference(string(referenceData))
+	if err != nil {
+		err = fmt.Errorf("failed to unmarshal: %w", err)
+		return
+	}
+	log.Debug("reference file unmarshalled")
+	return ref, nil
 }
 
 func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response) error {
