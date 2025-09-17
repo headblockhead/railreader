@@ -78,7 +78,15 @@ func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 			return fmt.Errorf("failed to interpret reference file %s: %w", tf.ReferenceFile, err)
 		}
 	}
-	// TODO: timetablefiles
+	if strings.HasSuffix(tf.TimetableFile, timetableFileExension) {
+		ref, err := GetTimetable(u.log, u.fg, tf.TimetableFile)
+		if err != nil {
+			return fmt.Errorf("failed to get timetable %s: %w", tf.TimetableFile, err)
+		}
+		if err := u.InterpretTimetable(ref); err != nil {
+			return fmt.Errorf("failed to interpret timetable file %s: %w", tf.TimetableFile, err)
+		}
+	}
 	return nil
 }
 
@@ -108,6 +116,35 @@ func GetReference(log *slog.Logger, fg filegetter.FileGetter, path string) (ref 
 		return
 	}
 	log.Debug("reference file unmarshalled")
+	return ref, nil
+}
+
+func GetTimetable(log *slog.Logger, fg filegetter.FileGetter, path string) (ref unmarshaller.Timetable, err error) {
+	log.Debug("fetching timetable file", slog.String("path", path))
+	timetableFile, err := fg.Get(path)
+	if err != nil {
+		err = fmt.Errorf("failed to get from filegetter: %w", err)
+		return
+	}
+	log.Debug("timetable file fetched")
+	reader, err := gzip.NewReader(timetableFile)
+	if err != nil {
+		err = fmt.Errorf("failed to create gzip reader: %w", err)
+		return
+	}
+	defer reader.Close()
+	timetableData, err := io.ReadAll(reader)
+	if err != nil {
+		err = fmt.Errorf("failed to read all of gzip reader: %w", err)
+		return
+	}
+	log.Debug("timetable file read")
+	ref, err = unmarshaller.NewTimetable(string(timetableData))
+	if err != nil {
+		err = fmt.Errorf("failed to unmarshal: %w", err)
+		return
+	}
+	log.Debug("timetable file unmarshalled")
 	return ref, nil
 }
 

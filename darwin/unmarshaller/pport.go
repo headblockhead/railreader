@@ -2,7 +2,6 @@ package unmarshaller
 
 import (
 	"encoding/xml"
-	"fmt"
 )
 
 // Built for Darwin PushPort version 18.0
@@ -21,7 +20,6 @@ type PushPortMessage struct {
 
 func NewPushPortMessage(xmlData string) (pport PushPortMessage, err error) {
 	if err = xml.Unmarshal([]byte(xmlData), &pport); err != nil {
-		err = fmt.Errorf("failed to unmarshal message XML: %w", err)
 		return
 	}
 	return

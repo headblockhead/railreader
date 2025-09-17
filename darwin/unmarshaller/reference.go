@@ -2,7 +2,6 @@ package unmarshaller
 
 import (
 	"encoding/xml"
-	"fmt"
 
 	"github.com/headblockhead/railreader"
 )
@@ -20,7 +19,6 @@ type Reference struct {
 
 func NewReference(xmlData string) (ref Reference, err error) {
 	if err = xml.Unmarshal([]byte(xmlData), &ref); err != nil {
-		err = fmt.Errorf("failed to unmarshal message XML: %w", err)
 		return
 	}
 	return
