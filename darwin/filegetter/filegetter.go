@@ -6,5 +6,5 @@ import (
 
 type FileGetter interface {
 	Get(filepath string) (io.ReadCloser, error)
-	GetLatestPathWithSuffix(suffix string) (string, error)
+	FindNewestWithSuffix(suffix string) (string, error)
 }

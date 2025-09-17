@@ -40,8 +40,7 @@ func (c S3) Get(name string) (io.ReadCloser, error) {
 	return object.Body, nil
 }
 
-func (c S3) GetLatestPathWithSuffix(suffix string) (string, error) {
-	// TODO: include date in prefix to limit scope of search
+func (c S3) FindNewestWithSuffix(suffix string) (string, error) {
 	paginator := s3.NewListObjectsV2Paginator(c.s3Client, &s3.ListObjectsV2Input{
 		Bucket: &c.bucket,
 		Prefix: &c.prefix,
