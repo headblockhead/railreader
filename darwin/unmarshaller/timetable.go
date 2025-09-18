@@ -9,7 +9,7 @@ import (
 // Timetable version 8
 type Timetable struct {
 	ID       string    `xml:"timetableID,attr"`
-	Journies []Journey `xml:"Journey"`
+	Journeys []Journey `xml:"Journey"`
 }
 
 type Journey struct {
