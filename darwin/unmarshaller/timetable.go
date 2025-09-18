@@ -73,13 +73,59 @@ func (j *Journey) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 type TimetableLocation struct {
 	Type LocationType
 
-	Origin                  *OriginLocation                  `xml:"OR"`
-	OperationalOrigin       *OperationalOriginLocation       `xml:"OPOR"`
-	Intermediate            *IntermediateLocation            `xml:"IP"`
-	OperationalIntermediate *OperationalIntermediateLocation `xml:"OPIP"`
-	IntermediatePassing     *IntermediatePassingLocation     `xml:"PP"`
-	Destination             *DestinationLocation             `xml:"DT"`
-	OperationalDestination  *OperationalDestinationLocation  `xml:"OPDT"`
+	Origin                  *OriginTimetableLocation                  `xml:"OR"`
+	OperationalOrigin       *OperationalOriginTimetableLocation       `xml:"OPOR"`
+	Intermediate            *IntermediateTimetableLocation            `xml:"IP"`
+	OperationalIntermediate *OperationalIntermediateTimetableLocation `xml:"OPIP"`
+	IntermediatePassing     *IntermediatePassingTimetableLocation     `xml:"PP"`
+	Destination             *DestinationTimetableLocation             `xml:"DT"`
+	OperationalDestination  *OperationalDestinationTimetableLocation  `xml:"OPDT"`
+}
+
+func (lg *TimetableLocation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	locationType := start.Name.Local
+	lg.Type = LocationType(locationType)
+	switch lg.Type {
+	case LocationTypeOrigin:
+		lg.Origin = &OriginTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.Origin, &start); err != nil {
+			return fmt.Errorf("failed to decode OriginTimetableLocation: %w", err)
+		}
+	case LocationTypeOperationalOrigin:
+		lg.OperationalOrigin = &OperationalOriginTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.OperationalOrigin, &start); err != nil {
+			return fmt.Errorf("failed to decode OperationalOriginTimetableLocation: %w", err)
+		}
+	case LocationTypeIntermediate:
+		lg.Intermediate = &IntermediateTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.Intermediate, &start); err != nil {
+			return fmt.Errorf("failed to decode IntermediateTimetableLocation: %w", err)
+		}
+	case LocationTypeOperationalIntermediate:
+		lg.OperationalIntermediate = &OperationalIntermediateTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.OperationalIntermediate, &start); err != nil {
+			return fmt.Errorf("failed to decode OperationalIntermediateTimetableLocation: %w", err)
+		}
+	case LocationTypeIntermediatePassing:
+		lg.IntermediatePassing = &IntermediatePassingTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.IntermediatePassing, &start); err != nil {
+			return fmt.Errorf("failed to decode IntermediatePassingTimetableLocation: %w", err)
+		}
+	case LocationTypeDestination:
+		lg.Destination = &DestinationTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.Destination, &start); err != nil {
+			return fmt.Errorf("failed to decode DestinationTimetableLocation: %w", err)
+		}
+	case LocationTypeOperationalDestination:
+		lg.OperationalDestination = &OperationalDestinationTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		if err := d.DecodeElement(lg.OperationalDestination, &start); err != nil {
+			return fmt.Errorf("failed to decode OperationalDestinationTimetableLocation: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown location type: %s", locationType)
+	}
+
+	return nil
 }
 
 type TimetableLocationBase struct {
