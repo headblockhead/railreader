@@ -16,7 +16,7 @@ type Association struct {
 }
 
 type AssociatedService struct {
-	LocationTimeIdentifiers
 	// RID is the unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
+	LocationTimeIdentifiers
 }
