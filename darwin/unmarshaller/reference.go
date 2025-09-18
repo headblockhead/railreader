@@ -8,13 +8,13 @@ import (
 
 // Reference version 4
 type Reference struct {
-	Locations                        []Location                 `xml:"LocationRef"`
-	TrainOperatingCompanies          []TrainOperatingCompany    `xml:"TocRef"`
-	LateReasons                      []ReasonDescription        `xml:"LateRunningReasons>Reason"`
-	CancellationReasons              []ReasonDescription        `xml:"CancellationReasons>Reason"`
-	ViaTexts                         []ViaCondition             `xml:"Via"`
-	CustomerInformationSystemSources []CISSource                `xml:"CISSource"`
-	LoadingCategories                []LoadingCategoryReference `xml:"LoadingCategories>category"`
+	Locations                  []LocationReference              `xml:"LocationRef"`
+	TrainOperatingCompanies    []TrainOperatingCompanyReference `xml:"TocRef"`
+	LateReasons                []ReasonDescription              `xml:"LateRunningReasons>Reason"`
+	CancellationReasons        []ReasonDescription              `xml:"CancellationReasons>Reason"`
+	ViaTexts                   []ViaCondition                   `xml:"Via"`
+	CustomerInformationSystems []CISReference                   `xml:"CISSource"`
+	LoadingCategories          []LoadingCategoryReference       `xml:"LoadingCategories>category"`
 }
 
 func NewReference(xmlData string) (ref Reference, err error) {
@@ -24,7 +24,7 @@ func NewReference(xmlData string) (ref Reference, err error) {
 	return
 }
 
-type Location struct {
+type LocationReference struct {
 	Location railreader.TimingPointLocationCode `xml:"tpl,attr"`
 	// CRS is optional.
 	CRS *string `xml:"crs,attr"`
@@ -33,7 +33,7 @@ type Location struct {
 	Name string  `xml:"locname,attr"`
 }
 
-type TrainOperatingCompany struct {
+type TrainOperatingCompanyReference struct {
 	ID   string `xml:"toc,attr"`
 	Name string `xml:"tocname,attr"`
 	// URL is optional.
@@ -60,7 +60,7 @@ type ViaCondition struct {
 	Text string `xml:"viatext,attr"`
 }
 
-type CISSource struct {
+type CISReference struct {
 	CIS  string `xml:"code,attr"`
 	Name string `xml:"name,attr"`
 }

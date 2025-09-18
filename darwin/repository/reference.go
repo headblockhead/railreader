@@ -29,6 +29,7 @@ func NewPGXReference(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXRefere
 func (rr PGXReference) Insert(reference unmarshaller.Reference) error {
 	rr.log.Debug("inserting Reference")
 	for _, loc := range reference.Locations {
+		rr.log.Debug("inserting LocationReference")
 		if _, err := rr.tx.Exec(rr.ctx, `
 			INSERT INTO locations
 				VALUES (
@@ -49,6 +50,7 @@ func (rr PGXReference) Insert(reference unmarshaller.Reference) error {
 		}
 	}
 	for _, toc := range reference.TrainOperatingCompanies {
+		rr.log.Debug("inserting TrainOperatingCompanyReference")
 		if _, err := rr.tx.Exec(rr.ctx, `
 			INSERT INTO train_operating_companies
 				VALUES (
@@ -67,6 +69,7 @@ func (rr PGXReference) Insert(reference unmarshaller.Reference) error {
 		}
 	}
 	for _, reason := range reference.LateReasons {
+		rr.log.Debug("inserting a late ReasonDescription")
 		if _, err := rr.tx.Exec(rr.ctx, `
 			INSERT INTO late_reasons
 				VALUES (
@@ -83,6 +86,7 @@ func (rr PGXReference) Insert(reference unmarshaller.Reference) error {
 		}
 	}
 	for _, reason := range reference.CancellationReasons {
+		rr.log.Debug("inserting a cancellation ReasonDescription")
 		if _, err := rr.tx.Exec(rr.ctx, `
 			INSERT INTO cancellation_reasons
 				VALUES (
@@ -98,18 +102,19 @@ func (rr PGXReference) Insert(reference unmarshaller.Reference) error {
 			return err
 		}
 	}
-	for _, cis := range reference.CustomerInformationSystemSources {
+	for _, cis := range reference.CustomerInformationSystems {
+		rr.log.Debug("inserting a CustomerInformationSystem")
 		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO customer_information_system_sources
+			INSERT INTO customer_information_systems
 				VALUES (
-					@customer_information_system_source_id
+					@customer_information_system_id
 					,@name
 				) 
-				ON CONFLICT (customer_information_system_source_id) DO
+				ON CONFLICT (customer_information_system_id) DO
 				NOTHING;
 		`, pgx.StrictNamedArgs{
-			"customer_information_system_source_id": cis.CIS,
-			"name":                                  cis.Name,
+			"customer_information_system_id": cis.CIS,
+			"name":                           cis.Name,
 		}); err != nil {
 			return err
 		}

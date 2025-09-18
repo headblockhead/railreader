@@ -40,7 +40,7 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 		</PportTimetableRef>
 		`,
 		expected: Reference{
-			Locations: []Location{
+			Locations: []LocationReference{
 				{
 					Location: "LEEDS",
 					CRS:      pointerTo("LDS"),
@@ -48,7 +48,7 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 					Name:     "Leeds",
 				},
 			},
-			TrainOperatingCompanies: []TrainOperatingCompany{
+			TrainOperatingCompanies: []TrainOperatingCompanyReference{
 				{
 					ID:   "RT",
 					Name: "Network Rail",
@@ -67,7 +67,7 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 					Description: "This train has been cancelled because of a broken down train",
 				},
 			},
-			CustomerInformationSystemSources: []CISSource{
+			CustomerInformationSystems: []CISReference{
 				{
 					CIS:  "at15",
 					Name: "Leeds LICC",

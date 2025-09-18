@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS cancellation_reasons (
 -- CREATE TABLE IF NOT EXISTS via_conditions (
 -- );
 
-CREATE TABLE IF NOT EXISTS customer_information_system_sources (
-				customer_information_system_source_id text PRIMARY KEY
+CREATE TABLE IF NOT EXISTS customer_information_systems (
+				customer_information_system_id text PRIMARY KEY
 				,name text NOT NULL
 );
 

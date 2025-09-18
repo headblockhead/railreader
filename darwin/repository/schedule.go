@@ -93,29 +93,25 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
 	log.Info("inserting ScheduleRow")
 
-	scheduleAlreadyExists := true
-	// If it exists, select the current schedule record to compare against
-	var existingSchedule ScheduleRow
-	row := sr.tx.QueryRow(sr.ctx, `
-		SELECT * FROM schedules WHERE schedule_id=@schedule_id
-	`, pgx.StrictNamedArgs{
-		"schedule_id": s.ScheduleID,
-	})
-	if err := row.Scan(&existingSchedule); err != nil {
-		if err != pgx.ErrNoRows {
-			return fmt.Errorf("failed to query existing schedule: %w", err)
-		}
-		sr.log.Debug("schedule does not already exist")
-		scheduleAlreadyExists = false
-	}
-	var existingSchedulePtr *ScheduleRow = nil
-	if scheduleAlreadyExists {
-		existingSchedulePtr = &existingSchedule
-	}
-
-	if err := sr.generateScheduleMessages(existingSchedulePtr, s); err != nil {
-		return fmt.Errorf("failed to generate outgoing messages: %w", err)
-	}
+	/*scheduleAlreadyExists := true*/
+	/*// If it exists, select the current schedule record to compare against*/
+	/*var existingSchedule ScheduleRow*/
+	/*row := sr.tx.QueryRow(sr.ctx, `*/
+	/*SELECT * FROM schedules WHERE schedule_id=@schedule_id*/
+	/*`, pgx.StrictNamedArgs{*/
+	/*"schedule_id": s.ScheduleID,*/
+	/*})*/
+	/*if err := row.Scan(&existingSchedule); err != nil {*/
+	/*if err != pgx.ErrNoRows {*/
+	/*return fmt.Errorf("failed to query existing schedule: %w", err)*/
+	/*}*/
+	/*sr.log.Debug("schedule does not already exist")*/
+	/*scheduleAlreadyExists = false*/
+	/*}*/
+	//var existingSchedulePtr *ScheduleRow = nil
+	/* if scheduleAlreadyExists {*/
+	/*existingSchedulePtr = &existingSchedule*/
+	/*}*/
 
 	namedArguments := pgx.StrictNamedArgs{
 		"schedule_id":                          s.ScheduleID,
@@ -266,10 +262,5 @@ func (sr PGXSchedule) insertLocation(log *slog.Logger, scheduleID string, locati
 	`, namedArgs); err != nil {
 		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)
 	}
-	return nil
-}
-
-func (sr PGXSchedule) generateScheduleMessages(previousSchedule *ScheduleRow, currentSchedule ScheduleRow) error {
-	// TODO
 	return nil
 }
