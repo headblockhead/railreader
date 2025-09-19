@@ -103,6 +103,16 @@ CREATE TABLE IF NOT EXISTS schedules_messages (
 				,PRIMARY KEY (schedule_id, message_id)
 );
 
+CREATE TABLE IF NOT EXISTS timetables (
+				timetable_id text PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS schedules_timetables (
+				schedule_id text
+				,timetable_id text
+				,PRIMARY KEY (schedule_id, timetable_id)
+);
+
 CREATE TABLE IF NOT EXISTS schedules_locations (
 				schedule_id text
 				,sequence int
@@ -132,6 +142,8 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 
 ALTER TABLE schedules_messages ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
 ALTER TABLE schedules_messages ADD CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE;
+ALTER TABLE schedules_timetables ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
+ALTER TABLE schedules_timetables ADD CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(timetable_id) ON DELETE CASCADE;
 ALTER TABLE schedules ADD CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules ADD CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules ADD CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id);

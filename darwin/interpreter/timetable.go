@@ -1,8 +1,12 @@
 package interpreter
 
-import "github.com/headblockhead/railreader/darwin/unmarshaller"
+import (
+	"log/slog"
 
-func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable) error {
-	u.log.Debug("interpreting a Timetable")
-	return nil // TODO
+	"github.com/headblockhead/railreader/darwin/repository"
+	"github.com/headblockhead/railreader/darwin/unmarshaller"
+)
+
+func (u UnitOfWork) InterpretTimetable(log *slog.Logger, scheduleRepository repository.Schedule, associationRepository repository.Association, timetable unmarshaller.Timetable) error {
+	log.Debug("interpreting a Timetable")
 }
