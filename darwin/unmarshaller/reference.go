@@ -8,11 +8,12 @@ import (
 
 // Reference version 4
 type Reference struct {
+	ID                         string                           `xml:"timetableID,attr"`
 	Locations                  []LocationReference              `xml:"LocationRef"`
 	TrainOperatingCompanies    []TrainOperatingCompanyReference `xml:"TocRef"`
 	LateReasons                []ReasonDescription              `xml:"LateRunningReasons>Reason"`
 	CancellationReasons        []ReasonDescription              `xml:"CancellationReasons>Reason"`
-	ViaTexts                   []ViaCondition                   `xml:"Via"`
+	ViaConditions              []ViaCondition                   `xml:"Via"`
 	CustomerInformationSystems []CISReference                   `xml:"CISSource"`
 	LoadingCategories          []LoadingCategoryReference       `xml:"LoadingCategories>category"`
 }
@@ -47,16 +48,19 @@ type ReasonDescription struct {
 }
 
 // ViaCondition provides a set of source+destination+passing locations that will display a 'via' message.
+// When searching through ViaConditions, the first match should be used,
+// and the search must be performed in the same order as they appear in the XML; they are listed in priority order.
 type ViaCondition struct {
 	// DisplayAt is the Computerised Reservation System code for the location where the 'via' message will be displayed.
 	DisplayAt string `xml:"at,attr"`
 
 	RequiredDestination      railreader.TimingPointLocationCode `xml:"dest,attr"`
 	RequiredCallingLocation1 railreader.TimingPointLocationCode `xml:"loc1,attr"`
-	// RequiredCallingLocation2 is optionally provided, but if it is provided it must be after RequiredCallingLocation1 in the schedule for the 'via' message to be displayed.
+	// RequiredCallingLocation2 is optionally provided.
+	// If it is provided, it must be after RequiredCallingLocation1 in the schedule for the 'via' message to be displayed.
 	RequiredCallingLocation2 *railreader.TimingPointLocationCode `xml:"loc2,attr"`
 
-	// Text is the message to be displayed.
+	// Text to be displayed when the conditions are met.
 	Text string `xml:"viatext,attr"`
 }
 
@@ -66,19 +70,21 @@ type CISReference struct {
 }
 
 type LoadingCategoryReference struct {
-	ID string `xml:"Code,attr"`
-	// Name is the name of the loading category, eg "Few seats taken".
-	Name string `xml:"Name,attr"`
-	// TOC is optional.
+	Code string `xml:"Code,attr"`
+	// When TOC is not provided, the loading category data for this Code is the default for all TOCs.
+	// When TOC is provided, the loading category data here only applies to the specified TOC, and this TOC-specific data should override the default.
 	TOC *string `xml:"Toc,attr"`
+	// Name is a short display name of the loading category, eg "Few seats taken".
+	Name string `xml:"Name,attr"`
 
 	// TypicalDescription should be shown when ServiceLoading.LoadingCategory.Type == LoadingCategoryTypeTypical
 	TypicalDescription string `xml:"TypicalDescription"`
 	// ExpectedDescription should be shown when ServiceLoading.LoadingCategory.Type == LoadingCategoryTypeExpected
 	ExpectedDescription string `xml:"ExpectedDescription"`
-	Definition          string `xml:"Definition"`
-	// Colour is a hex RGB or RGBA value, eg "#FF0000" or "#FF000080". It is unused as of 2025-08-15.
+	// Definition is a longer description of the loading category that defines more specifically what it means.
+	Definition string `xml:"Definition"`
+	// Colour is a hex RGB or RGBA value, eg "#FF0000" or "#FF000080".
 	Colour string `xml:"Colour"`
-	// Image is a filepath to an image that represents the loading category. It is unused as of 2025-08-15.
+	// Image is a filepath to an icon that represents the loading category.
 	Image string `xml:"Image"`
 }

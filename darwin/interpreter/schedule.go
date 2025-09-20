@@ -14,7 +14,7 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository re
 	log.Debug("interpreting a Schedule")
 	var row repository.ScheduleRow
 	row.ScheduleID = schedule.RID
-	row.MessageID = messageID
+	row.MessageID = &messageID
 	row.UID = schedule.UID
 	log.Debug("parsing ScheduledStartDate", slog.String("value", schedule.ScheduledStartDate))
 	location, err := time.LoadLocation("Europe/London")
@@ -41,6 +41,7 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository re
 	row.Charter = schedule.Charter
 	if schedule.CancellationReason != nil {
 		log.Debug("CancellationReason is set")
+		row.Cancelled = true
 		row.CancellationReasonID = &schedule.CancellationReason.ReasonID
 		if schedule.CancellationReason.TIPLOC != nil && *schedule.CancellationReason.TIPLOC != "" {
 			log.Debug("CancellationReason.TIPLOC is set")
@@ -71,7 +72,7 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository re
 		}
 		previousTime = nextTime
 		previousFormationID = nextFormationID
-		row.Locations = append(row.Locations, locationRow)
+		row.ScheduleLocationRows = append(row.ScheduleLocationRows, locationRow)
 	}
 
 	return scheduleRepository.Insert(row)

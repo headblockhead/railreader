@@ -73,7 +73,7 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 					Name: "Leeds LICC",
 				},
 			},
-			ViaTexts: []ViaCondition{
+			ViaConditions: []ViaCondition{
 				{
 					DisplayAt:                "BSK",
 					RequiredDestination:      "YORK",
@@ -84,14 +84,14 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 			},
 			LoadingCategories: []LoadingCategoryReference{
 				{
-					ID:                  "A",
+					Code:                "A",
 					Name:                "Few seats taken",
 					TypicalDescription:  "Usually only a few seats taken",
 					ExpectedDescription: "Only a few seats taken",
 					Definition:          "Everyone will be able to find a seat",
 				},
 				{
-					ID:                  "B",
+					Code:                "B",
 					Name:                "Plenty of seats",
 					TypicalDescription:  "Usually plenty of seats available",
 					ExpectedDescription: "Plenty of seats available",

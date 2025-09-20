@@ -28,16 +28,33 @@ CREATE TABLE IF NOT EXISTS cancellation_reasons (
 				,description text NOT NULL
 );
 
--- CREATE TABLE IF NOT EXISTS via_conditions (
--- );
+CREATE TABLE IF NOT EXISTS via_conditions (
+				sequence int PRIMARY KEY 
+				,display_at_location_id text NOT NULL
+				,first_required_location_id text NOT NULL
+				,second_required_location_id text
+				,destination_required_location_id text NOT NULL
+				,text text NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS customer_information_systems (
 				customer_information_system_id text PRIMARY KEY
 				,name text NOT NULL
 );
 
--- CREATE TABLE IF NOT EXISTS loading_categories (
--- );
+CREATE TABLE IF NOT EXISTS loading_categories (	
+				loading_category_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+				,loading_category_code text NOT NULL
+				,train_operating_company_id text
+				,CONSTRAINT uq_code_toc UNIQUE NULLS NOT DISTINCT (loading_category_code, train_operating_company_id) 
+				,name text NOT NULL
+				,description_typical text NOT NULL
+				,description_expected	text NOT NULL
+				,definition text NOT NULL
+				-- can probably ignore these:
+				,colour text NOT NULL
+				,image text NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS message_xml (
 				message_id text PRIMARY KEY
@@ -47,8 +64,8 @@ CREATE TABLE IF NOT EXISTS message_xml (
 
 CREATE TABLE IF NOT EXISTS messages (
 				message_id text PRIMARY KEY
-				,sent_at timestamp NOT NULL
-				,last_received_at timestamp NOT NULL
+				,sent_at timestampz NOT NULL
+				,last_received_at timestampz NOT NULL
 				,version text NOT NULL
 );
 
@@ -95,16 +112,15 @@ CREATE TABLE IF NOT EXISTS schedules (
 				,late_reason_is_near_location boolean
 
 				,diverted_via_location_id text
+
+				-- Journey
+				,is_cancelled boolean NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS schedules_messages (
 				schedule_id text
 				,message_id text
 				,PRIMARY KEY (schedule_id, message_id)
-);
-
-CREATE TABLE IF NOT EXISTS timetables (
-				timetable_id text PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS schedules_timetables (
@@ -127,23 +143,25 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				,is_affected_by_diversion boolean NOT NULL
 
 				,type text NOT NULL
-				,public_arrival_time timestamp
-				,public_departure_time timestamp
-				,working_arrival_time timestamp
-				,working_passing_time timestamp
-				,working_departure_time timestamp
+				,public_arrival_time timestampz
+				,public_departure_time timestampz
+				,working_arrival_time timestampz
+				,working_passing_time timestampz
+				,working_departure_time timestampz
 				,routing_delay interval
 				,false_destination_location_id text
 
 				,cancellation_reason_id int
 				,cancellation_reason_location_id text
 				,cancellation_reason_is_near_location boolean
+
+				-- Journey
+				,platform text
 );
 
 ALTER TABLE schedules_messages ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
 ALTER TABLE schedules_messages ADD CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE;
 ALTER TABLE schedules_timetables ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
-ALTER TABLE schedules_timetables ADD CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(timetable_id) ON DELETE CASCADE;
 ALTER TABLE schedules ADD CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules ADD CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules ADD CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id);

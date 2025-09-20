@@ -102,7 +102,7 @@ func (f *ForecastPlatform) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	platform.Source = PlatformDataSourcePlanned
 
 	if err := d.DecodeElement(&platform, &start); err != nil {
-		return fmt.Errorf("failed to decode ToiletInformation: %w", err)
+		return fmt.Errorf("failed to decode ForecastPlatform: %w", err)
 	}
 
 	// Convert the alias back to the original type.

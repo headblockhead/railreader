@@ -21,6 +21,7 @@ func NewTimetable(xmlData string) (tt Timetable, err error) {
 	return
 }
 
+// Journey is very similar to Service, but is missing some fields, and has a few extras.
 type Journey struct {
 	TrainIdentifiers
 	// Headcode is the 4-character headcode of the train, with the format:
@@ -60,7 +61,7 @@ func (j *Journey) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	journey.PassengerService = true
 
 	if err := d.DecodeElement(&journey, &start); err != nil {
-		return fmt.Errorf("failed to decode ScheduleInformation: %w", err)
+		return fmt.Errorf("failed to decode Journey: %w", err)
 	}
 
 	// Convert the alias back to the original type.

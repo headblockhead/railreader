@@ -12,7 +12,9 @@ import (
 type ScheduleRow struct {
 	ScheduleID string
 
-	MessageID string
+	// one of:
+	MessageID   *string
+	TimetableID *string
 
 	UID                     string
 	ScheduledStartDate      time.Time
@@ -36,7 +38,9 @@ type ScheduleRow struct {
 
 	DivertedViaLocationID *string
 
-	Locations []ScheduleLocationRow
+	Cancelled bool
+
+	ScheduleLocationRows []ScheduleLocationRow
 }
 
 type ScheduleLocationRow struct {
@@ -63,6 +67,8 @@ type ScheduleLocationRow struct {
 	CancellationReasonID           *int
 	CancellationReasonLocationID   *string
 	CancellationReasonNearLocation *bool
+
+	Platform *string
 }
 
 type Schedule interface {
@@ -85,33 +91,13 @@ func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedul
 }
 
 func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
-	// TODO
+	// TODO: implement Select on Schedule repository
 	return
 }
 
 func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
 	log.Info("inserting ScheduleRow")
-
-	/*scheduleAlreadyExists := true*/
-	/*// If it exists, select the current schedule record to compare against*/
-	/*var existingSchedule ScheduleRow*/
-	/*row := sr.tx.QueryRow(sr.ctx, `*/
-	/*SELECT * FROM schedules WHERE schedule_id=@schedule_id*/
-	/*`, pgx.StrictNamedArgs{*/
-	/*"schedule_id": s.ScheduleID,*/
-	/*})*/
-	/*if err := row.Scan(&existingSchedule); err != nil {*/
-	/*if err != pgx.ErrNoRows {*/
-	/*return fmt.Errorf("failed to query existing schedule: %w", err)*/
-	/*}*/
-	/*sr.log.Debug("schedule does not already exist")*/
-	/*scheduleAlreadyExists = false*/
-	/*}*/
-	//var existingSchedulePtr *ScheduleRow = nil
-	/* if scheduleAlreadyExists {*/
-	/*existingSchedulePtr = &existingSchedule*/
-	/*}*/
 
 	namedArguments := pgx.StrictNamedArgs{
 		"schedule_id":                          s.ScheduleID,
@@ -133,6 +119,7 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 		"late_reason_location_id":              s.LateReasonLocationID,
 		"late_reason_is_near_location":         s.LateReasonNearLocation,
 		"diverted_via_location_id":             s.DivertedViaLocationID,
+		"is_cancelled":                         s.Cancelled,
 	}
 
 	if _, err := sr.tx.Exec(sr.ctx, `
@@ -157,6 +144,7 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 				,@late_reason_location_id
 				,@late_reason_is_near_location
 				,@diverted_via_location_id
+				,@is_cancelled
 			) ON CONFLICT (schedule_id) DO 
 			UPDATE 
 				SET
@@ -177,34 +165,55 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 					,late_reason_id = EXCLUDED.late_reason_id
 					,late_reason_location_id = EXCLUDED.late_reason_location_id
 					,late_reason_is_near_location = EXCLUDED.late_reason_is_near_location
-					,diverted_via_location_id = EXCLUDED.diverted_via_location_id;
+					,diverted_via_location_id = EXCLUDED.diverted_via_location_id
+					,is_cancelled = EXCLUDED.is_cancelled
+					;
 		`, namedArguments); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
 
-	_, err := sr.tx.Exec(sr.ctx, `
-	INSERT INTO schedules_messages (message_id, schedule_id)
-		VALUES (@message_id, @schedule_id)
-		ON CONFLICT (message_id, schedule_id) DO NOTHING;
-	`, pgx.NamedArgs{
-		"schedule_id": s.ScheduleID,
-		"message_id":  s.MessageID,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create schedules_messages entry for schedule %s: %w", s.ScheduleID, err)
+	if s.MessageID != nil {
+		_, err := sr.tx.Exec(sr.ctx, `
+		INSERT INTO schedules_messages
+			VALUES (
+				@message_id
+				,@schedule_id
+			);
+		`, pgx.StrictNamedArgs{
+			"schedule_id": s.ScheduleID,
+			"message_id":  s.MessageID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create schedules_messages entry for schedule %s: %w", s.ScheduleID, err)
+		}
+	}
+	if s.TimetableID != nil {
+		_, err := sr.tx.Exec(sr.ctx, `
+		INSERT INTO schedules_timetables
+			VALUES (
+				@timetable_id
+				,@schedule_id
+			);
+		`, pgx.StrictNamedArgs{
+			"schedule_id":  s.ScheduleID,
+			"timetable_id": s.TimetableID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create schedules_timetables entry for schedule %s: %w", s.ScheduleID, err)
+		}
 	}
 
-	_, err = sr.tx.Exec(sr.ctx, `
+	_, err := sr.tx.Exec(sr.ctx, `
 		DELETE FROM schedules_locations
 			WHERE	schedule_id = @schedule_id;
-		`, pgx.NamedArgs{
+		`, pgx.StrictNamedArgs{
 		"schedule_id": s.ScheduleID,
 	})
 	if err != pgx.ErrNoRows && err != nil {
 		return fmt.Errorf("failed to delete existing schedule for schedule %s: %w", s.ScheduleID, err)
 	}
 
-	for _, loc := range s.Locations {
+	for _, loc := range s.ScheduleLocationRows {
 		if err := sr.insertLocation(log.With(slog.Int("sequence", loc.Sequence)), s.ScheduleID, loc); err != nil {
 			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
 		}
@@ -235,6 +244,7 @@ func (sr PGXSchedule) insertLocation(log *slog.Logger, scheduleID string, locati
 		"cancellation_reason_id":               location.CancellationReasonID,
 		"cancellation_reason_location_id":      location.CancellationReasonLocationID,
 		"cancellation_reason_is_near_location": location.CancellationReasonNearLocation,
+		"platform":                             location.Platform,
 	}
 	if _, err := sr.tx.Exec(sr.ctx, `
 	INSERT INTO schedules_locations 
@@ -258,6 +268,7 @@ func (sr PGXSchedule) insertLocation(log *slog.Logger, scheduleID string, locati
 			,@cancellation_reason_id
 			,@cancellation_reason_location_id
 			,@cancellation_reason_is_near_location
+			,@platform
 		);
 	`, namedArgs); err != nil {
 		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)

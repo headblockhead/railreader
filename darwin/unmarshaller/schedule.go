@@ -55,7 +55,7 @@ func (si *Schedule) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	schedule.Active = true
 
 	if err := d.DecodeElement(&schedule, &start); err != nil {
-		return fmt.Errorf("failed to decode ScheduleInformation: %w", err)
+		return fmt.Errorf("failed to decode Schedule: %w", err)
 	}
 
 	// Convert the alias back to the original type.

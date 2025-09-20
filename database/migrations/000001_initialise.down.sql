@@ -1,6 +1,8 @@
 BEGIN;
 
 DROP TABLE IF EXISTS schedules_locations;
+DROP TABLE IF EXISTS schedules_timetables;
+DROP TABLE IF EXISTS timetables;
 DROP TABLE IF EXISTS schedules_messages;
 DROP TABLE IF EXISTS schedules;
 DROP TABLE IF EXISTS alarms;

@@ -98,7 +98,7 @@ func TestInterpretSchedule(t *testing.T) {
 				Category:                string(railreader.CategoryPassenger),
 				PassengerService:        true,
 				Active:                  true,
-				Locations: []repository.ScheduleLocationRow{
+				ScheduleLocationRows: []repository.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						LocationID:           "ABCD",
@@ -239,7 +239,7 @@ func TestInterpretSchedule(t *testing.T) {
 				LateReasonID:                   pointerTo(101),
 				LateReasonLocationID:           pointerTo("IJKL"),
 				LateReasonNearLocation:         pointerTo(true),
-				Locations: []repository.ScheduleLocationRow{
+				ScheduleLocationRows: []repository.ScheduleLocationRow{
 					{
 						Sequence:                       0,
 						Type:                           string(unmarshaller.LocationTypeOrigin),
@@ -398,7 +398,7 @@ func TestInterpretSchedule(t *testing.T) {
 			expected: repository.ScheduleRow{
 				MessageID:          "messageid",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
-				Locations: []repository.ScheduleLocationRow{
+				ScheduleLocationRows: []repository.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						Type:                 string(unmarshaller.LocationTypeIntermediate),
@@ -471,7 +471,7 @@ func TestInterpretSchedule(t *testing.T) {
 			expected: repository.ScheduleRow{
 				MessageID:          "messageid",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
-				Locations: []repository.ScheduleLocationRow{
+				ScheduleLocationRows: []repository.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						Type:                 string(unmarshaller.LocationTypeIntermediate),
@@ -542,7 +542,7 @@ func TestInterpretSchedule(t *testing.T) {
 			expected: repository.ScheduleRow{
 				MessageID:          "messageid",
 				ScheduledStartDate: time.Date(2025, 8, 23, 0, 0, 0, 0, location),
-				Locations: []repository.ScheduleLocationRow{
+				ScheduleLocationRows: []repository.ScheduleLocationRow{
 					{
 						Sequence:             0,
 						Type:                 string(unmarshaller.LocationTypeIntermediate),
