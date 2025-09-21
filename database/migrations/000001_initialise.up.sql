@@ -51,7 +51,6 @@ CREATE TABLE IF NOT EXISTS loading_categories (
 				,description_typical text NOT NULL
 				,description_expected	text NOT NULL
 				,definition text NOT NULL
-				-- can probably ignore these:
 				,colour text NOT NULL
 				,image text NOT NULL
 );

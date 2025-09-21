@@ -210,7 +210,7 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 		"schedule_id": s.ScheduleID,
 	})
 	if err != pgx.ErrNoRows && err != nil {
-		return fmt.Errorf("failed to delete existing schedule for schedule %s: %w", s.ScheduleID, err)
+		return fmt.Errorf("failed to delete existing schedule locations for schedule %s: %w", s.ScheduleID, err)
 	}
 
 	for _, loc := range s.ScheduleLocationRows {

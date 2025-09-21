@@ -9,5 +9,7 @@ import (
 
 func (u UnitOfWork) InterpretReference(log *slog.Logger, referenceRepository repository.Reference, reference unmarshaller.Reference) error {
 	log.Debug("interpreting a Reference")
-	return referenceRepository.Insert(reference)
+	var rrs repository.ReferenceRowsSet
+	// TODO: interpret the reference into rows
+	return referenceRepository.Insert(rrs)
 }

@@ -46,7 +46,7 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 		return nil
 	}
 	if pport.StatusUpdate != nil {
-		// TODO: implement
+		// TODO: implement status update handling
 		return errors.New("PushPortMessage contains a StatusUpdate, which is not yet implemented")
 	}
 	if pport.UpdateResponse != nil {
