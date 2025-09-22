@@ -14,7 +14,6 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository re
 	log.Debug("interpreting a Schedule")
 	var row repository.ScheduleRow
 	row.ScheduleID = schedule.RID
-	row.MessageID = &messageID
 	row.UID = schedule.UID
 	log.Debug("parsing ScheduledStartDate", slog.String("value", schedule.ScheduledStartDate))
 	location, err := time.LoadLocation("Europe/London")
@@ -61,19 +60,19 @@ func interpretSchedule(log *slog.Logger, messageID string, scheduleRepository re
 		row.LateReasonNearLocation = &schedule.DiversionReason.Near
 	}
 
-	previousTime := time.Time{}
-	previousFormationID := ""
-	for sequence, scheduleLocation := range schedule.Locations {
-		locationLog := log.With(slog.Int("sequence", sequence), slog.String("type", string(scheduleLocation.Type)))
-		locationLog.Debug("parsing schedule location")
-		locationRow, nextTime, nextFormationID, err := convertScheduleLocationToRow(locationLog, sequence, startDate, previousTime, previousFormationID, scheduleLocation)
-		if err != nil {
-			return fmt.Errorf("failed to parse schedule location at sequence %d: %w", sequence, err)
-		}
-		previousTime = nextTime
-		previousFormationID = nextFormationID
-		row.ScheduleLocationRows = append(row.ScheduleLocationRows, locationRow)
-	}
+	/* previousTime := time.Time{}*/
+	/*previousFormationID := ""*/
+	/*for sequence, scheduleLocation := range schedule.Locations {*/
+	/*locationLog := log.With(slog.Int("sequence", sequence), slog.String("type", string(scheduleLocation.Type)))*/
+	/*locationLog.Debug("parsing schedule location")*/
+	/*locationRow, nextTime, nextFormationID, err := convertScheduleLocationToRow(locationLog, sequence, startDate, previousTime, previousFormationID, scheduleLocation)*/
+	/*if err != nil {*/
+	/*return fmt.Errorf("failed to parse schedule location at sequence %d: %w", sequence, err)*/
+	/*}*/
+	/*previousTime = nextTime*/
+	/*previousFormationID = nextFormationID*/
+	/*row.ScheduleLocationRows = append(row.ScheduleLocationRows, locationRow)*/
+	/*}*/
 
 	return scheduleRepository.Insert(row)
 }

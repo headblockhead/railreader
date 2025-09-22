@@ -5,75 +5,72 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/headblockhead/railreader/database"
 	"github.com/jackc/pgx/v5"
 	"golang.org/x/net/context"
 )
 
 type ScheduleRow struct {
-	ScheduleID string
+	ScheduleID string `db:"schedule_id"`
 
-	// one of:
-	MessageID   *string
-	TimetableID *string
+	UID                     string    `db:"uid"`
+	ScheduledStartDate      time.Time `db:"scheduled_start_date"`
+	Headcode                string    `db:"headcode"`
+	RetailServiceID         *string   `db:"retail_service_id"`
+	TrainOperatingCompanyID string    `db:"train_operating_company_id"`
+	Service                 string    `db:"service"`
+	Category                string    `db:"category"`
+	PassengerService        bool      `db:"is_passenger_service"`
+	Active                  bool      `db:"is_active"`
+	Deleted                 bool      `db:"is_deleted"`
+	Charter                 bool      `db:"is_charter"`
 
-	UID                     string
-	ScheduledStartDate      time.Time
-	Headcode                string
-	RetailServiceID         *string
-	TrainOperatingCompanyID string
-	Service                 string
-	Category                string
-	PassengerService        bool
-	Active                  bool
-	Deleted                 bool
-	Charter                 bool
+	CancellationReasonID           *int    `db:"cancellation_reason_id"`
+	CancellationReasonLocationID   *string `db:"cancellation_reason_location_id"`
+	CancellationReasonNearLocation *bool   `db:"cancellation_reason_is_near_location"`
 
-	CancellationReasonID           *int
-	CancellationReasonLocationID   *string
-	CancellationReasonNearLocation *bool
+	LateReasonID           *int    `db:"late_reason_id"`
+	LateReasonLocationID   *string `db:"late_reason_location_id"`
+	LateReasonNearLocation *bool   `db:"late_reason_is_near_location"`
 
-	LateReasonID           *int
-	LateReasonLocationID   *string
-	LateReasonNearLocation *bool
+	DivertedViaLocationID *string `db:"diverted_via_location_id"`
 
-	DivertedViaLocationID *string
-
-	Cancelled bool
-
-	ScheduleLocationRows []ScheduleLocationRow
+	Cancelled bool `db:"is_cancelled"`
 }
 
 type ScheduleLocationRow struct {
-	// ScheduleID  string
-	Sequence int
+	ScheduleID string `db:"schedule_id"`
+	Sequence   int    `db:"sequence"`
 
-	LocationID string
+	LocationID string `db:"location_id"`
 
-	Activities          *[]string
-	PlannedActivities   *[]string
-	Cancelled           bool
-	FormationID         *string
-	AffectedByDiversion bool
+	Activities          *[]string `db:"activities"`
+	PlannedActivities   *[]string `db:"planned_activities"`
+	Cancelled           bool      `db:"is_cancelled"`
+	FormationID         *string   `db:"formation_id"`
+	AffectedByDiversion bool      `db:"is_affected_by_diversion"`
 
-	Type                       string
-	PublicArrivalTime          *time.Time
-	PublicDepartureTime        *time.Time
-	WorkingArrivalTime         *time.Time
-	WorkingPassingTime         *time.Time
-	WorkingDepartureTime       *time.Time
-	RoutingDelay               *time.Duration
-	FalseDestinationLocationID *string
+	Type                       string         `db:"type"`
+	PublicArrivalTime          *time.Time     `db:"public_arrival_time"`
+	PublicDepartureTime        *time.Time     `db:"public_departure_time"`
+	WorkingArrivalTime         *time.Time     `db:"working_arrival_time"`
+	WorkingPassingTime         *time.Time     `db:"working_passing_time"`
+	WorkingDepartureTime       *time.Time     `db:"working_departure_time"`
+	RoutingDelay               *time.Duration `db:"routing_delay"`
+	FalseDestinationLocationID *string        `db:"false_destination_location_id"`
 
-	CancellationReasonID           *int
-	CancellationReasonLocationID   *string
-	CancellationReasonNearLocation *bool
+	CancellationReasonID           *int    `db:"cancellation_reason_id"`
+	CancellationReasonLocationID   *string `db:"cancellation_reason_location_id"`
+	CancellationReasonNearLocation *bool   `db:"cancellation_reason_is_near_location"`
 
 	Platform *string
 }
 
 type Schedule interface {
 	Insert(schedule ScheduleRow) error
+	Update(schedule ScheduleRow) error
 	Select(scheduleID string) (ScheduleRow, error)
+	Exists(scheduleID string) (bool, error)
 }
 
 type PGXSchedule struct {
@@ -90,136 +87,54 @@ func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedul
 	}
 }
 
-func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
-	// TODO: implement Select on Schedule repository
-	return
-}
-
 func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
 	log.Info("inserting ScheduleRow")
-
-	namedArguments := pgx.StrictNamedArgs{
-		"schedule_id":                          s.ScheduleID,
-		"uid":                                  s.UID,
-		"scheduled_start_date":                 s.ScheduledStartDate,
-		"headcode":                             s.Headcode,
-		"retail_service_id":                    s.RetailServiceID,
-		"train_operating_company_id":           s.TrainOperatingCompanyID,
-		"service":                              s.Service,
-		"category":                             s.Category,
-		"is_passenger_service":                 s.PassengerService,
-		"is_active":                            s.Active,
-		"is_deleted":                           s.Deleted,
-		"is_charter":                           s.Charter,
-		"cancellation_reason_id":               s.CancellationReasonID,
-		"cancellation_reason_location_id":      s.CancellationReasonLocationID,
-		"cancellation_reason_is_near_location": s.CancellationReasonNearLocation,
-		"late_reason_id":                       s.LateReasonID,
-		"late_reason_location_id":              s.LateReasonLocationID,
-		"late_reason_is_near_location":         s.LateReasonNearLocation,
-		"diverted_via_location_id":             s.DivertedViaLocationID,
-		"is_cancelled":                         s.Cancelled,
-	}
-
-	if _, err := sr.tx.Exec(sr.ctx, `
-		INSERT INTO schedules 
-			VALUES (
-				@schedule_id
-				,@uid
-				,@scheduled_start_date
-				,@headcode
-				,@retail_service_id
-				,@train_operating_company_id
-				,@service
-				,@category
-				,@is_passenger_service
-				,@is_active
-				,@is_deleted
-				,@is_charter
-				,@cancellation_reason_id
-				,@cancellation_reason_location_id
-				,@cancellation_reason_is_near_location
-				,@late_reason_id
-				,@late_reason_location_id
-				,@late_reason_is_near_location
-				,@diverted_via_location_id
-				,@is_cancelled
-			) ON CONFLICT (schedule_id) DO 
-			UPDATE 
-				SET
-					uid = EXCLUDED.uid
-					,scheduled_start_date = EXCLUDED.scheduled_start_date
-					,headcode = EXCLUDED.headcode
-					,retail_service_id = EXCLUDED.retail_service_id
-					,train_operating_company_id = EXCLUDED.train_operating_company_id
-					,service = EXCLUDED.service
-					,category = EXCLUDED.category
-					,is_passenger_service = EXCLUDED.is_passenger_service
-					,is_active = EXCLUDED.is_active
-					,is_deleted = EXCLUDED.is_deleted
-					,is_charter = EXCLUDED.is_charter
-					,cancellation_reason_id = EXCLUDED.cancellation_reason_id
-					,cancellation_reason_location_id = EXCLUDED.cancellation_reason_location_id
-					,cancellation_reason_is_near_location = EXCLUDED.cancellation_reason_is_near_location
-					,late_reason_id = EXCLUDED.late_reason_id
-					,late_reason_location_id = EXCLUDED.late_reason_location_id
-					,late_reason_is_near_location = EXCLUDED.late_reason_is_near_location
-					,diverted_via_location_id = EXCLUDED.diverted_via_location_id
-					,is_cancelled = EXCLUDED.is_cancelled
-					;
-		`, namedArguments); err != nil {
+	statement, args := database.BuildInsert("schedules", s)
+	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
 		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
 	}
+	return nil
+}
 
-	if s.MessageID != nil {
-		_, err := sr.tx.Exec(sr.ctx, `
-		INSERT INTO schedules_messages
-			VALUES (
-				@message_id
-				,@schedule_id
-			);
-		`, pgx.StrictNamedArgs{
-			"schedule_id": s.ScheduleID,
-			"message_id":  s.MessageID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create schedules_messages entry for schedule %s: %w", s.ScheduleID, err)
-		}
-	}
-	if s.TimetableID != nil {
-		_, err := sr.tx.Exec(sr.ctx, `
-		INSERT INTO schedules_timetables
-			VALUES (
-				@timetable_id
-				,@schedule_id
-			);
-		`, pgx.StrictNamedArgs{
-			"schedule_id":  s.ScheduleID,
-			"timetable_id": s.TimetableID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to create schedules_timetables entry for schedule %s: %w", s.ScheduleID, err)
-		}
-	}
-
-	_, err := sr.tx.Exec(sr.ctx, `
-		DELETE FROM schedules_locations
-			WHERE	schedule_id = @schedule_id;
-		`, pgx.StrictNamedArgs{
+func (sr PGXSchedule) Update(s ScheduleRow) error {
+	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
+	log.Info("updating ScheduleRow")
+	statement, args := database.BuildUpdate("schedules", s, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
 		"schedule_id": s.ScheduleID,
 	})
-	if err != pgx.ErrNoRows && err != nil {
-		return fmt.Errorf("failed to delete existing schedule locations for schedule %s: %w", s.ScheduleID, err)
+	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
+		return fmt.Errorf("failed to update schedule %s: %w", s.ScheduleID, err)
 	}
-
-	for _, loc := range s.ScheduleLocationRows {
-		if err := sr.insertLocation(log.With(slog.Int("sequence", loc.Sequence)), s.ScheduleID, loc); err != nil {
-			return fmt.Errorf("failed to process location %s for schedule %s: %w", loc.LocationID, s.ScheduleID, err)
-		}
-	}
-
 	return nil
+}
+
+func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
+	log := sr.log.With(slog.String("schedule_id", scheduleID))
+	log.Info("selecting ScheduleRow")
+	rows, _ := sr.tx.Query(sr.ctx, "SELECT * FROM schedules WHERE schedule_id = @schedule_id;", pgx.StrictNamedArgs{
+		"schedule_id": scheduleID,
+	})
+	row, err = pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[ScheduleRow])
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return row, fmt.Errorf("schedule %s not found: %w", scheduleID, err)
+		}
+		return row, fmt.Errorf("failed to select schedule %s: %w", scheduleID, err)
+	}
+	return row, nil
+}
+
+func (sr PGXSchedule) Exists(scheduleID string) (exists bool, err error) {
+	log := sr.log.With(slog.String("schedule_id", scheduleID))
+	log.Info("checking existence of ScheduleRow")
+	err = sr.tx.QueryRow(sr.ctx, `SELECT EXISTS (SELECT 1 FROM schedules WHERE schedule_id = @schedule_id);`, pgx.StrictNamedArgs{
+		"schedule_id": scheduleID,
+	}).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check existence of schedule %s: %w", scheduleID, err)
+	}
+	return exists, nil
 }
 
 func (sr PGXSchedule) insertLocation(log *slog.Logger, scheduleID string, location ScheduleLocationRow) error {

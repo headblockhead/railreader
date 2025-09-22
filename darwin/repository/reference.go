@@ -8,7 +8,9 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type ReferenceRowsSet struct {
+type ReferenceRow struct {
+	ID string
+
 	LocationRows                  []LocationRow
 	TrainOperatingCompanyRows     []TrainOperatingCompanyRow
 	LateReasonRows                []LateReasonRow
@@ -69,7 +71,7 @@ type LoadingCategoryRow struct {
 }
 
 type Reference interface {
-	Insert(reference ReferenceRowsSet) error
+	Insert(reference ReferenceRow) error
 }
 
 type PGXReference struct {
@@ -96,8 +98,19 @@ func deleteAllInTable(ctx context.Context, tx pgx.Tx, tableName string) error {
 	return nil
 }
 
-func (rr PGXReference) Insert(reference ReferenceRowsSet) error {
+func (rr PGXReference) Insert(reference ReferenceRow) error {
 	rr.log.Debug("inserting Reference")
+	if _, err := rr.tx.Exec(rr.ctx, `
+			INSERT INTO references
+				VALUES (
+					@reference_id
+				); 
+		`, pgx.StrictNamedArgs{
+		"reference_id": reference.ID,
+	}); err != nil {
+		return fmt.Errorf("failed to insert reference %s: %w", reference.ID, err)
+	}
+
 	if err := deleteAllInTable(rr.ctx, rr.tx, "locations"); err != nil {
 		return err
 	}

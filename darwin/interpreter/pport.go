@@ -70,22 +70,22 @@ var referenceFileExtension = "_ref_v4.xml.gz"
 func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 	u.log.Debug("handling NewFiles")
 	if strings.HasSuffix(tf.ReferenceFile, referenceFileExtension) {
-		ref, err := GetReference(u.log, u.fg, tf.ReferenceFile)
-		if err != nil {
-			return fmt.Errorf("failed to get reference %s: %w", tf.ReferenceFile, err)
-		}
-		if err := u.InterpretReference(ref); err != nil {
-			return fmt.Errorf("failed to interpret reference file %s: %w", tf.ReferenceFile, err)
-		}
+		/*   ref, err := GetReference(u.log, u.fg, tf.ReferenceFile)*/
+		/*if err != nil {*/
+		/*return fmt.Errorf("failed to get reference %s: %w", tf.ReferenceFile, err)*/
+		/*}*/
+		/*if err := u.InterpretReference(ref); err != nil {*/
+		/*return fmt.Errorf("failed to interpret reference file %s: %w", tf.ReferenceFile, err)*/
+		/*}*/
 	}
 	if strings.HasSuffix(tf.TimetableFile, timetableFileExension) {
-		ref, err := GetTimetable(u.log, u.fg, tf.TimetableFile)
-		if err != nil {
-			return fmt.Errorf("failed to get timetable %s: %w", tf.TimetableFile, err)
-		}
-		if err := u.InterpretTimetable(ref); err != nil {
-			return fmt.Errorf("failed to interpret timetable file %s: %w", tf.TimetableFile, err)
-		}
+		/*   ref, err := GetTimetable(u.log, u.fg, tf.TimetableFile)*/
+		/*if err != nil {*/
+		/*return fmt.Errorf("failed to get timetable %s: %w", tf.TimetableFile, err)*/
+		/*}*/
+		/*   if err := u.InterpretTimetable(ref); err != nil {*/
+		/*return fmt.Errorf("failed to interpret timetable file %s: %w", tf.TimetableFile, err)*/
+		/*}*/
 	}
 	return nil
 }

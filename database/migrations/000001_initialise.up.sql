@@ -63,8 +63,8 @@ CREATE TABLE IF NOT EXISTS message_xml (
 
 CREATE TABLE IF NOT EXISTS messages (
 				message_id text PRIMARY KEY
-				,sent_at timestampz NOT NULL
-				,last_received_at timestampz NOT NULL
+				,sent_at timestamp WITH TIME ZONE NOT NULL
+				,last_received_at timestamp WITH TIME ZONE NOT NULL
 				,version text NOT NULL
 );
 
@@ -74,6 +74,10 @@ CREATE TABLE IF NOT EXISTS message_response (
 				,source text
 				,source_system text
 				,request_id text
+);
+
+CREATE TABLE IF NOT EXISTS timetables (
+				timetable_id text PRIMARY KEY
 );
 
 CREATE TABLE IF NOT EXISTS alarms (
@@ -142,11 +146,11 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 				,is_affected_by_diversion boolean NOT NULL
 
 				,type text NOT NULL
-				,public_arrival_time timestampz
-				,public_departure_time timestampz
-				,working_arrival_time timestampz
-				,working_passing_time timestampz
-				,working_departure_time timestampz
+				,public_arrival_time timestamp WITH TIME ZONE
+				,public_departure_time timestamp WITH TIME ZONE
+				,working_arrival_time timestamp WITH TIME ZONE
+				,working_passing_time timestamp WITH TIME ZONE
+				,working_departure_time timestamp WITH TIME ZONE
 				,routing_delay interval
 				,false_destination_location_id text
 
@@ -161,6 +165,7 @@ CREATE TABLE IF NOT EXISTS schedules_locations (
 ALTER TABLE schedules_messages ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
 ALTER TABLE schedules_messages ADD CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE;
 ALTER TABLE schedules_timetables ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
+ALTER TABLE schedules_timetables ADD CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(timetable_id) ON DELETE CASCADE;
 ALTER TABLE schedules ADD CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules ADD CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules ADD CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(location_id);
@@ -171,4 +176,5 @@ ALTER TABLE schedules_locations ADD CONSTRAINT fk_cancellation_reason FOREIGN KE
 ALTER TABLE schedules_locations ADD CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules_locations ADD CONSTRAINT fk_false_destination_location FOREIGN KEY(false_destination_location_id) REFERENCES locations(location_id);
 ALTER TABLE schedules_locations ADD CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(location_id);
+
 COMMIT;
