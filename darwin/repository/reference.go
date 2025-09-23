@@ -10,14 +10,39 @@ import (
 
 type ReferenceRow struct {
 	ID string
+}
 
-	LocationRows                  []LocationRow
-	TrainOperatingCompanyRows     []TrainOperatingCompanyRow
-	LateReasonRows                []LateReasonRow
-	CancellationReasonRows        []CancellationReasonRow
-	ViaConditionRows              []ViaConditionRow
-	CustomerInformationSystemRows []CustomerInformationSystemRow
-	LoadingCategoryRows           []LoadingCategoryRow
+type Reference interface {
+	Insert(reference ReferenceRow) error
+}
+
+type PGXReference struct {
+	ctx context.Context
+	log *slog.Logger
+	tx  pgx.Tx
+}
+
+func NewPGXReference(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXReference {
+	return PGXReference{
+		ctx: ctx,
+		log: log,
+		tx:  tx,
+	}
+}
+
+func (rr PGXReference) Insert(reference ReferenceRow) error {
+	rr.log.Debug("inserting Reference")
+	if _, err := rr.tx.Exec(rr.ctx, `
+			INSERT INTO references
+				VALUES (
+					@reference_id
+				); 
+		`, pgx.StrictNamedArgs{
+		"reference_id": reference.ID,
+	}); err != nil {
+		return fmt.Errorf("failed to insert reference %s: %w", reference.ID, err)
+	}
+	return nil
 }
 
 type LocationRow struct {
@@ -68,200 +93,4 @@ type LoadingCategoryRow struct {
 	// can probably ignore these
 	Colour string
 	Image  string
-}
-
-type Reference interface {
-	Insert(reference ReferenceRow) error
-}
-
-type PGXReference struct {
-	ctx context.Context
-	log *slog.Logger
-	tx  pgx.Tx
-}
-
-func NewPGXReference(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXReference {
-	return PGXReference{
-		ctx: ctx,
-		log: log,
-		tx:  tx,
-	}
-}
-
-func deleteAllInTable(ctx context.Context, tx pgx.Tx, tableName string) error {
-	_, err := tx.Exec(ctx, `DELETE FROM @table_name;`, pgx.StrictNamedArgs{
-		"table_name": tableName,
-	})
-	if err != pgx.ErrNoRows && err != nil {
-		return fmt.Errorf("failed to delete existing %s: %w", tableName, err)
-	}
-	return nil
-}
-
-func (rr PGXReference) Insert(reference ReferenceRow) error {
-	rr.log.Debug("inserting Reference")
-	if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO references
-				VALUES (
-					@reference_id
-				); 
-		`, pgx.StrictNamedArgs{
-		"reference_id": reference.ID,
-	}); err != nil {
-		return fmt.Errorf("failed to insert reference %s: %w", reference.ID, err)
-	}
-
-	if err := deleteAllInTable(rr.ctx, rr.tx, "locations"); err != nil {
-		return err
-	}
-	for _, loc := range reference.LocationRows {
-		rr.log.Debug("inserting LocationRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO locations
-				VALUES (
-					@location_id
-					,@computerised_reservation_system_id
-					,@train_operating_company_id
-					,@name
-				); 
-		`, pgx.StrictNamedArgs{
-			"location_id":                        loc.LocationID,
-			"computerised_reservation_system_id": loc.ComputerisedReservationSystemID,
-			"train_operating_company_id":         loc.TrainOperatingCompanyID,
-			"name":                               loc.Name,
-		}); err != nil {
-			return fmt.Errorf("failed to insert location %s: %w", loc.LocationID, err)
-		}
-	}
-	if err := deleteAllInTable(rr.ctx, rr.tx, "train_operating_companies"); err != nil {
-		return err
-	}
-	for _, toc := range reference.TrainOperatingCompanyRows {
-		rr.log.Debug("inserting TrainOperatingCompanyRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO train_operating_companies
-				VALUES (
-					@train_operating_company_id
-					,@name
-					,@url
-				); 
-		`, pgx.StrictNamedArgs{
-			"train_operating_company_id": toc.TrainOperatingCompanyID,
-			"name":                       toc.Name,
-			"url":                        toc.URL,
-		}); err != nil {
-			return fmt.Errorf("failed to insert train operating company %s: %w", toc.TrainOperatingCompanyID, err)
-		}
-	}
-	if err := deleteAllInTable(rr.ctx, rr.tx, "late_reasons"); err != nil {
-		return err
-	}
-	for _, lr := range reference.LateReasonRows {
-		rr.log.Debug("inserting LateReasonRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO late_reasons
-				VALUES (
-					@late_reason_id
-					,@description
-				); 
-		`, pgx.StrictNamedArgs{
-			"late_reason_id": lr.LateReasonID,
-			"description":    lr.Description,
-		}); err != nil {
-			return fmt.Errorf("failed to insert late reason %d: %w", lr.LateReasonID, err)
-		}
-	}
-	if err := deleteAllInTable(rr.ctx, rr.tx, "cancellation_reasons"); err != nil {
-		return err
-	}
-	for _, cr := range reference.CancellationReasonRows {
-		rr.log.Debug("inserting CancellationReasonRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO cancellation_reasons
-				VALUES (
-					@cancellation_reason_id
-					,@description
-				); 
-		`, pgx.StrictNamedArgs{
-			"cancellation_reason_id": cr.CancellationReasonID,
-			"description":            cr.Description,
-		}); err != nil {
-			return fmt.Errorf("failed to insert cancellation reason %d: %w", cr.CancellationReasonID, err)
-		}
-	}
-	if err := deleteAllInTable(rr.ctx, rr.tx, "via_conditions"); err != nil {
-		return err
-	}
-	for _, vc := range reference.ViaConditionRows {
-		rr.log.Debug("inserting ViaConditionRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO via_conditions
-				VALUES (
-					@sequence
-					,@display_at_location_id
-					,@first_required_calling_location_id
-					,@second_required_calling_location_id
-					,@destination_required_location_id
-					,@text
-				); 
-		`, pgx.StrictNamedArgs{
-			"sequence":                            vc.Sequence,
-			"display_at_location_id":              vc.DisplayAtLocationID,
-			"first_required_calling_location_id":  vc.FirstRequiredCallingLocationID,
-			"second_required_calling_location_id": vc.SecondRequiredCallingLocationID,
-			"destination_required_location_id":    vc.DestinationRequiredLocationID,
-			"text":                                vc.Text,
-		}); err != nil {
-			return fmt.Errorf("failed to insert via condition with sequence %d: %w", vc.Sequence, err)
-		}
-	}
-	if err := deleteAllInTable(rr.ctx, rr.tx, "customer_information_systems"); err != nil {
-		return err
-	}
-	for _, cis := range reference.CustomerInformationSystemRows {
-		rr.log.Debug("inserting CustomerInformationSystemRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO customer_information_systems
-				VALUES (
-					@customer_information_system_id
-					,@name
-				); 
-		`, pgx.StrictNamedArgs{
-			"customer_information_system_id": cis.CustomerInformationSystemID,
-			"name":                           cis.Name,
-		}); err != nil {
-			return fmt.Errorf("failed to insert customer information system %s: %w", cis.CustomerInformationSystemID, err)
-		}
-	}
-	if err := deleteAllInTable(rr.ctx, rr.tx, "loading_categories"); err != nil {
-		return err
-	}
-	for _, lc := range reference.LoadingCategoryRows {
-		rr.log.Debug("inserting LoadingCategoryRow")
-		if _, err := rr.tx.Exec(rr.ctx, `
-			INSERT INTO loading_categories
-				VALUES (
-					,@loading_category_code
-					,@train_operating_company_id
-					,@name
-					,@description_typical
-					,@description_expected
-					,@definition
-					,@colour
-					,@image
-				);
-		`, pgx.StrictNamedArgs{
-			"loading_category_code":      lc.LoadingCategoryCode,
-			"train_operating_company_id": lc.TrainOperatingCompanyID,
-			"name":                       lc.Name,
-			"description_typical":        lc.DescriptionTypical,
-			"description_expected":       lc.DescriptionExpected,
-			"definition":                 lc.Definition,
-			"colour":                     lc.Colour,
-			"image":                      lc.Image,
-		}); err != nil {
-			return fmt.Errorf("failed to insert loading category %s: %w", lc.LoadingCategoryCode, err)
-		}
-	}
-	return nil
 }

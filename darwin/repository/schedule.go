@@ -38,34 +38,6 @@ type ScheduleRow struct {
 	Cancelled bool `db:"is_cancelled"`
 }
 
-type ScheduleLocationRow struct {
-	ScheduleID string `db:"schedule_id"`
-	Sequence   int    `db:"sequence"`
-
-	LocationID string `db:"location_id"`
-
-	Activities          *[]string `db:"activities"`
-	PlannedActivities   *[]string `db:"planned_activities"`
-	Cancelled           bool      `db:"is_cancelled"`
-	FormationID         *string   `db:"formation_id"`
-	AffectedByDiversion bool      `db:"is_affected_by_diversion"`
-
-	Type                       string         `db:"type"`
-	PublicArrivalTime          *time.Time     `db:"public_arrival_time"`
-	PublicDepartureTime        *time.Time     `db:"public_departure_time"`
-	WorkingArrivalTime         *time.Time     `db:"working_arrival_time"`
-	WorkingPassingTime         *time.Time     `db:"working_passing_time"`
-	WorkingDepartureTime       *time.Time     `db:"working_departure_time"`
-	RoutingDelay               *time.Duration `db:"routing_delay"`
-	FalseDestinationLocationID *string        `db:"false_destination_location_id"`
-
-	CancellationReasonID           *int    `db:"cancellation_reason_id"`
-	CancellationReasonLocationID   *string `db:"cancellation_reason_location_id"`
-	CancellationReasonNearLocation *bool   `db:"cancellation_reason_is_near_location"`
-
-	Platform *string
-}
-
 type Schedule interface {
 	Insert(schedule ScheduleRow) error
 	Update(schedule ScheduleRow) error
@@ -137,56 +109,62 @@ func (sr PGXSchedule) Exists(scheduleID string) (exists bool, err error) {
 	return exists, nil
 }
 
-func (sr PGXSchedule) insertLocation(log *slog.Logger, scheduleID string, location ScheduleLocationRow) error {
-	log.Info("inserting ScheduleLocationRow")
-	namedArgs := pgx.StrictNamedArgs{
-		"schedule_id":                          scheduleID,
-		"sequence":                             location.Sequence,
-		"location_id":                          location.LocationID,
-		"activities":                           location.Activities,
-		"planned_activities":                   location.PlannedActivities,
-		"is_cancelled":                         location.Cancelled,
-		"formation_id":                         location.FormationID,
-		"is_affected_by_diversion":             location.AffectedByDiversion,
-		"type":                                 location.Type,
-		"public_arrival_time":                  location.PublicArrivalTime,
-		"public_departure_time":                location.PublicDepartureTime,
-		"working_arrival_time":                 location.WorkingArrivalTime,
-		"working_passing_time":                 location.WorkingPassingTime,
-		"working_departure_time":               location.WorkingDepartureTime,
-		"routing_delay":                        location.RoutingDelay,
-		"false_destination_location_id":        location.FalseDestinationLocationID,
-		"cancellation_reason_id":               location.CancellationReasonID,
-		"cancellation_reason_location_id":      location.CancellationReasonLocationID,
-		"cancellation_reason_is_near_location": location.CancellationReasonNearLocation,
-		"platform":                             location.Platform,
+type ScheduleLocationRow struct {
+	ScheduleID string `db:"schedule_id"`
+	Sequence   int    `db:"sequence"`
+
+	LocationID string `db:"location_id"`
+
+	Activities          *[]string `db:"activities"`
+	PlannedActivities   *[]string `db:"planned_activities"`
+	Cancelled           bool      `db:"is_cancelled"`
+	FormationID         *string   `db:"formation_id"`
+	AffectedByDiversion bool      `db:"is_affected_by_diversion"`
+
+	Type                       string         `db:"type"`
+	PublicArrivalTime          *time.Time     `db:"public_arrival_time"`
+	PublicDepartureTime        *time.Time     `db:"public_departure_time"`
+	WorkingArrivalTime         *time.Time     `db:"working_arrival_time"`
+	WorkingPassingTime         *time.Time     `db:"working_passing_time"`
+	WorkingDepartureTime       *time.Time     `db:"working_departure_time"`
+	RoutingDelay               *time.Duration `db:"routing_delay"`
+	FalseDestinationLocationID *string        `db:"false_destination_location_id"`
+
+	CancellationReasonID           *int    `db:"cancellation_reason_id"`
+	CancellationReasonLocationID   *string `db:"cancellation_reason_location_id"`
+	CancellationReasonNearLocation *bool   `db:"cancellation_reason_is_near_location"`
+
+	Platform *string
+}
+
+type ScheduleLocation interface {
+	Insert(schedule ScheduleRow) error
+	DeleteBySchedule(scheduleID string) error
+}
+
+type PGXScheduleLocation struct {
+	ctx context.Context
+	log *slog.Logger
+	tx  pgx.Tx
+}
+
+func NewPGXScheduleLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXScheduleLocation {
+	return PGXScheduleLocation{
+		ctx: ctx,
+		log: log,
+		tx:  tx,
 	}
-	if _, err := sr.tx.Exec(sr.ctx, `
-	INSERT INTO schedules_locations 
-		VALUES (
-			@schedule_id
-			,@sequence
-			,@location_id
-			,@activities
-			,@planned_activities
-			,@is_cancelled
-			,@formation_id
-			,@is_affected_by_diversion
-			,@type
-			,@public_arrival_time
-			,@public_departure_time
-			,@working_arrival_time
-			,@working_passing_time
-			,@working_departure_time
-			,@routing_delay
-			,@false_destination_location_id
-			,@cancellation_reason_id
-			,@cancellation_reason_location_id
-			,@cancellation_reason_is_near_location
-			,@platform
-		);
-	`, namedArgs); err != nil {
-		return fmt.Errorf("failed to insert schedule location %d of schedule %s: %w", location.Sequence, scheduleID, err)
+}
+
+func (sr PGXScheduleLocation) Insert(s ScheduleLocationRow) error {
+	log := sr.log.With(slog.String("schedule_id", s.ScheduleID), slog.Int("sequence", s.Sequence))
+	log.Info("inserting ScheduleLocationRow")
+	statement, args := database.BuildInsert("schedules_locations", s)
+	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
+		return fmt.Errorf("failed to insert location %d for schedule %s: %w", s.Sequence, s.ScheduleID, err)
 	}
 	return nil
+}
+
+func (sr PGXScheduleLocation) DeleteBySchedule(scheduleID string) error {
 }
