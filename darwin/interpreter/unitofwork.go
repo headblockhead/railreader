@@ -27,16 +27,22 @@ type UnitOfWork struct {
 	customerInformationSystemRepository repository.CustomerInformationSystem
 	loadingCategoryRepository           repository.LoadingCategory
 
-	// Schedule
-	scheduleRepository         repository.Schedule
-	scheduleLocationRepository repository.ScheduleLocation
-
-	// Message
+	// MessageXML
 	messageXMLRepository repository.MessageXML
 
 	// PPort
 	pportMessageRepository repository.PPortMessage
 	responseRepository     repository.Response
+
+	// Status
+	statusRepository repository.Status
+
+	// Timetable
+	timetableRepository repository.Timetable
+
+	// Schedule
+	scheduleRepository         repository.Schedule
+	scheduleLocationRepository repository.ScheduleLocation
 }
 
 func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database, fg filegetter.FileGetter) (unit UnitOfWork, err error) {
@@ -61,16 +67,22 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 		repository.NewPGXCustomerInformationSystem(ctx, log.With(slog.String("repository", "CustomerInformationSystem")), tx),
 		repository.NewPGXLoadingCategory(ctx, log.With(slog.String("repository", "LoadingCategory")), tx),
 
-		// Schedule
-		repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx),
-		repository.NewPGXScheduleLocation(ctx, log.With(slog.String("repository", "ScheduleLocation")), tx),
-
-		// Message
+		// MessageXML
 		repository.NewPGXMessageXML(ctx, log.With(slog.String("repository", "MessageXML")), tx),
 
 		// PPort
 		repository.NewPGXPPortMessage(ctx, log.With(slog.String("repository", "PPortMessage")), tx),
 		repository.NewPGXResponse(ctx, log.With(slog.String("repository", "Response")), tx),
+
+		// Status
+		repository.NewPGXStatus(ctx, log.With(slog.String("repository", "Status")), tx),
+
+		// Timetable
+		repository.NewPGXTimetable(ctx, log.With(slog.String("repository", "Timetable")), tx),
+
+		// Schedule
+		repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx),
+		repository.NewPGXScheduleLocation(ctx, log.With(slog.String("repository", "ScheduleLocation")), tx),
 	}
 	return
 }

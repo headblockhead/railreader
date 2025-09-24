@@ -67,7 +67,7 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 
 func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Database, offset int64, capsule messageCapsule) error {
 	log.Debug("inserting a messageCapsule (as a database.MessageXML) into the database")
-	messageXML := repository.MessageXMLRow{MessageID: capsule.MessageID, Offset: offset, XML: capsule.XML}
+	messageXML := repository.MessageXMLRow{MessageID: capsule.MessageID, KafkaOffset: offset, XML: capsule.XML}
 	insertMessageXMLTx, err := db.BeginTx()
 	if err != nil {
 		_ = insertMessageXMLTx.Rollback(ctx)

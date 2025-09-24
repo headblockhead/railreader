@@ -39,9 +39,12 @@ type Status struct {
 	// This is usually a CISCode.
 	SourceSystem *string `xml:"requestSource,attr"`
 	// RequestID is optionally provided by the requestor to identify their request.
-	RequestID *string    `xml:"requestID,attr"`
-	Code      StatusCode `xml:"code,attr"`
+	RequestID *string `xml:"requestID,attr"`
+	// Code is the status of the system.
+	Code StatusCode `xml:"code,attr"`
 
+	// Description is supposed to state the meaning of the Status.
+	// However, is not very useful - usually, it just contains "Darwin Status Response".
 	Description string `xml:",chardata"`
 }
 

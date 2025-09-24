@@ -81,13 +81,13 @@ func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 		}
 	}
 	if strings.HasSuffix(tf.TimetableFile, timetableFileExension) {
-		//ref, err := GetTimetable(u.log, u.fg, tf.TimetableFile)
-		//if err != nil {
-		//return fmt.Errorf("failed to get timetable %s: %w", tf.TimetableFile, err)
-		//}
-		//if err := u.InterpretTimetable(ref); err != nil {
-		//return fmt.Errorf("failed to interpret timetable file %s: %w", tf.TimetableFile, err)
-		//}
+		ref, err := GetTimetable(u.log, u.fg, tf.TimetableFile)
+		if err != nil {
+			return fmt.Errorf("failed to get timetable %s: %w", tf.TimetableFile, err)
+		}
+		if err := u.InterpretTimetable(ref); err != nil {
+			return fmt.Errorf("failed to interpret timetable file %s: %w", tf.TimetableFile, err)
+		}
 	}
 	return nil
 }
@@ -150,6 +150,23 @@ func GetTimetable(log *slog.Logger, fg filegetter.FileGetter, path string) (ref 
 	return ref, nil
 }
 
+func (u UnitOfWork) interpretStatus(status *unmarshaller.Status) error {
+	u.log.Debug("interpreting a Status")
+	var row repository.StatusRow
+	row.MessageID = u.messageID
+	row.Code = string(status.Code)
+	location, err := time.LoadLocation("Europe/London")
+	if err != nil {
+		return fmt.Errorf("failed to load time location: %w", err)
+	}
+	row.ReceivedAt = time.Now().In(location)
+	row.Description = status.Description
+	if err := u.statusRepository.Insert(row); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response) error {
 	u.log.Debug("interpreting a Response", slog.Bool("snapshot", snapshot))
 	var row repository.ResponseRow
@@ -171,7 +188,7 @@ func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response
 		return fmt.Errorf("failed to insert response record: %w", err)
 	}
 	for _, schedule := range resp.Schedules {
-		if err := interpretSchedule(u.log.With("RID", schedule.RID), u.messageID, u.scheduleRepository, schedule); err != nil {
+		if err := u.interpretSchedule(u.messageID, schedule); err != nil {
 			return fmt.Errorf("failed to process Schedule %s: %w", schedule.RID, err)
 		}
 	}

@@ -12,6 +12,9 @@ import (
 type ScheduleRow struct {
 	ScheduleID string `db:"schedule_id"`
 
+	MessageID   *string `db:"message_id"`
+	TimetableID *string `db:"timetable_id"`
+
 	UID                     string    `db:"uid"`
 	ScheduledStartDate      time.Time `db:"scheduled_start_date"`
 	Headcode                string    `db:"headcode"`
@@ -136,7 +139,7 @@ type ScheduleLocationRow struct {
 	Platform *string
 }
 type ScheduleLocation interface {
-	Insert(schedule ScheduleLocationRow) error
+	InsertMany(schedules []ScheduleLocationRow) error
 }
 type PGXScheduleLocation struct {
 	ctx context.Context
@@ -148,7 +151,7 @@ func NewPGXScheduleLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PG
 	return PGXScheduleLocation{ctx, log, tx}
 }
 
-func (sr PGXScheduleLocation) Insert(s ScheduleLocationRow) error {
-	sr.log.Debug("inserting ScheduleLocationRow", slog.String("schedule_id", s.ScheduleID), slog.Int("sequence", s.Sequence))
-	return database.InsertIntoTable(sr.ctx, sr.tx, "schedule_locations", s)
+func (sr PGXScheduleLocation) InsertMany(schedules []ScheduleLocationRow) error {
+	sr.log.Debug("inserting many ScheduleLocationRows", slog.Int("count", len(schedules)))
+	return database.InsertManyIntoTable(sr.ctx, sr.tx, "schedule_locations", schedules)
 }

@@ -9,9 +9,9 @@ import (
 )
 
 type MessageXMLRow struct {
-	MessageID string `db:"message_id"`
-	Offset    int64  `db:"kafka_offset"`
-	XML       string `db:"xml"`
+	MessageID   string `db:"message_id"`
+	XML         string `db:"xml"`
+	KafkaOffset int64  `db:"kafka_offset"`
 }
 type MessageXML interface {
 	Insert(messageXML MessageXMLRow) error
@@ -27,6 +27,6 @@ func NewPGXMessageXML(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessa
 }
 
 func (mr PGXMessageXML) Insert(messageXML MessageXMLRow) error {
-	mr.log.Debug("inserting MessageXMLRow", slog.String("message_id", messageXML.MessageID), slog.Int64("offset", messageXML.Offset))
+	mr.log.Debug("inserting MessageXMLRow", slog.String("message_id", messageXML.MessageID), slog.Int64("offset", messageXML.KafkaOffset))
 	return database.InsertIntoTable(mr.ctx, mr.tx, "message_xml", messageXML)
 }

@@ -27,7 +27,9 @@ func (c IngestCommand) newDarwin(log *slog.Logger, db database.Database) (messag
 	darwinAWSS3Client := s3.NewFromConfig(cfg)
 	darwinFileGetter := filegetter.NewS3(context.Background(), log.With(slog.String("package", "filegetter")), darwinAWSS3Client, c.Darwin.S3.Bucket, c.Darwin.S3.Prefix)
 
-	loadNewestDarwinReference(log, db, darwinFileGetter)
+	if err := loadNewestDarwinFiles(log, db, darwinFileGetter); err != nil {
+		return nil, nil, fmt.Errorf("error loading newest darwin files: %w", err)
+	}
 
 	kafkaContext := context.Background()
 	darwinKafkaConnection := fetchercommitter.NewKafka(kafkaContext, log.With(slog.String("process", "messagefetchercommitter")), kafka.ReaderConfig{
@@ -51,19 +53,28 @@ func (c IngestCommand) newDarwin(log *slog.Logger, db database.Database) (messag
 	return darwinKafkaConnection, darwinMessageHandler, nil
 }
 
-func loadNewestDarwinReference(log *slog.Logger, db database.Database, fg filegetter.FileGetter) error {
-	// var timetableFileExension = "_v8.xml.gz"
+func loadNewestDarwinFiles(log *slog.Logger, db database.Database, fg filegetter.FileGetter) error {
+	var timetableFileExension = "_v8.xml.gz"
 	var referenceFileExtension = "_ref_v4.xml.gz"
-	path, err := fg.FindNewestWithSuffix(referenceFileExtension)
+	referencePath, err := fg.FindNewestWithSuffix(referenceFileExtension)
 	if err != nil {
 		return fmt.Errorf("error getting latest darwin reference file path: %w", err)
 	}
-	log.Info("getting darwin reference data", slog.String("path", path))
-	ref, err := interpreter.GetReference(log, fg, path)
+	timetablePath, err := fg.FindNewestWithSuffix(timetableFileExension)
+	if err != nil {
+		return fmt.Errorf("error getting latest darwin timetable file path: %w", err)
+	}
+	log.Info("getting darwin reference data", slog.String("path", referencePath))
+	ref, err := interpreter.GetReference(log, fg, referencePath)
 	if err != nil {
 		return fmt.Errorf("error getting darwin reference file: %w", err)
 	}
-	log.Debug("creating a new UnitOfWork for interpreting the reference data")
+	log.Info("getting darwin timetable data", slog.String("path", timetablePath))
+	tt, err := interpreter.GetTimetable(log, fg, timetablePath)
+	if err != nil {
+		return fmt.Errorf("error getting darwin timetable file: %w", err)
+	}
+	log.Debug("creating a new UnitOfWork for interpreting the data")
 	u, err := interpreter.NewUnitOfWork(context.Background(), log, "", db, fg)
 	if err != nil {
 		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
@@ -72,11 +83,15 @@ func loadNewestDarwinReference(log *slog.Logger, db database.Database, fg filege
 		_ = u.Rollback()
 		return err
 	}
+	if err = u.InterpretTimetable(tt); err != nil {
+		_ = u.Rollback()
+		return err
+	}
 	log.Debug("committing the UnitOfWork")
 	if err := u.Commit(); err != nil {
 		_ = u.Rollback()
 		return fmt.Errorf("failed to commit UnitOfWork: %w", err)
 	}
-	log.Debug("interpreted the reference data")
+	log.Debug("interpreted the data")
 	return nil
 }
