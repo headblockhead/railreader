@@ -5,6 +5,11 @@ CREATE TABLE IF NOT EXISTS outbox (
 				,body jsonb NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS statuses (
+				status_id int PRIMARY KEY
+				,name text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS locations (
 				location_id text PRIMARY KEY
 				,computerised_reservation_system_id text
