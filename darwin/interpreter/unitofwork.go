@@ -18,10 +18,25 @@ type UnitOfWork struct {
 	tx        pgx.Tx
 	fg        filegetter.FileGetter
 
-	referenceRepository    repository.Reference
+	// Reference
+	locationRepository                  repository.Location
+	trainOperatingCompanyRepository     repository.TrainOperatingCompany
+	lateReasonRepository                repository.LateReason
+	cancellationReasonRepository        repository.CancellationReason
+	viaConditionRepository              repository.ViaCondition
+	customerInformationSystemRepository repository.CustomerInformationSystem
+	loadingCategoryRepository           repository.LoadingCategory
+
+	// Schedule
+	scheduleRepository         repository.Schedule
+	scheduleLocationRepository repository.ScheduleLocation
+
+	// Message
+	messageXMLRepository repository.MessageXML
+
+	// PPort
 	pportMessageRepository repository.PPortMessage
 	responseRepository     repository.Response
-	scheduleRepository     repository.Schedule
 }
 
 func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database, fg filegetter.FileGetter) (unit UnitOfWork, err error) {
@@ -30,21 +45,32 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 		err = fmt.Errorf("failed to begin new transaction: %w", err)
 		return
 	}
-	referenceRepository := repository.NewPGXReference(ctx, log.With(slog.String("repository", "Reference")), tx)
-	pportMessageRepository := repository.NewPGXPPortMessage(ctx, log.With(slog.String("repository", "PPortMessage")), tx)
-	responseRepository := repository.NewPGXResponse(ctx, log.With(slog.String("repository", "Response")), tx)
-	scheduleRepository := repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx)
 	unit = UnitOfWork{
-		ctx:       ctx,
-		log:       log,
-		messageID: messageID,
-		tx:        tx,
-		fg:        fg,
+		ctx,
+		log,
+		messageID,
+		tx,
+		fg,
 
-		referenceRepository:    referenceRepository,
-		pportMessageRepository: pportMessageRepository,
-		responseRepository:     responseRepository,
-		scheduleRepository:     scheduleRepository,
+		// Reference
+		repository.NewPGXLocation(ctx, log.With(slog.String("repository", "Location")), tx),
+		repository.NewPGXTrainOperatingCompany(ctx, log.With(slog.String("repository", "TrainOperatingCompany")), tx),
+		repository.NewPGXLateReason(ctx, log.With(slog.String("repository", "LateReason")), tx),
+		repository.NewPGXCancellationReason(ctx, log.With(slog.String("repository", "CancellationReason")), tx),
+		repository.NewPGXViaCondition(ctx, log.With(slog.String("repository", "ViaCondition")), tx),
+		repository.NewPGXCustomerInformationSystem(ctx, log.With(slog.String("repository", "CustomerInformationSystem")), tx),
+		repository.NewPGXLoadingCategory(ctx, log.With(slog.String("repository", "LoadingCategory")), tx),
+
+		// Schedule
+		repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx),
+		repository.NewPGXScheduleLocation(ctx, log.With(slog.String("repository", "ScheduleLocation")), tx),
+
+		// Message
+		repository.NewPGXMessageXML(ctx, log.With(slog.String("repository", "MessageXML")), tx),
+
+		// PPort
+		repository.NewPGXPPortMessage(ctx, log.With(slog.String("repository", "PPortMessage")), tx),
+		repository.NewPGXResponse(ctx, log.With(slog.String("repository", "Response")), tx),
 	}
 	return
 }

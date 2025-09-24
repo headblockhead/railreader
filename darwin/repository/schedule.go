@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -37,14 +36,14 @@ type ScheduleRow struct {
 
 	Cancelled bool `db:"is_cancelled"`
 }
-
 type Schedule interface {
+	Select(scheduleID string) (ScheduleRow, error)
 	Insert(schedule ScheduleRow) error
 	Update(schedule ScheduleRow) error
-	Select(scheduleID string) (ScheduleRow, error)
+	Delete(scheduleID string) error
+
 	Exists(scheduleID string) (bool, error)
 }
-
 type PGXSchedule struct {
 	ctx context.Context
 	log *slog.Logger
@@ -52,33 +51,7 @@ type PGXSchedule struct {
 }
 
 func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedule {
-	return PGXSchedule{
-		ctx: ctx,
-		log: log,
-		tx:  tx,
-	}
-}
-
-func (sr PGXSchedule) Insert(s ScheduleRow) error {
-	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
-	log.Info("inserting ScheduleRow")
-	statement, args := database.BuildInsert("schedules", s)
-	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
-		return fmt.Errorf("failed to insert schedule %s: %w", s.ScheduleID, err)
-	}
-	return nil
-}
-
-func (sr PGXSchedule) Update(s ScheduleRow) error {
-	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
-	log.Info("updating ScheduleRow")
-	statement, args := database.BuildUpdate("schedules", s, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
-		"schedule_id": s.ScheduleID,
-	})
-	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
-		return fmt.Errorf("failed to update schedule %s: %w", s.ScheduleID, err)
-	}
-	return nil
+	return PGXSchedule{ctx, log, tx}
 }
 
 func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
@@ -89,12 +62,38 @@ func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
 	})
 	row, err = pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[ScheduleRow])
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return row, fmt.Errorf("schedule %s not found: %w", scheduleID, err)
-		}
-		return row, fmt.Errorf("failed to select schedule %s: %w", scheduleID, err)
+		return row, err
 	}
 	return row, nil
+}
+
+func (sr PGXSchedule) Insert(s ScheduleRow) error {
+	sr.log.Debug("inserting ScheduleRow", slog.String("schedule_id", s.ScheduleID))
+	return database.InsertIntoTable(sr.ctx, sr.tx, "schedules", s)
+}
+
+func (sr PGXSchedule) Update(s ScheduleRow) error {
+	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
+	log.Info("updating ScheduleRow")
+	statement, args := database.BuildUpdate("schedules", s, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
+		"schedule_id": s.ScheduleID,
+	})
+	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (sr PGXSchedule) Delete(scheduleID string) error {
+	log := sr.log.With(slog.String("schedule_id", scheduleID))
+	log.Info("deleting ScheduleRow")
+	statement, args := database.BuildDelete("schedules", "schedule_id = @schedule_id", pgx.StrictNamedArgs{
+		"schedule_id": scheduleID,
+	})
+	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (sr PGXSchedule) Exists(scheduleID string) (exists bool, err error) {
@@ -104,7 +103,7 @@ func (sr PGXSchedule) Exists(scheduleID string) (exists bool, err error) {
 		"schedule_id": scheduleID,
 	}).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("failed to check existence of schedule %s: %w", scheduleID, err)
+		return false, err
 	}
 	return exists, nil
 }
@@ -136,12 +135,9 @@ type ScheduleLocationRow struct {
 
 	Platform *string
 }
-
 type ScheduleLocation interface {
-	Insert(schedule ScheduleRow) error
-	DeleteBySchedule(scheduleID string) error
+	Insert(schedule ScheduleLocationRow) error
 }
-
 type PGXScheduleLocation struct {
 	ctx context.Context
 	log *slog.Logger
@@ -149,22 +145,10 @@ type PGXScheduleLocation struct {
 }
 
 func NewPGXScheduleLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXScheduleLocation {
-	return PGXScheduleLocation{
-		ctx: ctx,
-		log: log,
-		tx:  tx,
-	}
+	return PGXScheduleLocation{ctx, log, tx}
 }
 
 func (sr PGXScheduleLocation) Insert(s ScheduleLocationRow) error {
-	log := sr.log.With(slog.String("schedule_id", s.ScheduleID), slog.Int("sequence", s.Sequence))
-	log.Info("inserting ScheduleLocationRow")
-	statement, args := database.BuildInsert("schedules_locations", s)
-	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
-		return fmt.Errorf("failed to insert location %d for schedule %s: %w", s.Sequence, s.ScheduleID, err)
-	}
-	return nil
-}
-
-func (sr PGXScheduleLocation) DeleteBySchedule(scheduleID string) error {
+	sr.log.Debug("inserting ScheduleLocationRow", slog.String("schedule_id", s.ScheduleID), slog.Int("sequence", s.Sequence))
+	return database.InsertIntoTable(sr.ctx, sr.tx, "schedule_locations", s)
 }

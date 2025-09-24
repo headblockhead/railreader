@@ -2,16 +2,20 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
+	"github.com/headblockhead/railreader/database"
 	"github.com/jackc/pgx/v5"
 )
 
+type MessageXMLRow struct {
+	MessageID string `db:"message_id"`
+	Offset    int64  `db:"offset"`
+	XML       string `db:"xml"`
+}
 type MessageXML interface {
 	Insert(messageXML MessageXMLRow) error
 }
-
 type PGXMessageXML struct {
 	ctx context.Context
 	log *slog.Logger
@@ -20,36 +24,10 @@ type PGXMessageXML struct {
 
 func NewPGXMessageXML(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessageXML {
 	log.Debug("creating new PGXMessageXML")
-	return PGXMessageXML{
-		ctx: ctx,
-		log: log,
-		tx:  tx,
-	}
-}
-
-type MessageXMLRow struct {
-	MessageID string
-	Offset    int64
-	XML       string
+	return PGXMessageXML{ctx, log, tx}
 }
 
 func (mr PGXMessageXML) Insert(messageXML MessageXMLRow) error {
-	mr.log.Debug("inserting MessageXMLRow")
-	if _, err := mr.tx.Exec(mr.ctx, `
-		INSERT INTO message_xml
-			VALUES (
-				@message_id
-				,@offset
-				,@xml
-			) 
-			ON CONFLICT (message_id) DO
-			NOTHING;
-	`, pgx.StrictNamedArgs{
-		"message_id": messageXML.MessageID,
-		"offset":     messageXML.Offset,
-		"xml":        messageXML.XML,
-	}); err != nil {
-		return fmt.Errorf("failed to insert: %w", err)
-	}
-	return nil
+	mr.log.Debug("inserting MessageXMLRow", slog.String("message_id", messageXML.MessageID), slog.Int64("offset", messageXML.Offset))
+	return database.InsertIntoTable(mr.ctx, mr.tx, "message_xml", messageXML)
 }

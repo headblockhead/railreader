@@ -31,10 +31,10 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
 	}
 	if err := u.pportMessageRepository.Insert(repository.PPortMessageRow{
-		MessageID:      u.messageID,
-		SentAt:         timestamp.In(location),
-		LastReceivedAt: time.Now().In(location),
-		Version:        pport.Version,
+		MessageID:       u.messageID,
+		SentAt:          timestamp.In(location),
+		FirstReceivedAt: time.Now().In(location),
+		Version:         pport.Version,
 	}); err != nil {
 		return fmt.Errorf("failed to insert message record: %w", err)
 	}

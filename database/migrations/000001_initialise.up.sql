@@ -51,8 +51,6 @@ CREATE TABLE IF NOT EXISTS loading_categories (
 				,description_typical text NOT NULL
 				,description_expected	text NOT NULL
 				,definition text NOT NULL
-				,colour text NOT NULL
-				,image text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS message_xml (
@@ -64,13 +62,13 @@ CREATE TABLE IF NOT EXISTS message_xml (
 CREATE TABLE IF NOT EXISTS messages (
 				message_id text PRIMARY KEY
 				,sent_at timestamp WITH TIME ZONE NOT NULL
-				,last_received_at timestamp WITH TIME ZONE NOT NULL
+				,first_received_at timestamp WITH TIME ZONE NOT NULL
 				,version text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS message_response (
 				message_id text PRIMARY KEY
-				,snapshot boolean NOT NULL
+				,is_snapshot boolean NOT NULL
 				,source text
 				,source_system text
 				,request_id text
