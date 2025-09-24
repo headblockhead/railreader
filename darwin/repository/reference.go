@@ -24,7 +24,6 @@ type PGXLocation struct {
 }
 
 func NewPGXLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXLocation {
-	log.Debug("creating new PGXLocation")
 	return PGXLocation{ctx, log, tx}
 }
 
@@ -48,7 +47,6 @@ type PGXTrainOperatingCompany struct {
 }
 
 func NewPGXTrainOperatingCompany(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXTrainOperatingCompany {
-	log.Debug("creating new PGXTrainOperatingCompany")
 	return PGXTrainOperatingCompany{ctx, log, tx}
 }
 
@@ -71,7 +69,6 @@ type PGXLateReason struct {
 }
 
 func NewPGXLateReason(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXLateReason {
-	log.Debug("creating new PGXLateReason")
 	return PGXLateReason{ctx, log, tx}
 }
 
@@ -94,7 +91,6 @@ type PGXCancellationReason struct {
 }
 
 func NewPGXCancellationReason(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXCancellationReason {
-	log.Debug("creating new PGXCancellationReason")
 	return PGXCancellationReason{ctx, log, tx}
 }
 
@@ -104,12 +100,12 @@ func (cr PGXCancellationReason) InsertMany(cancellationReasons []CancellationRea
 }
 
 type ViaConditionRow struct {
-	Sequence                        int     `db:"sequence"`
-	DisplayAtLocationID             string  `db:"display_at_location_id"`
-	FirstRequiredCallingLocationID  string  `db:"first_required_calling_location_id"`
-	SecondRequiredCallingLocationID *string `db:"second_required_calling_location_id"`
-	DestinationRequiredLocationID   string  `db:"destination_required_location_id"`
-	Text                            string  `db:"text"`
+	Sequence                                 int     `db:"sequence"`
+	DisplayAtComputerisedReservationSystemID string  `db:"display_at_computerised_reservation_system_id"`
+	FirstRequiredLocationID                  string  `db:"first_required_location_id"`
+	SecondRequiredLocationID                 *string `db:"second_required_location_id"`
+	DestinationRequiredLocationID            string  `db:"destination_required_location_id"`
+	Text                                     string  `db:"text"`
 }
 type ViaCondition interface {
 	InsertMany(viaConditions []ViaConditionRow) error
@@ -121,7 +117,6 @@ type PGXViaCondition struct {
 }
 
 func NewPGXViaCondition(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXViaCondition {
-	log.Debug("creating new PGXViaCondition")
 	return PGXViaCondition{ctx, log, tx}
 }
 
@@ -144,7 +139,6 @@ type PGXCustomerInformationSystem struct {
 }
 
 func NewPGXCustomerInformationSystem(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXCustomerInformationSystem {
-	log.Debug("creating new PGXCustomerInformationSystem")
 	return PGXCustomerInformationSystem{ctx, log, tx}
 }
 
@@ -175,7 +169,6 @@ type PGXLoadingCategory struct {
 }
 
 func NewPGXLoadingCategory(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXLoadingCategory {
-	log.Debug("creating new PGXLoadingCategory")
 	return PGXLoadingCategory{ctx, log, tx}
 }
 

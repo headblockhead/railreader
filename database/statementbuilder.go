@@ -70,7 +70,11 @@ func BuildSelect[T any](tableName string, row T, whereClause string, whereArgs p
 
 func BuildInsert[T any](tableName string, row T) (sql string, args pgx.StrictNamedArgs) {
 	columns, args := columnsAndArgs(reflect.TypeOf(row), reflect.ValueOf(row))
-	sql = "INSERT INTO " + tableName + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(columns, ", @") + ") ON CONFLICT DO NOTHING;"
+	values := make([]string, len(columns))
+	for i := range columns {
+		values[i] = "@" + columns[i]
+	}
+	sql = "INSERT INTO " + tableName + " (" + strings.Join(columns, ", ") + ") VALUES (" + strings.Join(values, ", ") + ") ON CONFLICT DO NOTHING;"
 	return sql, args
 }
 

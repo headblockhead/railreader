@@ -25,13 +25,12 @@ type PGXPPortMessage struct {
 }
 
 func NewPGXPPortMessage(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXPPortMessage {
-	log.Debug("creating new PGXMessage")
 	return PGXPPortMessage{ctx, log, tx}
 }
 
 func (mr PGXPPortMessage) Insert(message PPortMessageRow) error {
 	mr.log.Debug("inserting PPortMessageRow", slog.String("message_id", message.MessageID))
-	return database.InsertIntoTable(mr.ctx, mr.tx, "pport_message", message)
+	return database.InsertIntoTable(mr.ctx, mr.tx, "messages", message)
 }
 
 type ResponseRow struct {
@@ -51,11 +50,10 @@ type PGXResponse struct {
 }
 
 func NewPGXResponse(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXResponse {
-	log.Debug("creating new PGXResponse")
 	return PGXResponse{ctx, log, tx}
 }
 
 func (mr PGXResponse) Insert(repsonse ResponseRow) error {
 	mr.log.Debug("inserting ResponseRow", slog.String("message_id", repsonse.MessageID))
-	return database.InsertIntoTable(mr.ctx, mr.tx, "response", repsonse)
+	return database.InsertIntoTable(mr.ctx, mr.tx, "message_response", repsonse)
 }

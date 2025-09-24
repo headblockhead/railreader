@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS cancellation_reasons (
 
 CREATE TABLE IF NOT EXISTS via_conditions (
 				sequence int PRIMARY KEY 
-				,display_at_location_id text NOT NULL
+				,display_at_computerised_reservation_system_id text NOT NULL
 				,first_required_location_id text NOT NULL
 				,second_required_location_id text
 				,destination_required_location_id text NOT NULL
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS loading_categories (
 
 CREATE TABLE IF NOT EXISTS message_xml (
 				message_id text PRIMARY KEY
-				,sequence bigint NOT NULL
+				,kafka_offset bigint NOT NULL
 				,xml xml NOT NULL
 );
 

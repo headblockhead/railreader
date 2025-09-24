@@ -10,7 +10,7 @@ import (
 
 type MessageXMLRow struct {
 	MessageID string `db:"message_id"`
-	Offset    int64  `db:"offset"`
+	Offset    int64  `db:"kafka_offset"`
 	XML       string `db:"xml"`
 }
 type MessageXML interface {
@@ -23,7 +23,6 @@ type PGXMessageXML struct {
 }
 
 func NewPGXMessageXML(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXMessageXML {
-	log.Debug("creating new PGXMessageXML")
 	return PGXMessageXML{ctx, log, tx}
 }
 

@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -30,13 +29,16 @@ func InsertManyIntoTable[T any](ctx context.Context, tx pgx.Tx, tableName string
 	if len(rows) == 0 {
 		return nil
 	}
-	var rowValues [][]any
+	//var rowValues [][]any
 	for _, row := range rows {
-		rowValues = append(rowValues, values(reflect.ValueOf(row)))
+		if err := InsertIntoTable(ctx, tx, tableName, row); err != nil {
+			return err
+		}
+		//rowValues = append(rowValues, values(reflect.ValueOf(row)))
 	}
-	_, err := tx.CopyFrom(ctx, pgx.Identifier{tableName}, columns(reflect.TypeFor[T]()), pgx.CopyFromRows(rowValues))
-	if err != nil {
-		return fmt.Errorf("failed to copy into %s: %w", tableName, err)
-	}
+	/* _, err := tx.CopyFrom(ctx, pgx.Identifier{tableName}, columns(reflect.TypeFor[T]()), pgx.CopyFromRows(rowValues))*/
+	/*if err != nil {*/
+	/*return fmt.Errorf("failed to copy into %s: %w", tableName, err)*/
+	/*}*/
 	return nil
 }
