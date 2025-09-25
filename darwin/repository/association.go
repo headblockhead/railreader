@@ -1,20 +1,37 @@
 package repository
 
+import (
+	"context"
+	"log/slog"
+
+	"github.com/headblockhead/railreader/database"
+	"github.com/jackc/pgx/v5"
+)
+
 type AssociationRow struct {
-	TIPLOC                    string  `db:"tiploc"`
-	Category                  string  `db:"category"`
-	Cancelled                 bool    `db:"is_cancelled"`
-	Deleted                   bool    `db:"is_deleted"`
-	MainServiceID             string  `db:"main_service_id"`
-	MainWorkingArrivalTime    *string `db:"main_working_arrival_time"`
-	MainWorkingDepartureTime  *string `db:"main_working_departure_time"`
-	MainWorkingPassingTime    *string `db:"main_working_passing_time"`
-	MainPublicArrivalTime     *string `db:"main_public_arrival_time"`
-	MainPublicDepartureTime   *string `db:"main_public_departure_time"`
-	AssocServiceRID           string  `db:"assoc_service_id"`
-	AssocWorkingArrivalTime   *string `db:"assoc_working_arrival_time"`
-	AssocWorkingDepartureTime *string `db:"assoc_working_departure_time"`
-	AssocWorkingPassingTime   *string `db:"assoc_working_passing_time"`
-	AssocPublicArrivalTime    *string `db:"assoc_public_arrival_time"`
-	AssocPublicDepartureTime  *string `db:"assoc_public_departure_time"`
+	Category                           string `db:"category"`
+	IsCancelled                        bool   `db:"is_cancelled"`
+	IsDeleted                          bool   `db:"is_deleted"`
+	MainScheduleID                     string `db:"main_schedule_id"`
+	MainScheduleLocationSequence       int    `db:"main_schedule_location_sequence"`
+	AssociatedScheduleID               string `db:"associated_schedule_id"`
+	AssociatedScheduleLocationSequence int    `db:"associated_schedule_location_sequence"`
+}
+
+type Association interface {
+	Insert(association AssociationRow) error
+}
+type PGXAssociation struct {
+	ctx context.Context
+	log *slog.Logger
+	tx  pgx.Tx
+}
+
+func NewPGXAssociation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXAssociation {
+	return PGXAssociation{ctx, log, tx}
+}
+
+func (ar PGXAssociation) Insert(association AssociationRow) error {
+	ar.log.Debug("inserting AssociationRow")
+	return database.InsertIntoTable(ar.ctx, ar.tx, "associations", ar)
 }

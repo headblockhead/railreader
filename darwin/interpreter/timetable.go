@@ -33,11 +33,10 @@ func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable) error {
 	}
 
 	for _, association := range timetable.Associations {
-	if err := u.associationRepository.Insert(repository.AssociationRow{
-	}); err != nil {
-		return fmt.Errorf("failed to insert timetable into repository: %w", err)
+		if err := u.associationRepository.Insert(repository.AssociationRow{}); err != nil {
+			return fmt.Errorf("failed to insert timetable into repository: %w", err)
+		}
 	}
-}
 
 	return nil
 }
@@ -64,21 +63,21 @@ func (u UnitOfWork) interpretJourney(timetableID string, journey unmarshaller.Jo
 	row.TrainOperatingCompanyID = string(journey.TOC)
 	row.Service = string(journey.Service)
 	row.Category = string(journey.Category)
-	row.PassengerService = journey.PassengerService
+	row.IsPassengerService = journey.PassengerService
 	// TODO: is active supposed to be true for timetable entries?
-	row.Active = true
-	row.Deleted = journey.Deleted
-	row.Charter = journey.Charter
+	row.IsActive = true
+	row.IsDeleted = journey.Deleted
+	row.IsCharter = journey.Charter
 	if journey.CancellationReason != nil {
 		log.Debug("CancellationReason is set")
-		row.Cancelled = true
+		row.IsCancelled = true
 		row.CancellationReasonID = &journey.CancellationReason.ReasonID
 		if journey.CancellationReason.TIPLOC != nil && *journey.CancellationReason.TIPLOC != "" {
 			log.Debug("CancellationReason.TIPLOC is set")
 			tiploc := string(*journey.CancellationReason.TIPLOC)
 			row.CancellationReasonLocationID = &tiploc
 		}
-		row.CancellationReasonNearLocation = &journey.CancellationReason.Near
+		row.CancellationReasonIsNearLocation = &journey.CancellationReason.Near
 	}
 
 	previousTime := time.Time{}
@@ -135,7 +134,7 @@ func convertTimetableLocationToRow(log *slog.Logger, scheduleID string, sequence
 		return
 	}
 	row.ScheduleID = scheduleID
-	if row.Cancelled {
+	if row.IsCancelled {
 		log.Debug("location is marked as cancelled")
 		return
 	}
@@ -155,7 +154,7 @@ func newDatabaseLocationWithBaseTimetableValues(log *slog.Logger, baseValues unm
 		plannedActivities := activitiesToSlice(*baseValues.PlannedActivities)
 		row.PlannedActivities = &plannedActivities
 	}
-	row.Cancelled = baseValues.Cancelled
+	row.IsCancelled = baseValues.Cancelled
 	row.Platform = baseValues.Platform
 	return
 }

@@ -35,7 +35,7 @@ func (mr PGXPPortMessage) Insert(message PPortMessageRow) error {
 
 type ResponseRow struct {
 	MessageID    string  `db:"message_id"`
-	Snapshot     bool    `db:"is_snapshot"`
+	IsSnapshot   bool    `db:"is_snapshot"`
 	Source       *string `db:"source"`
 	SourceSystem *string `db:"source_system"`
 	RequestID    *string `db:"request_id"`

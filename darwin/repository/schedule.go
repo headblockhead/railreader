@@ -22,22 +22,22 @@ type ScheduleRow struct {
 	TrainOperatingCompanyID string    `db:"train_operating_company_id"`
 	Service                 string    `db:"service"`
 	Category                string    `db:"category"`
-	PassengerService        bool      `db:"is_passenger_service"`
-	Active                  bool      `db:"is_active"`
-	Deleted                 bool      `db:"is_deleted"`
-	Charter                 bool      `db:"is_charter"`
+	IsPassengerService      bool      `db:"is_passenger_service"`
+	IsActive                bool      `db:"is_active"`
+	IsDeleted               bool      `db:"is_deleted"`
+	IsCharter               bool      `db:"is_charter"`
 
-	CancellationReasonID           *int    `db:"cancellation_reason_id"`
-	CancellationReasonLocationID   *string `db:"cancellation_reason_location_id"`
-	CancellationReasonNearLocation *bool   `db:"cancellation_reason_is_near_location"`
+	CancellationReasonID             *int    `db:"cancellation_reason_id"`
+	CancellationReasonLocationID     *string `db:"cancellation_reason_location_id"`
+	CancellationReasonIsNearLocation *bool   `db:"cancellation_reason_is_near_location"`
 
-	LateReasonID           *int    `db:"late_reason_id"`
-	LateReasonLocationID   *string `db:"late_reason_location_id"`
-	LateReasonNearLocation *bool   `db:"late_reason_is_near_location"`
+	LateReasonID             *int    `db:"late_reason_id"`
+	LateReasonLocationID     *string `db:"late_reason_location_id"`
+	LateReasonIsNearLocation *bool   `db:"late_reason_is_near_location"`
 
 	DivertedViaLocationID *string `db:"diverted_via_location_id"`
 
-	Cancelled bool `db:"is_cancelled"`
+	IsCancelled bool `db:"is_cancelled"`
 }
 type Schedule interface {
 	Select(scheduleID string) (ScheduleRow, error)
@@ -117,11 +117,11 @@ type ScheduleLocationRow struct {
 
 	LocationID string `db:"location_id"`
 
-	Activities          *[]string `db:"activities"`
-	PlannedActivities   *[]string `db:"planned_activities"`
-	Cancelled           bool      `db:"is_cancelled"`
-	FormationID         *string   `db:"formation_id"`
-	AffectedByDiversion bool      `db:"is_affected_by_diversion"`
+	Activities            *[]string `db:"activities"`
+	PlannedActivities     *[]string `db:"planned_activities"`
+	IsCancelled           bool      `db:"is_cancelled"`
+	FormationID           *string   `db:"formation_id"`
+	IsAffectedByDiversion bool      `db:"is_affected_by_diversion"`
 
 	Type                       string         `db:"type"`
 	PublicArrivalTime          *time.Time     `db:"public_arrival_time"`
@@ -132,9 +132,9 @@ type ScheduleLocationRow struct {
 	RoutingDelay               *time.Duration `db:"routing_delay"`
 	FalseDestinationLocationID *string        `db:"false_destination_location_id"`
 
-	CancellationReasonID           *int    `db:"cancellation_reason_id"`
-	CancellationReasonLocationID   *string `db:"cancellation_reason_location_id"`
-	CancellationReasonNearLocation *bool   `db:"cancellation_reason_is_near_location"`
+	CancellationReasonID             *int    `db:"cancellation_reason_id"`
+	CancellationReasonLocationID     *string `db:"cancellation_reason_location_id"`
+	CancellationReasonIsNearLocation *bool   `db:"cancellation_reason_is_near_location"`
 
 	Platform *string
 }

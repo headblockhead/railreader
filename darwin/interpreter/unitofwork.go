@@ -40,6 +40,9 @@ type UnitOfWork struct {
 	// Timetable
 	timetableRepository repository.Timetable
 
+	// Association
+	associationRepository repository.Association
+
 	// Schedule
 	scheduleRepository         repository.Schedule
 	scheduleLocationRepository repository.ScheduleLocation
@@ -79,6 +82,9 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 
 		// Timetable
 		repository.NewPGXTimetable(ctx, log.With(slog.String("repository", "Timetable")), tx),
+
+		// Association
+		repository.NewPGXAssociation(ctx, log.With(slog.String("repository", "Association")), tx),
 
 		// Schedule
 		repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx),

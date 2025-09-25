@@ -171,7 +171,7 @@ func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response
 	u.log.Debug("interpreting a Response", slog.Bool("snapshot", snapshot))
 	var row repository.ResponseRow
 	row.MessageID = u.messageID
-	row.Snapshot = snapshot
+	row.IsSnapshot = snapshot
 	if resp.Source != nil && *resp.Source != "" {
 		u.log.Debug("source is set")
 		row.Source = resp.Source

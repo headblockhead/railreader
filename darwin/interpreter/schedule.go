@@ -36,20 +36,20 @@ func (u UnitOfWork) interpretSchedule(messageID string, schedule unmarshaller.Sc
 	row.TrainOperatingCompanyID = string(schedule.TOC)
 	row.Service = string(schedule.Service)
 	row.Category = string(schedule.Category)
-	row.PassengerService = schedule.PassengerService
-	row.Active = schedule.Active
-	row.Deleted = schedule.Deleted
-	row.Charter = schedule.Charter
+	row.IsPassengerService = schedule.PassengerService
+	row.IsActive = schedule.Active
+	row.IsDeleted = schedule.Deleted
+	row.IsCharter = schedule.Charter
 	if schedule.CancellationReason != nil {
 		log.Debug("CancellationReason is set")
-		row.Cancelled = true
+		row.IsCancelled = true
 		row.CancellationReasonID = &schedule.CancellationReason.ReasonID
 		if schedule.CancellationReason.TIPLOC != nil && *schedule.CancellationReason.TIPLOC != "" {
 			log.Debug("CancellationReason.TIPLOC is set")
 			tiploc := string(*schedule.CancellationReason.TIPLOC)
 			row.CancellationReasonLocationID = &tiploc
 		}
-		row.CancellationReasonNearLocation = &schedule.CancellationReason.Near
+		row.CancellationReasonIsNearLocation = &schedule.CancellationReason.Near
 	}
 	if schedule.DiversionReason != nil {
 		log.Debug("DiversionReason is set")
@@ -59,7 +59,7 @@ func (u UnitOfWork) interpretSchedule(messageID string, schedule unmarshaller.Sc
 			tiploc := string(*schedule.DiversionReason.TIPLOC)
 			row.LateReasonLocationID = &tiploc
 		}
-		row.LateReasonNearLocation = &schedule.DiversionReason.Near
+		row.LateReasonIsNearLocation = &schedule.DiversionReason.Near
 	}
 
 	previousTime := time.Time{}
@@ -118,7 +118,7 @@ func convertScheduleLocationToRow(log *slog.Logger, scheduleID string, sequence 
 		return
 	}
 	row.ScheduleID = scheduleID
-	if row.Cancelled {
+	if row.IsCancelled {
 		log.Debug("location is marked as cancelled")
 		nextFormationID = ""
 		return
@@ -167,8 +167,8 @@ func newDatabaseLocationWithBaseScheduleValues(log *slog.Logger, baseValues unma
 		log.Debug("FormationID is set")
 		databaseLocation.FormationID = baseValues.FormationID
 	}
-	databaseLocation.Cancelled = baseValues.Cancelled
-	databaseLocation.AffectedByDiversion = baseValues.AffectedByDiversion
+	databaseLocation.IsCancelled = baseValues.Cancelled
+	databaseLocation.IsAffectedByDiversion = baseValues.AffectedByDiversion
 	if baseValues.CancellationReason != nil {
 		log.Debug("CancellationReason is set")
 		databaseLocation.CancellationReasonID = &baseValues.CancellationReason.ReasonID
@@ -177,7 +177,7 @@ func newDatabaseLocationWithBaseScheduleValues(log *slog.Logger, baseValues unma
 			tiploc := string(*baseValues.CancellationReason.TIPLOC)
 			databaseLocation.CancellationReasonLocationID = &tiploc
 		}
-		databaseLocation.CancellationReasonNearLocation = &baseValues.CancellationReason.Near
+		databaseLocation.CancellationReasonIsNearLocation = &baseValues.CancellationReason.Near
 	}
 	return
 }
