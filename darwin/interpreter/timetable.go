@@ -31,7 +31,13 @@ func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable) error {
 			return fmt.Errorf("failed to interpret journey %q: %w", journey.RID, err)
 		}
 	}
-	// TODO: interpret associations
+
+	for _, association := range timetable.Associations {
+	if err := u.associationRepository.Insert(repository.AssociationRow{
+	}); err != nil {
+		return fmt.Errorf("failed to insert timetable into repository: %w", err)
+	}
+}
 
 	return nil
 }
