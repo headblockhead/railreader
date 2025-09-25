@@ -93,14 +93,14 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 	return
 }
 
-func (u *UnitOfWork) Commit() error {
+func (u UnitOfWork) Commit() error {
 	if err := u.tx.Commit(u.ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 	return nil
 }
 
-func (u *UnitOfWork) Rollback() error {
+func (u UnitOfWork) Rollback() error {
 	if err := u.tx.Rollback(u.ctx); err != nil {
 		return fmt.Errorf("failed to rollback transaction: %w", err)
 	}

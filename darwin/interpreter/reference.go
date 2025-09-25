@@ -18,6 +18,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.Name = loc.Name
 		locations = append(locations, row)
 	}
+	if err := u.locationRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing locations: %w", err)
+	}
 	if err := u.locationRepository.InsertMany(locations); err != nil {
 		return fmt.Errorf("failed to insert locations: %w", err)
 	}
@@ -30,6 +33,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.URL = toc.URL
 		tocs = append(tocs, row)
 	}
+	if err := u.trainOperatingCompanyRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing train operating companies: %w", err)
+	}
 	if err := u.trainOperatingCompanyRepository.InsertMany(tocs); err != nil {
 		return fmt.Errorf("failed to insert train operating companies: %w", err)
 	}
@@ -41,6 +47,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.Description = reason.Description
 		lateReasons = append(lateReasons, row)
 	}
+	if err := u.lateReasonRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing late reasons: %w", err)
+	}
 	if err := u.lateReasonRepository.InsertMany(lateReasons); err != nil {
 		return fmt.Errorf("failed to insert late reasons: %w", err)
 	}
@@ -51,6 +60,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.CancellationReasonID = reason.ReasonID
 		row.Description = reason.Description
 		cancellationReasons = append(cancellationReasons, row)
+	}
+	if err := u.cancellationReasonRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing cancellation reasons: %w", err)
 	}
 	if err := u.cancellationReasonRepository.InsertMany(cancellationReasons); err != nil {
 		return fmt.Errorf("failed to insert cancellation reasons: %w", err)
@@ -69,6 +81,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.Text = via.Text
 		viaConditions = append(viaConditions, row)
 	}
+	if err := u.viaConditionRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing via conditions: %w", err)
+	}
 	if err := u.viaConditionRepository.InsertMany(viaConditions); err != nil {
 		return fmt.Errorf("failed to insert via conditions: %w", err)
 	}
@@ -79,6 +94,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.CustomerInformationSystemID = cis.CIS
 		row.Name = cis.Name
 		customerInformationSystems = append(customerInformationSystems, row)
+	}
+	if err := u.customerInformationSystemRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing customer information systems: %w", err)
 	}
 	if err := u.customerInformationSystemRepository.InsertMany(customerInformationSystems); err != nil {
 		return fmt.Errorf("failed to insert customer information systems: %w", err)
@@ -93,9 +111,10 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
 		row.DescriptionTypical = lc.TypicalDescription
 		row.DescriptionExpected = lc.ExpectedDescription
 		row.Definition = lc.Definition
-		row.Colour = lc.Colour
-		row.Image = lc.Image
 		loadingCategories = append(loadingCategories, row)
+	}
+	if err := u.loadingCategoryRepository.DeleteAll(); err != nil {
+		return fmt.Errorf("failed to delete existing loading categories: %w", err)
 	}
 	if err := u.loadingCategoryRepository.InsertMany(loadingCategories); err != nil {
 		return fmt.Errorf("failed to insert loading categories: %w", err)

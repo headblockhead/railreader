@@ -53,6 +53,7 @@ func (c IngestCommand) newDarwin(log *slog.Logger, db database.Database) (messag
 	return darwinKafkaConnection, darwinMessageHandler, nil
 }
 
+// TODO: store filename of last loaded files in DB and only load new files
 func loadNewestDarwinFiles(log *slog.Logger, db database.Database, fg filegetter.FileGetter) error {
 	var timetableFileExension = "_v8.xml.gz"
 	var referenceFileExtension = "_ref_v4.xml.gz"

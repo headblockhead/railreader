@@ -68,6 +68,16 @@ func BuildSelect[T any](tableName string, row T, whereClause string, whereArgs p
 	return sql, whereArgs
 }
 
+func BuildOneSelect[T any](tableName string, row T, whereClause string, whereArgs pgx.StrictNamedArgs) (sql string, args pgx.StrictNamedArgs) {
+	columns := columns(reflect.TypeOf(row))
+	sql = "SELECT " + strings.Join(columns, ", ") + " FROM " + tableName
+	if whereClause != "" {
+		sql += " WHERE " + whereClause
+	}
+	sql += " LIMIT 1;"
+	return sql, whereArgs
+}
+
 func BuildInsert[T any](tableName string, row T) (sql string, args pgx.StrictNamedArgs) {
 	columns, args := columnsAndArgs(reflect.TypeOf(row), reflect.ValueOf(row))
 	values := make([]string, len(columns))

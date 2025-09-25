@@ -33,8 +33,8 @@ func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable) error {
 	}
 
 	for _, association := range timetable.Associations {
-		if err := u.associationRepository.Insert(repository.AssociationRow{}); err != nil {
-			return fmt.Errorf("failed to insert timetable into repository: %w", err)
+		if err := u.interpretAssociation(association); err != nil {
+			return fmt.Errorf("failed to interpret association: %w", err)
 		}
 	}
 

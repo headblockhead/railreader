@@ -3,14 +3,42 @@ package database
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/jackc/pgx/v5"
 )
 
+// row is only used for its type information, not its value
+func SelectFromTable[T any](ctx context.Context, tx pgx.Tx, tableName string, row T, whereClause string, whereArgs pgx.StrictNamedArgs) ([]T, error) {
+	statement, args := BuildSelect(tableName, row, whereClause, whereArgs)
+	rows, err := tx.Query(ctx, statement, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select from %s: %w", tableName, err)
+	}
+	results, err := pgx.CollectRows(rows, pgx.RowToStructByName[T])
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect rows from %s: %w", tableName, err)
+	}
+	return results, nil
+}
+
+// row is only used for its type information, not its value
+func SelectOneFromTable[T any](ctx context.Context, tx pgx.Tx, tableName string, row T, whereClause string, whereArgs pgx.StrictNamedArgs) (T, error) {
+	statement, args := BuildOneSelect(tableName, row, whereClause, whereArgs)
+	rows, err := tx.Query(ctx, statement, args)
+	var zero T
+	if err != nil {
+		return zero, fmt.Errorf("failed to select one from %s: %w", tableName, err)
+	}
+	result, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[T])
+	if err != nil {
+		return zero, fmt.Errorf("failed to collect exactly one row from %s: %w", tableName, err)
+	}
+	return result, nil
+}
+
 func DeleteAllInTable(ctx context.Context, tx pgx.Tx, tableName string) error {
-	_, err := tx.Exec(ctx, `DELETE FROM @table_name;`, pgx.StrictNamedArgs{
-		"table_name": tableName,
-	})
+	_, err := tx.Exec(ctx, `TRUNCATE TABLE `+tableName+`;`)
 	if err != pgx.ErrNoRows && err != nil {
 		return fmt.Errorf("failed to delete existing %s: %w", tableName, err)
 	}
@@ -29,16 +57,13 @@ func InsertManyIntoTable[T any](ctx context.Context, tx pgx.Tx, tableName string
 	if len(rows) == 0 {
 		return nil
 	}
-	//var rowValues [][]any
+	var rowValues [][]any
 	for _, row := range rows {
-		if err := InsertIntoTable(ctx, tx, tableName, row); err != nil {
-			return err
-		}
-		//rowValues = append(rowValues, values(reflect.ValueOf(row)))
+		rowValues = append(rowValues, values(reflect.ValueOf(row)))
 	}
-	/* _, err := tx.CopyFrom(ctx, pgx.Identifier{tableName}, columns(reflect.TypeFor[T]()), pgx.CopyFromRows(rowValues))*/
-	/*if err != nil {*/
-	/*return fmt.Errorf("failed to copy into %s: %w", tableName, err)*/
-	/*}*/
+	_, err := tx.CopyFrom(ctx, pgx.Identifier{tableName}, columns(reflect.TypeFor[T]()), pgx.CopyFromRows(rowValues))
+	if err != nil {
+		return fmt.Errorf("failed to copy into %s: %w", tableName, err)
+	}
 	return nil
 }

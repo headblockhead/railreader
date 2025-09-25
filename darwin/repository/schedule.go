@@ -60,14 +60,9 @@ func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedul
 func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
 	log := sr.log.With(slog.String("schedule_id", scheduleID))
 	log.Info("selecting ScheduleRow")
-	rows, _ := sr.tx.Query(sr.ctx, "SELECT * FROM schedules WHERE schedule_id = @schedule_id;", pgx.StrictNamedArgs{
+	return database.SelectOneFromTable(sr.ctx, sr.tx, "schedules", ScheduleRow{}, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
 		"schedule_id": scheduleID,
 	})
-	row, err = pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[ScheduleRow])
-	if err != nil {
-		return row, err
-	}
-	return row, nil
 }
 
 func (sr PGXSchedule) Insert(s ScheduleRow) error {
@@ -136,10 +131,12 @@ type ScheduleLocationRow struct {
 	CancellationReasonLocationID     *string `db:"cancellation_reason_location_id"`
 	CancellationReasonIsNearLocation *bool   `db:"cancellation_reason_is_near_location"`
 
-	Platform *string
+	Platform *string `db:"platform"`
 }
 type ScheduleLocation interface {
 	InsertMany(schedules []ScheduleLocationRow) error
+	SelectByScheduleID(scheduleID string) (rows []ScheduleLocationRow, err error)
+	SelectByScheduleIDAndLocationID(scheduleID string, locationID string) (rows []ScheduleLocationRow, err error)
 }
 type PGXScheduleLocation struct {
 	ctx context.Context
@@ -154,4 +151,17 @@ func NewPGXScheduleLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PG
 func (sr PGXScheduleLocation) InsertMany(schedules []ScheduleLocationRow) error {
 	sr.log.Debug("inserting many ScheduleLocationRows", slog.Int("count", len(schedules)))
 	return database.InsertManyIntoTable(sr.ctx, sr.tx, "schedule_locations", schedules)
+}
+func (sr PGXScheduleLocation) SelectByScheduleID(scheduleID string) (rows []ScheduleLocationRow, err error) {
+	sr.log.Info("selecting ScheduleLocationRows by schedule_id", slog.String("schedule_id", scheduleID))
+	return database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
+		"schedule_id": scheduleID,
+	})
+}
+func (sr PGXScheduleLocation) SelectByScheduleIDAndLocationID(scheduleID string, locationID string) (rows []ScheduleLocationRow, err error) {
+	sr.log.Info("selecting ScheduleLocationRows by schedule_id and location_id", slog.String("schedule_id", scheduleID), slog.String("location_id", locationID))
+	return database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id AND location_id = @location_id", pgx.StrictNamedArgs{
+		"schedule_id": scheduleID,
+		"location_id": locationID,
+	})
 }
