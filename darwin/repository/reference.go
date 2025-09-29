@@ -32,20 +32,9 @@ func (r PGXReference) Insert(reference ReferenceRow) error {
 func (r PGXReference) SelectLast() (*ReferenceRow, error) {
 	r.log.Debug("getting last ReferenceRow")
 	var reference ReferenceRow
-	rows, err := r.tx.Query(r.ctx, `
-		SELECT (reference_id, filename) FROM reference_files ORDER BY reference_file_id DESC LIMIT 1
-	`)
-	if err != nil {
-		return nil, err
-	}
-	if !rows.Next() {
-		if rows.Err() != nil {
-			return nil, rows.Err()
-		}
-		r.log.Debug("no ReferenceRow found")
-		return nil, nil
-	}
-	err = rows.Scan(&reference.ReferenceID, &reference.Filename)
+	err := r.tx.QueryRow(r.ctx, `
+		SELECT (filename) FROM reference_files ORDER BY reference_file_id DESC LIMIT 1;
+	`).Scan(&reference.Filename)
 	if err != nil {
 		return nil, err
 	}

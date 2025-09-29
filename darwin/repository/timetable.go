@@ -36,18 +36,11 @@ func (mr PGXTimetable) Insert(timetable TimetableRow) error {
 func (mr PGXTimetable) SelectLast() (*TimetableRow, error) {
 	mr.log.Debug("getting last TimetableRow")
 	var timetable TimetableRow
-	rows, err := mr.tx.Query(mr.ctx, `
-		SELECT (timetable_id, first_received_at, filename) FROM timetable_files ORDER BY timetable_file_id DESC LIMIT 1
-	`)
+	err := mr.tx.QueryRow(mr.ctx, `
+		SELECT (filename) FROM timetable_files ORDER BY timetable_file_id DESC LIMIT 1;
+	`).Scan(&timetable.Filename)
 	if err != nil {
-		return nil, err
-	}
-	if !rows.Next() {
 		return nil, nil
-	}
-	err = rows.Scan(&timetable.TimetableID, &timetable.FirstReceivedAt, &timetable.Filename)
-	if err != nil {
-		return nil, err
 	}
 	mr.log.Debug("fetched last TimetableRow", slog.String("filename", timetable.Filename))
 	return &timetable, nil
