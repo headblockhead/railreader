@@ -7,8 +7,19 @@ import (
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
-func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
+func (u UnitOfWork) GetLastReference() (*repository.ReferenceRow, error) {
+	return u.referenceRepository.SelectLast()
+}
+
+func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference, filename string) error {
 	u.log.Debug("interpreting a Reference")
+
+	if err := u.referenceRepository.Insert(repository.ReferenceRow{
+		Filename: filename,
+	}); err != nil {
+		return fmt.Errorf("failed to insert reference record: %w", err)
+	}
+
 	var locations []repository.LocationRow
 	for _, loc := range reference.Locations {
 		row := repository.LocationRow{}

@@ -8,6 +8,51 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+type ReferenceRow struct {
+	ReferenceID string `db:"reference_id"`
+	Filename    string `db:"filename"`
+}
+type Reference interface {
+	Insert(reference ReferenceRow) error
+	SelectLast() (*ReferenceRow, error)
+}
+type PGXReference struct {
+	ctx context.Context
+	log *slog.Logger
+	tx  pgx.Tx
+}
+
+func NewPGXReference(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXReference {
+	return PGXReference{ctx, log, tx}
+}
+func (r PGXReference) Insert(reference ReferenceRow) error {
+	r.log.Debug("inserting ReferenceRow", slog.String("filename_prefix", reference.Filename))
+	return database.InsertIntoTable(r.ctx, r.tx, "reference_files", reference)
+}
+func (r PGXReference) SelectLast() (*ReferenceRow, error) {
+	r.log.Debug("getting last ReferenceRow")
+	var reference ReferenceRow
+	rows, err := r.tx.Query(r.ctx, `
+		SELECT (reference_id, filename) FROM reference_files ORDER BY reference_file_id DESC LIMIT 1
+	`)
+	if err != nil {
+		return nil, err
+	}
+	if !rows.Next() {
+		if rows.Err() != nil {
+			return nil, rows.Err()
+		}
+		r.log.Debug("no ReferenceRow found")
+		return nil, nil
+	}
+	err = rows.Scan(&reference.ReferenceID, &reference.Filename)
+	if err != nil {
+		return nil, err
+	}
+	r.log.Debug("fetched last ReferenceRow", slog.String("filename_prefix", reference.Filename))
+	return &reference, nil
+}
+
 type LocationRow struct {
 	LocationID                      string  `db:"location_id"`
 	ComputerisedReservationSystemID *string `db:"computerised_reservation_system_id"`

@@ -19,6 +19,7 @@ type UnitOfWork struct {
 	fg        filegetter.FileGetter
 
 	// Reference
+	referenceRepository                 repository.Reference
 	locationRepository                  repository.Location
 	trainOperatingCompanyRepository     repository.TrainOperatingCompany
 	lateReasonRepository                repository.LateReason
@@ -62,6 +63,7 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 		fg,
 
 		// Reference
+		repository.NewPGXReference(ctx, log.With(slog.String("repository", "Reference")), tx),
 		repository.NewPGXLocation(ctx, log.With(slog.String("repository", "Location")), tx),
 		repository.NewPGXTrainOperatingCompany(ctx, log.With(slog.String("repository", "TrainOperatingCompany")), tx),
 		repository.NewPGXLateReason(ctx, log.With(slog.String("repository", "LateReason")), tx),

@@ -53,7 +53,6 @@ func (c IngestCommand) newDarwin(log *slog.Logger, db database.Database) (messag
 	return darwinKafkaConnection, darwinMessageHandler, nil
 }
 
-// TODO: store filename of last loaded files in DB and only load new files
 func loadNewestDarwinFiles(log *slog.Logger, db database.Database, fg filegetter.FileGetter) error {
 	var timetableFileExension = "_v8.xml.gz"
 	var referenceFileExtension = "_ref_v4.xml.gz"
@@ -65,28 +64,36 @@ func loadNewestDarwinFiles(log *slog.Logger, db database.Database, fg filegetter
 	if err != nil {
 		return fmt.Errorf("error getting latest darwin timetable file path: %w", err)
 	}
-	log.Info("getting darwin reference data", slog.String("path", referencePath))
-	ref, err := interpreter.GetReference(log, fg, referencePath)
-	if err != nil {
-		return fmt.Errorf("error getting darwin reference file: %w", err)
-	}
-	log.Info("getting darwin timetable data", slog.String("path", timetablePath))
-	tt, err := interpreter.GetTimetable(log, fg, timetablePath)
-	if err != nil {
-		return fmt.Errorf("error getting darwin timetable file: %w", err)
-	}
 	log.Debug("creating a new UnitOfWork for interpreting the data")
 	u, err := interpreter.NewUnitOfWork(context.Background(), log, "", db, fg)
 	if err != nil {
 		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
 	}
-	if err = u.InterpretReference(ref); err != nil {
-		_ = u.Rollback()
-		return err
+	lastReference, err := u.GetLastReference()
+	if err != nil {
+		return fmt.Errorf("error getting last darwin reference data: %w", err)
 	}
-	if err = u.InterpretTimetable(tt); err != nil {
-		_ = u.Rollback()
-		return err
+	lastTimetable, err := u.GetLastTimetable()
+	if err != nil {
+		return fmt.Errorf("error getting last darwin timetable data: %w", err)
+	}
+	if lastReference == nil || lastReference.Filename != referencePath {
+		log.Info("getting darwin reference data", slog.String("path", referencePath))
+		err = u.InterpretFromPath(referencePath)
+		if err != nil {
+			return fmt.Errorf("error getting darwin reference file: %w", err)
+		}
+	} else {
+		log.Info("latest darwin reference file has already been processed, skipping", slog.String("path", referencePath))
+	}
+	if lastTimetable == nil || lastTimetable.Filename != timetablePath {
+		log.Info("getting darwin timetable data", slog.String("path", timetablePath))
+		err = u.InterpretFromPath(timetablePath)
+		if err != nil {
+			return fmt.Errorf("error getting darwin timetable file: %w", err)
+		}
+	} else {
+		log.Info("latest darwin timetable file has already been processed, skipping", slog.String("path", timetablePath))
 	}
 	log.Debug("committing the UnitOfWork")
 	if err := u.Commit(); err != nil {

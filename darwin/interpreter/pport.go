@@ -17,23 +17,27 @@ import (
 // when updating this, don't forget to update the version referenced in the unmarshaller package and its tests.
 var expectedPushPortVersion = "18.0"
 
+// TODO: note to self: interpreters should probably return rows, or slices of rows, rather than running inserts themselves.
+// still needs DB access to read stuff tho
+
 func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
 	u.log.Debug("interpreting a PushPortMessage")
 	if pport.Version != expectedPushPortVersion {
+		// Warn, but attempt to continue anyway.
 		u.log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", expectedPushPortVersion), slog.String("actual_version", pport.Version))
 	}
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
 		return fmt.Errorf("failed to load time location: %w", err)
 	}
-	timestamp, err := time.Parse(time.RFC3339Nano, pport.Timestamp)
+	timestamp, err := time.ParseInLocation(time.RFC3339Nano, pport.Timestamp, location)
 	if err != nil {
 		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
 	}
 	if err := u.pportMessageRepository.Insert(repository.PPortMessageRow{
 		MessageID:       u.messageID,
-		SentAt:          timestamp.In(location),
-		FirstReceivedAt: time.Now().In(location),
+		SentAt:          timestamp,
+		FirstReceivedAt: time.Now(),
 		Version:         pport.Version,
 	}); err != nil {
 		return fmt.Errorf("failed to insert message record: %w", err)
@@ -66,88 +70,57 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 	return errors.New("PushPortMessage was empty")
 }
 
-var timetableFileExension = "_v8.xml.gz"
-var referenceFileExtension = "_ref_v4.xml.gz"
-
 func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 	u.log.Debug("handling NewFiles")
-	if strings.HasSuffix(tf.ReferenceFile, referenceFileExtension) {
-		ref, err := GetReference(u.log, u.fg, tf.ReferenceFile)
-		if err != nil {
-			return fmt.Errorf("failed to get reference %s: %w", tf.ReferenceFile, err)
-		}
-		if err := u.InterpretReference(ref); err != nil {
-			return fmt.Errorf("failed to interpret reference file %s: %w", tf.ReferenceFile, err)
-		}
+	// Filter for specific version numbers of the files we care about.
+	if strings.HasSuffix(tf.ReferenceFile, "_ref_v4.xml.gz") {
+		GetUnmarshalAndInterpretFile(u.log, u.fg, tf.ReferenceFile, unmarshaller.NewReference, u.InterpretReference)
 	}
-	if strings.HasSuffix(tf.TimetableFile, timetableFileExension) {
-		ref, err := GetTimetable(u.log, u.fg, tf.TimetableFile)
-		if err != nil {
-			return fmt.Errorf("failed to get timetable %s: %w", tf.TimetableFile, err)
-		}
-		if err := u.InterpretTimetable(ref); err != nil {
-			return fmt.Errorf("failed to interpret timetable file %s: %w", tf.TimetableFile, err)
-		}
+	if strings.HasSuffix(tf.TimetableFile, "_v8.xml.gz") {
+		GetUnmarshalAndInterpretFile(u.log, u.fg, tf.TimetableFile, unmarshaller.NewTimetable, u.InterpretTimetable)
 	}
 	return nil
 }
 
-func GetReference(log *slog.Logger, fg filegetter.FileGetter, path string) (ref unmarshaller.Reference, err error) {
-	log.Debug("fetching reference file", slog.String("path", path))
-	referenceFile, err := fg.Get(path)
-	if err != nil {
-		err = fmt.Errorf("failed to get from filegetter: %w", err)
-		return
+func (u UnitOfWork) InterpretFromPath(path string) error {
+	u.log.Debug("handling a filename", slog.String("path", path))
+	if strings.HasSuffix(path, "_ref_v4.xml.gz") {
+		return GetUnmarshalAndInterpretFile(u.log, u.fg, path, unmarshaller.NewReference, u.InterpretReference)
 	}
-	log.Debug("reference file fetched")
-	reader, err := gzip.NewReader(referenceFile)
-	if err != nil {
-		err = fmt.Errorf("failed to create gzip reader: %w", err)
-		return
+	if strings.HasSuffix(path, "_v8.xml.gz") {
+		return GetUnmarshalAndInterpretFile(u.log, u.fg, path, unmarshaller.NewTimetable, u.InterpretTimetable)
 	}
-	defer reader.Close()
-	referenceData, err := io.ReadAll(reader)
-	if err != nil {
-		err = fmt.Errorf("failed to read all of gzip reader: %w", err)
-		return
-	}
-	log.Debug("reference file read")
-	ref, err = unmarshaller.NewReference(string(referenceData))
-	if err != nil {
-		err = fmt.Errorf("failed to unmarshal: %w", err)
-		return
-	}
-	log.Debug("reference file unmarshalled")
-	return ref, nil
+	u.log.Info("filename does not match any known patterns, ignoring", slog.String("path", path))
+	return nil
 }
 
-func GetTimetable(log *slog.Logger, fg filegetter.FileGetter, path string) (ref unmarshaller.Timetable, err error) {
-	log.Debug("fetching timetable file", slog.String("path", path))
-	timetableFile, err := fg.Get(path)
+func GetUnmarshalAndInterpretFile[T any](log *slog.Logger, fg filegetter.FileGetter, path string, unmarshal func(string) (T, error), interpret func(T, string) error) error {
+	log.Debug("getting file", slog.String("path", path))
+	file, err := fg.Get(path)
 	if err != nil {
-		err = fmt.Errorf("failed to get from filegetter: %w", err)
-		return
+		return fmt.Errorf("failed to get from filegetter: %w", err)
 	}
-	log.Debug("timetable file fetched")
-	reader, err := gzip.NewReader(timetableFile)
+	log.Debug("file gotten")
+	reader, err := gzip.NewReader(file)
 	if err != nil {
-		err = fmt.Errorf("failed to create gzip reader: %w", err)
-		return
+		return fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 	defer reader.Close()
-	timetableData, err := io.ReadAll(reader)
+	contents, err := io.ReadAll(reader)
 	if err != nil {
-		err = fmt.Errorf("failed to read all of gzip reader: %w", err)
-		return
+		return fmt.Errorf("failed to read all of gzip reader: %w", err)
 	}
-	log.Debug("timetable file read")
-	ref, err = unmarshaller.NewTimetable(string(timetableData))
+	log.Debug("file read")
+	data, err := unmarshal(string(contents))
 	if err != nil {
-		err = fmt.Errorf("failed to unmarshal: %w", err)
-		return
+		return err
 	}
-	log.Debug("timetable file unmarshalled")
-	return ref, nil
+	log.Debug("file unmarshalled")
+	if err := interpret(data, path); err != nil {
+		return err
+	}
+	log.Debug("file interpreted")
+	return nil
 }
 
 func (u UnitOfWork) interpretStatus(status *unmarshaller.Status) error {
@@ -155,11 +128,7 @@ func (u UnitOfWork) interpretStatus(status *unmarshaller.Status) error {
 	var row repository.StatusRow
 	row.MessageID = u.messageID
 	row.Code = string(status.Code)
-	location, err := time.LoadLocation("Europe/London")
-	if err != nil {
-		return fmt.Errorf("failed to load time location: %w", err)
-	}
-	row.ReceivedAt = time.Now().In(location)
+	row.ReceivedAt = time.Now()
 	row.Description = status.Description
 	if err := u.statusRepository.Insert(row); err != nil {
 		return err

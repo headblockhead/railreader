@@ -9,9 +9,13 @@ import (
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
+func (u UnitOfWork) GetLastTimetable() (*repository.TimetableRow, error) {
+	return u.timetableRepository.SelectLast()
+}
+
 // TODO: tidy this generally, and figure out how to use copy to make this not take several minutes.
 
-func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable) error {
+func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable, filename string) error {
 	log := u.log.With(slog.String("timetable_id", timetable.ID))
 	log.Debug("interpreting a Timetable")
 	location, err := time.LoadLocation("Europe/London")
@@ -22,6 +26,7 @@ func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable) error {
 	if err := u.timetableRepository.Insert(repository.TimetableRow{
 		TimetableID:     timetable.ID,
 		FirstReceivedAt: time.Now().In(location),
+		Filename:        filename,
 	}); err != nil {
 		return fmt.Errorf("failed to insert timetable into repository: %w", err)
 	}
@@ -64,10 +69,12 @@ func (u UnitOfWork) interpretJourney(timetableID string, journey unmarshaller.Jo
 	row.Service = string(journey.Service)
 	row.Category = string(journey.Category)
 	row.IsPassengerService = journey.PassengerService
-	// TODO: is active supposed to be true for timetable entries?
-	row.IsActive = true
+	row.IsActive = !journey.QTrain
 	row.IsDeleted = journey.Deleted
 	row.IsCharter = journey.Charter
+	if journey.Cancelled {
+		row.IsCancelled = true
+	}
 	if journey.CancellationReason != nil {
 		log.Debug("CancellationReason is set")
 		row.IsCancelled = true

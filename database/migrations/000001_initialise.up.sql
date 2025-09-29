@@ -7,6 +7,12 @@ CREATE TABLE IF NOT EXISTS outbox (
 
 -- Reference data
 
+CREATE TABLE IF NOT EXISTS reference_files (
+				reference_file_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+				,reference_id text UNIQUE NOT NULL
+				,filename text NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS locations (
 				location_id text PRIMARY KEY
 				,name text NOT NULL
@@ -89,9 +95,29 @@ CREATE TABLE IF NOT EXISTS message_response (
 
 -- timetable
 
-CREATE TABLE IF NOT EXISTS timetables (
-				timetable_id text PRIMARY KEY
+CREATE TABLE IF NOT EXISTS timetable_files (
+				timetable_file_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+				,timetable_id text UNIQUE NOT NULL
 				,first_received_at timestamp WITH TIME ZONE NOT NULL
+				,filename text NOT NULL
+);
+
+-- associations
+
+CREATE TABLE IF NOT EXISTS associations (
+				association_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+
+				-- sources
+				,message_id text
+				,timetable_id text
+
+				-- Association
+				,category text NOT NULL
+				,is_cancelled boolean NOT NULL
+				,is_deleted boolean NOT NULL
+				,main_schedule_id text NOT NULL
+				,associated_schedule_id text NOT NULL
+				-- TODO: add location information
 );
 
 -- alarms
@@ -175,8 +201,7 @@ CREATE TABLE IF NOT EXISTS schedule_locations (
 );
 
 ALTER TABLE schedules ADD CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE;
-ALTER TABLE schedules ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
-ALTER TABLE schedules ADD CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(timetable_id) ON DELETE CASCADE;
+ALTER TABLE schedules ADD CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetable_files(timetable_id) ON DELETE CASCADE;
 ALTER TABLE schedule_locations ADD CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(schedule_id) ON DELETE CASCADE;
 
 COMMIT;
