@@ -44,7 +44,7 @@ You must then create a database on the server yourself using the PostgreSQL CLI:
 sudo docker run -it --rm --network host postgres psql -h localhost -U postgres
 ```
 ```sql
-postgres=# CREATE DATABASE railreader;
+CREATE DATABASE railreader;
 ```
 Use this database URL for Docker: `postgres://postgres:change_me@localhost:5432/railreader?sslmode=disable`.
 
