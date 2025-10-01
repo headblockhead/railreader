@@ -17,9 +17,6 @@ import (
 // when updating this, don't forget to update the version referenced in the unmarshaller package and its tests.
 var expectedPushPortVersion = "18.0"
 
-// TODO: note to self: interpreters should probably return rows, or slices of rows, rather than running inserts themselves.
-// still needs DB access to read stuff tho
-
 func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
 	u.log.Debug("interpreting a PushPortMessage")
 	if pport.Version != expectedPushPortVersion {

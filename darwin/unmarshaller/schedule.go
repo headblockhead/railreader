@@ -161,12 +161,12 @@ type LocationBase struct {
 type OriginLocation struct {
 	LocationBase
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime *TrainTime `xml:"pta,attr"`
+	PublicArrivalTime *string `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime *TrainTime `xml:"ptd,attr"`
+	PublicDepartureTime *string `xml:"ptd,attr"`
 	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   *TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime  `xml:"wtd,attr"`
+	WorkingArrivalTime   *string `xml:"wta,attr"`
+	WorkingDepartureTime string  `xml:"wtd,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
 	FalseDestination *railreader.TimingPointLocationCode `xml:"fd,attr"`
 }
@@ -174,18 +174,18 @@ type OriginLocation struct {
 type OperationalOriginLocation struct {
 	LocationBase
 	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   *TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime  `xml:"wtd,attr"`
+	WorkingArrivalTime   *string `xml:"wta,attr"`
+	WorkingDepartureTime string  `xml:"wtd,attr"`
 }
 
 type IntermediateLocation struct {
 	LocationBase
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime *TrainTime `xml:"pta,attr"`
+	PublicArrivalTime *string `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime  *TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime   TrainTime  `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime  `xml:"wtd,attr"`
+	PublicDepartureTime  *string `xml:"ptd,attr"`
+	WorkingArrivalTime   string  `xml:"wta,attr"`
+	WorkingDepartureTime string  `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay *int `xml:"rdelay,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
@@ -194,15 +194,15 @@ type IntermediateLocation struct {
 
 type OperationalIntermediateLocation struct {
 	LocationBase
-	WorkingArrivalTime   TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime TrainTime `xml:"wtd,attr"`
+	WorkingArrivalTime   string `xml:"wta,attr"`
+	WorkingDepartureTime string `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay *int `xml:"rdelay,attr"`
 }
 
 type IntermediatePassingLocation struct {
 	LocationBase
-	WorkingPassingTime TrainTime `xml:"wtp,attr"`
+	WorkingPassingTime string `xml:"wtp,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay *int `xml:"rdelay,attr"`
 }
@@ -210,21 +210,21 @@ type IntermediatePassingLocation struct {
 type DestinationLocation struct {
 	LocationBase
 	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime *TrainTime `xml:"pta,attr"`
+	PublicArrivalTime *string `xml:"pta,attr"`
 	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime *TrainTime `xml:"ptd,attr"`
-	WorkingArrivalTime  TrainTime  `xml:"wta,attr"`
+	PublicDepartureTime *string `xml:"ptd,attr"`
+	WorkingArrivalTime  string  `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime *TrainTime `xml:"wtd,attr"`
+	WorkingDepartureTime *string `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay *int `xml:"rdelay,attr"`
 }
 
 type OperationalDestinationLocation struct {
 	LocationBase
-	WorkingArrivalTime TrainTime `xml:"wta,attr"`
+	WorkingArrivalTime string `xml:"wta,attr"`
 	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime *TrainTime `xml:"wtd,attr"`
+	WorkingDepartureTime *string `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay *int `xml:"rdelay,attr"`
 }

@@ -30,11 +30,11 @@ func (p *TrueIfPresent) UnmarshalXML(d *xml.Decoder, start xml.StartElement) err
 // This is useful for circular routes, where a train may visit the same TIPLOC multiple times in a single schedule.
 type LocationTimeIdentifiers struct {
 	// at least one of:
-	WorkingArrivalTime   *TrainTime `xml:"wta,attr"`
-	WorkingDepartureTime *TrainTime `xml:"wtd,attr"`
-	WorkingPassingTime   *TrainTime `xml:"wtp,attr"`
-	PublicArrivalTime    *TrainTime `xml:"pta,attr"`
-	PublicDepartureTime  *TrainTime `xml:"ptd,attr"`
+	WorkingArrivalTime   *string `xml:"wta,attr"`
+	WorkingDepartureTime *string `xml:"wtd,attr"`
+	WorkingPassingTime   *string `xml:"wtp,attr"`
+	PublicArrivalTime    *string `xml:"pta,attr"`
+	PublicDepartureTime  *string `xml:"ptd,attr"`
 }
 
 // TrainIdentifiers is used as a base struct.
@@ -56,6 +56,3 @@ type DisruptionReason struct {
 
 	ReasonID int `xml:",chardata"`
 }
-
-// TrainTime is formatted as HH:MM:SS or HH:MM.
-type TrainTime string

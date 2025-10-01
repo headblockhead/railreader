@@ -119,11 +119,11 @@ type ScheduleLocationRow struct {
 	IsAffectedByDiversion bool      `db:"is_affected_by_diversion"`
 
 	Type                       string         `db:"type"`
-	PublicArrivalTime          *time.Time     `db:"public_arrival_time"`
-	PublicDepartureTime        *time.Time     `db:"public_departure_time"`
-	WorkingArrivalTime         *time.Time     `db:"working_arrival_time"`
-	WorkingPassingTime         *time.Time     `db:"working_passing_time"`
-	WorkingDepartureTime       *time.Time     `db:"working_departure_time"`
+	PublicArrivalTime          *string        `db:"public_arrival_time"`
+	PublicDepartureTime        *string        `db:"public_departure_time"`
+	WorkingArrivalTime         *string        `db:"working_arrival_time"`
+	WorkingPassingTime         *string        `db:"working_passing_time"`
+	WorkingDepartureTime       *string        `db:"working_departure_time"`
 	RoutingDelay               *time.Duration `db:"routing_delay"`
 	FalseDestinationLocationID *string        `db:"false_destination_location_id"`
 

@@ -47,17 +47,17 @@ type ForecastLocation struct {
 // ForecastTimes contains the time data for arrival, departure, or passing a location.
 type ForecastTimes struct {
 	// EstimatedTime is optional, generated from the public time table (or the Working Time Table if the location does not have public times).
-	EstimatedTime *TrainTime `xml:"et,attr"`
+	EstimatedTime *string `xml:"et,attr"`
 	// WorkingTime is optional, generated from the Working Time Table.
-	WorkingTime *TrainTime `xml:"wet,attr"`
+	WorkingTime *string `xml:"wet,attr"`
 	// ActualTime is optional, and may not be reported for all locations.
-	ActualTime *TrainTime `xml:"at,attr"`
+	ActualTime *string `xml:"at,attr"`
 	// ActualTimeRevoked indicates that a previously given 'actual time' was incorrect, and has been replaced by an estimated time.
 	ActualTimeRevoked bool `xml:"atRemoved,attr"`
 	// ActualTimeSource is the optionally provided source of the Actual Time data, such as "Manual", "GPS", etc.
 	ActualTimeSource *string `xml:"atClass,attr"`
 	// EstimatedTimeMinimum is optional, and indicates the absolute minimum value the estimated time could be.
-	EstimatedTimeMinimum *TrainTime `xml:"etmin,attr"`
+	EstimatedTimeMinimum *string `xml:"etmin,attr"`
 	// EstimatedTimeUnknown indicates that the forecast for this location has been manually set to "unknown delay".
 	// This is usually shown on signage as "Delayed", without a specific time.
 	EstimatedTimeUnknown bool `xml:"etUnknown,attr"`
