@@ -1,4 +1,4 @@
-![Rail Reader logo banner](./wide_banner.png)
+![Rail Reader logo banner](branding/wide_banner.png)
 # railreader
 
 Self-hostable middleman between UK rail datafeeds and your project.
@@ -24,7 +24,12 @@ The aim of RailReader is to provide useful and modern APIs for handling data fro
 - (**TODO**) [General Transit Feed Specification](https://gtfs.org/documentation/schedule/reference/)
 - (**TODO**) [General Transit Feed Specification Realtime](https://gtfs.org/documentation/realtime/reference/)
 
-## Setup Instructions
+## Resources used
+|Input name|Schemas|Documentation|
+|-|-|-|
+|Darwin|[XML Schema Definition](resources/darwin_push_port_v24_xsd.zip)|[P75301004 Issue 24](resources/P75301004.pdf), [CIF specification version 29](resources/CIF_v29.pdf)|
+
+## Setup instructions
 
 ### PostgreSQL
 
