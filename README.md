@@ -3,7 +3,7 @@
 
 Self-hostable middleman between UK rail datafeeds and your project.
 
-Railreader consumes realtime and static data from multiple railway datasources, and stores accumulated data in a database.
+RailReader consumes realtime and static data from multiple railway datasources, and stores accumulated data in a database.
 This data can then be queried or subscribed to via multiple outputs.
 
 The aim of RailReader is to provide useful and modern APIs for handling data from the UK's railway network by taking existing data feeds and transforming them into formats that are easier to work with for developers who want to save time.
@@ -15,8 +15,6 @@ The aim of RailReader is to provide useful and modern APIs for handling data fro
 > The database schema will continue to change without migrations until a first version is released.
 > Be prepared to drop your database when updating.
 
-## Interfaces
-
 ### Inputs
 - (**work-in-progress**) Darwin Real Time Train Information XML Push Port (Rail Delivery Group)
 - Darwin Timetable Files (Rail Delivery Group)
@@ -26,19 +24,9 @@ The aim of RailReader is to provide useful and modern APIs for handling data fro
 - (**TODO**) [General Transit Feed Specification](https://gtfs.org/documentation/schedule/reference/)
 - (**TODO**) [General Transit Feed Specification Realtime](https://gtfs.org/documentation/realtime/reference/)
 
-## Setup
+## Setup Instructions
 
-### Required accounts and subscriptions
-
-Requires an account on the [Rail Data Marketplace](https://raildata.org.uk):
-
-- Darwin Real Time Train Information
-
-Requires an account on the [National Rail Data Portal](https://opendata.nationalrail.co.uk/):
-
-- Darwin Timetable Files
-
-### PostgreSQL setup
+### PostgreSQL
 
 #### Docker Compose
 
@@ -62,13 +50,18 @@ For configuration options, read [`service.nix`](service.nix).
 
 #### Your own
 
-Any PostgreSQL database will work.
+Any PostgreSQL database hosted by any other manner will work.
 
-### Darwin Real Time Train Information Setup
+### Inputs
 
-Using your Rail Data Marketplace account, subscribe to the [Darwin Real Time Train Information](https://raildata.org.uk/dashboard/dataProduct/P-d3bf124c-1058-4040-8a62-87181a877d59/overview) product.
-Enter the Kafka subscription details on the Pub/Sub page, making sure to use the **XML** topic.
+#### [Rail Data Marketplace](https://raildata.org.uk)
 
-### Darwin Timetable Files Setup
+##### Darwin Real Time Train Information
 
-Using your National Rail Data Portal account (making sure to subscribe to "Darwin" in your account settings), enter the S3 details under "Darwin File Information".
+Subscribe to the [Darwin Real Time Train Information](https://raildata.org.uk/dashboard/dataProduct/P-d3bf124c-1058-4040-8a62-87181a877d59/overview) product and use the Kafka subscription details for the XML topic on the Pub/Sub page.
+
+#### [National Rail Data Portal](https://opendata.nationalrail.co.uk/)
+
+##### Darwin Timetable Files
+
+Use the S3 details under "Darwin File Information".
