@@ -184,12 +184,12 @@ CREATE TABLE IF NOT EXISTS schedule_locations (
 				,is_affected_by_diversion boolean NOT NULL
 
 				,type text NOT NULL
-				,public_arrival_time timestamp WITH TIME ZONE
-				,public_departure_time timestamp WITH TIME ZONE
-				,working_arrival_time timestamp WITH TIME ZONE
-				,working_passing_time timestamp WITH TIME ZONE
-				,working_departure_time timestamp WITH TIME ZONE
-				,routing_delay interval
+				,public_arrival_time text 
+				,public_departure_time text
+				,working_arrival_time 				text
+				,working_passing_time text 
+				,working_departure_time text 
+				,routing_delay int
 				,false_destination_location_id text
 
 				,cancellation_reason_id int

@@ -2,8 +2,6 @@ package unmarshaller
 
 import (
 	"testing"
-
-	"github.com/headblockhead/railreader"
 )
 
 var forecastTestCases = []unmarshalTestCase[ForecastTime]{
@@ -35,7 +33,7 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 			},
 			ReverseFormation: true,
 			LateReason: &DisruptionReason{
-				TIPLOC:   pointerTo(railreader.TimingPointLocationCode("EFGH")),
+				TIPLOC:   pointerTo(string("EFGH")),
 				Near:     true,
 				ReasonID: 100,
 			},
@@ -43,43 +41,43 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 				{
 					TIPLOC: "ABCD",
 					LocationTimeIdentifiers: LocationTimeIdentifiers{
-						WorkingArrivalTime:   pointerTo(TrainTime("00:01")),
-						WorkingDepartureTime: pointerTo(TrainTime("00:02")),
-						WorkingPassingTime:   pointerTo(TrainTime("00:03")),
-						PublicArrivalTime:    pointerTo(TrainTime("00:04")),
-						PublicDepartureTime:  pointerTo(TrainTime("00:05")),
+						WorkingArrivalTime:   pointerTo("00:01"),
+						WorkingDepartureTime: pointerTo("00:02"),
+						WorkingPassingTime:   pointerTo("00:03"),
+						PublicArrivalTime:    pointerTo("00:04"),
+						PublicDepartureTime:  pointerTo("00:05"),
 					},
 					ArrivalData: &ForecastTimes{
-						EstimatedTime:        pointerTo(TrainTime("00:12")),
-						WorkingTime:          pointerTo(TrainTime("00:13")),
-						ActualTime:           pointerTo(TrainTime("00:14")),
+						EstimatedTime:        pointerTo("00:12"),
+						WorkingTime:          pointerTo("00:13"),
+						ActualTime:           pointerTo("00:14"),
 						ActualTimeRevoked:    true,
 						ActualTimeSource:     pointerTo("Manual"),
-						EstimatedTimeMinimum: pointerTo(TrainTime("00:11")),
+						EstimatedTimeMinimum: pointerTo("00:11"),
 						EstimatedTimeUnknown: true,
 						Delayed:              true,
 						Source:               pointerTo("TRUST"),
 						SourceSystem:         pointerTo("Auto"),
 					},
 					DepartureData: &ForecastTimes{
-						EstimatedTime:        pointerTo(TrainTime("00:16")),
-						WorkingTime:          pointerTo(TrainTime("00:17")),
-						ActualTime:           pointerTo(TrainTime("00:18")),
+						EstimatedTime:        pointerTo("00:16"),
+						WorkingTime:          pointerTo("00:17"),
+						ActualTime:           pointerTo("00:18"),
 						ActualTimeRevoked:    true,
 						ActualTimeSource:     pointerTo("Manual"),
-						EstimatedTimeMinimum: pointerTo(TrainTime("00:15")),
+						EstimatedTimeMinimum: pointerTo("00:15"),
 						EstimatedTimeUnknown: true,
 						Delayed:              true,
 						Source:               pointerTo("TRUST"),
 						SourceSystem:         pointerTo("Auto"),
 					},
 					PassingData: &ForecastTimes{
-						EstimatedTime:        pointerTo(TrainTime("00:20")),
-						WorkingTime:          pointerTo(TrainTime("00:21")),
-						ActualTime:           pointerTo(TrainTime("00:22")),
+						EstimatedTime:        pointerTo("00:20"),
+						WorkingTime:          pointerTo("00:21"),
+						ActualTime:           pointerTo("00:22"),
 						ActualTimeRevoked:    true,
 						ActualTimeSource:     pointerTo("Manual"),
-						EstimatedTimeMinimum: pointerTo(TrainTime("00:19")),
+						EstimatedTimeMinimum: pointerTo("00:19"),
 						EstimatedTimeUnknown: true,
 						Delayed:              true,
 						Source:               pointerTo("TRUST"),
@@ -88,14 +86,14 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 					Suppressed:        true,
 					DetachesFromFront: true,
 					LateReason: &DisruptionReason{
-						TIPLOC:   pointerTo(railreader.TimingPointLocationCode("IJKL")),
+						TIPLOC:   pointerTo("IJKL"),
 						Near:     true,
 						ReasonID: 101,
 					},
 					DisruptionRisk: &ForecastDisruptionRisk{
 						Effect: "delay",
 						Reason: &DisruptionReason{
-							TIPLOC:   pointerTo(railreader.TimingPointLocationCode("MNOP")),
+							TIPLOC:   pointerTo("MNOP"),
 							Near:     true,
 							ReasonID: 102,
 						},

@@ -21,7 +21,7 @@ func NewTimetable(xmlData string) (tt Timetable, err error) {
 	return
 }
 
-// Journey is very similar to Service, but is missing some fields, and has a few extras.
+// Journey is very similar to Service, but without some fields, and with a few extras.
 type Journey struct {
 	TrainIdentifiers
 	// Headcode is the 4-character headcode of the train, with the format:
@@ -44,7 +44,7 @@ type Journey struct {
 	QTrain    bool `xml:"isQTrain,attr"`
 	Cancelled bool `xml:"can,attr"`
 
-	Locations []TimetableLocation `xml:",any"`
+	Locations []JourneyLocation `xml:",any"`
 	// CancellationReason is the optionally provided reason why this service was cancelled.
 	// This is provided at the service level, and/or the location level.
 	CancellationReason *DisruptionReason `xml:"cancelReason"`
@@ -70,57 +70,57 @@ func (j *Journey) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
-// TimetableLocation is a generic struct that contains (nilable pointers to) all the possible location types.
-type TimetableLocation struct {
+// JourneyLocation is a generic struct that contains (nilable pointers to) all the possible location types.
+type JourneyLocation struct {
 	Type LocationType
 
-	Origin                  *OriginTimetableLocation                  `xml:"OR"`
-	OperationalOrigin       *OperationalOriginTimetableLocation       `xml:"OPOR"`
-	Intermediate            *IntermediateTimetableLocation            `xml:"IP"`
-	OperationalIntermediate *OperationalIntermediateTimetableLocation `xml:"OPIP"`
-	IntermediatePassing     *IntermediatePassingTimetableLocation     `xml:"PP"`
-	Destination             *DestinationTimetableLocation             `xml:"DT"`
-	OperationalDestination  *OperationalDestinationTimetableLocation  `xml:"OPDT"`
+	Origin                  *JourneyOriginLocation                  `xml:"OR"`
+	OperationalOrigin       *JourneyOperationalOriginLocation       `xml:"OPOR"`
+	Intermediate            *JourneyIntermediateLocation            `xml:"IP"`
+	OperationalIntermediate *JourneyOperationalIntermediateLocation `xml:"OPIP"`
+	IntermediatePassing     *JourneyIntermediatePassingLocation     `xml:"PP"`
+	Destination             *JourneyDestinationLocation             `xml:"DT"`
+	OperationalDestination  *JourneyOperationalDestinationLocation  `xml:"OPDT"`
 }
 
-func (lg *TimetableLocation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (lg *JourneyLocation) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	locationType := start.Name.Local
 	lg.Type = LocationType(locationType)
 	switch lg.Type {
 	case LocationTypeOrigin:
-		lg.Origin = &OriginTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.Origin = &JourneyOriginLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.Origin, &start); err != nil {
-			return fmt.Errorf("failed to decode OriginTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyOriginLocation: %w", err)
 		}
 	case LocationTypeOperationalOrigin:
-		lg.OperationalOrigin = &OperationalOriginTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.OperationalOrigin = &JourneyOperationalOriginLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.OperationalOrigin, &start); err != nil {
-			return fmt.Errorf("failed to decode OperationalOriginTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyOperationalOriginLocation: %w", err)
 		}
 	case LocationTypeIntermediate:
-		lg.Intermediate = &IntermediateTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.Intermediate = &JourneyIntermediateLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.Intermediate, &start); err != nil {
-			return fmt.Errorf("failed to decode IntermediateTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyIntermediateLocation: %w", err)
 		}
 	case LocationTypeOperationalIntermediate:
-		lg.OperationalIntermediate = &OperationalIntermediateTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.OperationalIntermediate = &JourneyOperationalIntermediateLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.OperationalIntermediate, &start); err != nil {
-			return fmt.Errorf("failed to decode OperationalIntermediateTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyOperationalIntermediateLocation: %w", err)
 		}
 	case LocationTypeIntermediatePassing:
-		lg.IntermediatePassing = &IntermediatePassingTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.IntermediatePassing = &JourneyIntermediatePassingLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.IntermediatePassing, &start); err != nil {
-			return fmt.Errorf("failed to decode IntermediatePassingTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyIntermediatePassingLocation: %w", err)
 		}
 	case LocationTypeDestination:
-		lg.Destination = &DestinationTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.Destination = &JourneyDestinationLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.Destination, &start); err != nil {
-			return fmt.Errorf("failed to decode DestinationTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyDestinationLocation: %w", err)
 		}
 	case LocationTypeOperationalDestination:
-		lg.OperationalDestination = &OperationalDestinationTimetableLocation{TimetableLocationBase: TimetableLocationBase{}}
+		lg.OperationalDestination = &JourneyOperationalDestinationLocation{JourneyLocationBase: JourneyLocationBase{}}
 		if err := d.DecodeElement(lg.OperationalDestination, &start); err != nil {
-			return fmt.Errorf("failed to decode OperationalDestinationTimetableLocation: %w", err)
+			return fmt.Errorf("failed to decode JourneyOperationalDestinationLocation: %w", err)
 		}
 	default:
 		return fmt.Errorf("unknown location type: %s", locationType)
@@ -129,9 +129,9 @@ func (lg *TimetableLocation) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 	return nil
 }
 
-type TimetableLocationBase struct {
+type JourneyLocationBase struct {
 	// TIPLOC is the code for the location
-	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
+	TIPLOC string `xml:"tpl,attr"`
 	// Activities optionally provides what is happening at this location.
 	// Activities can be converted into a slice of railreader.ActivityCode.
 	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
@@ -145,73 +145,37 @@ type TimetableLocationBase struct {
 	Platform          *string `xml:"plat,attr"`
 }
 
-type OriginTimetableLocation struct {
-	TimetableLocationBase
-	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime *string `xml:"pta,attr"`
-	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime *string `xml:"ptd,attr"`
-	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   *string `xml:"wta,attr"`
-	WorkingDepartureTime string  `xml:"wtd,attr"`
-	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
-	FalseDestination *railreader.TimingPointLocationCode `xml:"fd,attr"`
+type JourneyOriginLocation struct {
+	OriginLocation
+	JourneyLocationBase
 }
 
-type OperationalOriginTimetableLocation struct {
-	TimetableLocationBase
-	// WorkingArrivalTime is optionally provided.
-	WorkingArrivalTime   *string `xml:"wta,attr"`
-	WorkingDepartureTime string  `xml:"wtd,attr"`
+type JourneyOperationalOriginLocation struct {
+	OperationalOriginLocation
+	JourneyLocationBase
 }
 
-type IntermediateTimetableLocation struct {
-	TimetableLocationBase
-	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime *string `xml:"pta,attr"`
-	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime  *string `xml:"ptd,attr"`
-	WorkingArrivalTime   string  `xml:"wta,attr"`
-	WorkingDepartureTime string  `xml:"wtd,attr"`
-	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
-	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
-	FalseDestination *railreader.TimingPointLocationCode `xml:"fd,attr"`
+type JourneyIntermediateLocation struct {
+	IntermediateLocation
+	JourneyLocationBase
 }
 
-type OperationalIntermediateTimetableLocation struct {
-	TimetableLocationBase
-	WorkingArrivalTime   string `xml:"wta,attr"`
-	WorkingDepartureTime string `xml:"wtd,attr"`
-	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+type JourneyOperationalIntermediateLocation struct {
+	OperationalIntermediateLocation
+	JourneyLocationBase
 }
 
-type IntermediatePassingTimetableLocation struct {
-	TimetableLocationBase
-	WorkingPassingTime string `xml:"wtp,attr"`
-	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+type JourneyIntermediatePassingLocation struct {
+	IntermediatePassingLocation
+	JourneyLocationBase
 }
 
-type DestinationTimetableLocation struct {
-	TimetableLocationBase
-	// PublicArrivalTime is optionally provided.
-	PublicArrivalTime *string `xml:"pta,attr"`
-	// PublicDepartureTime is optionally provided.
-	PublicDepartureTime *string `xml:"ptd,attr"`
-	WorkingArrivalTime  string  `xml:"wta,attr"`
-	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime *string `xml:"wtd,attr"`
-	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+type JourneyDestinationLocation struct {
+	DestinationLocation
+	JourneyLocationBase
 }
 
-type OperationalDestinationTimetableLocation struct {
-	TimetableLocationBase
-	WorkingArrivalTime string `xml:"wta,attr"`
-	// WorkingDepartureTime is optionally provided.
-	WorkingDepartureTime *string `xml:"wtd,attr"`
-	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+type JourneyOperationalDestinationLocation struct {
+	OperationalDestinationLocation
+	JourneyLocationBase
 }

@@ -1,7 +1,5 @@
 package unmarshaller
 
-import "github.com/headblockhead/railreader"
-
 type HeadcodeChange struct {
 	OldHeadcode string `xml:"incorrectTrainID"`
 	NewHeadcode string `xml:"correctTrainID"`
@@ -11,7 +9,7 @@ type HeadcodeChange struct {
 }
 
 type TDLocation struct {
-	Describer railreader.TrainDescriber `xml:"area,attr"`
+	Describer string `xml:"area,attr"`
 	// Berth where the train is (likely) located.
-	Berth railreader.TrainDescriberBerth `xml:",chardata"`
+	Berth string `xml:",chardata"`
 }

@@ -2,8 +2,6 @@ package unmarshaller
 
 import (
 	"testing"
-
-	"github.com/headblockhead/railreader"
 )
 
 var referenceTestCases = []unmarshalTestCase[Reference]{
@@ -78,7 +76,7 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 					DisplayAt:                "BSK",
 					RequiredDestination:      "YORK",
 					RequiredCallingLocation1: "COVNTRY",
-					RequiredCallingLocation2: pointerTo(railreader.TimingPointLocationCode("LEEDS")),
+					RequiredCallingLocation2: pointerTo("LEEDS"),
 					Text:                     "via Coventry & Leeds",
 				},
 			},

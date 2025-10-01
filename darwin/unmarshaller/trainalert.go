@@ -1,9 +1,5 @@
 package unmarshaller
 
-import (
-	"github.com/headblockhead/railreader"
-)
-
 type TrainAlert struct {
 	ID string `xml:"AlertID"`
 	// CopiedFromID is the (optionally provided) ID value of the alert that this alert was copied from.
@@ -33,7 +29,7 @@ type TrainAlertService struct {
 	// to identify a specific service.
 
 	// Locations is the list of TIPLOCs that this alert applies to.
-	Locations []railreader.TimingPointLocationCode `xml:"Location"`
+	Locations []string `xml:"Location"`
 }
 
 type TrainAlertType string

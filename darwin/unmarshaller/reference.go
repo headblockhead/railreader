@@ -2,8 +2,6 @@ package unmarshaller
 
 import (
 	"encoding/xml"
-
-	"github.com/headblockhead/railreader"
 )
 
 // Reference version 4
@@ -26,7 +24,7 @@ func NewReference(xmlData string) (ref Reference, err error) {
 }
 
 type LocationReference struct {
-	Location railreader.TimingPointLocationCode `xml:"tpl,attr"`
+	Location string `xml:"tpl,attr"`
 	// CRS is optional.
 	CRS *string `xml:"crs,attr"`
 	// TOC is optional.
@@ -54,11 +52,11 @@ type ViaCondition struct {
 	// DisplayAt is the Computerised Reservation System code for the location where the 'via' message will be displayed.
 	DisplayAt string `xml:"at,attr"`
 
-	RequiredDestination      railreader.TimingPointLocationCode `xml:"dest,attr"`
-	RequiredCallingLocation1 railreader.TimingPointLocationCode `xml:"loc1,attr"`
+	RequiredDestination      string `xml:"dest,attr"`
+	RequiredCallingLocation1 string `xml:"loc1,attr"`
 	// RequiredCallingLocation2 is optionally provided.
 	// If it is provided, it must be after RequiredCallingLocation1 in the schedule for the 'via' message to be displayed.
-	RequiredCallingLocation2 *railreader.TimingPointLocationCode `xml:"loc2,attr"`
+	RequiredCallingLocation2 *string `xml:"loc2,attr"`
 
 	// Text to be displayed when the conditions are met.
 	Text string `xml:"viatext,attr"`

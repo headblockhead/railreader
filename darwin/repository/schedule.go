@@ -42,6 +42,7 @@ type ScheduleRow struct {
 type Schedule interface {
 	Select(scheduleID string) (ScheduleRow, error)
 	Insert(schedule ScheduleRow) error
+	InsertMany(schedules []ScheduleRow) error
 	Update(schedule ScheduleRow) error
 	Delete(scheduleID string) error
 
@@ -70,6 +71,11 @@ func (sr PGXSchedule) Insert(s ScheduleRow) error {
 	return database.InsertIntoTable(sr.ctx, sr.tx, "schedules", s)
 }
 
+func (sr PGXSchedule) InsertMany(schedules []ScheduleRow) error {
+	sr.log.Debug("inserting many ScheduleRows", slog.Int("count", len(schedules)))
+	return database.InsertManyIntoTable(sr.ctx, sr.tx, "schedules", schedules)
+}
+
 func (sr PGXSchedule) Update(s ScheduleRow) error {
 	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
 	log.Info("updating ScheduleRow")
@@ -89,6 +95,9 @@ func (sr PGXSchedule) Delete(scheduleID string) error {
 		"schedule_id": scheduleID,
 	})
 	if _, err := sr.tx.Exec(sr.ctx, statement, args); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil
+		}
 		return err
 	}
 	return nil
@@ -118,14 +127,14 @@ type ScheduleLocationRow struct {
 	FormationID           *string   `db:"formation_id"`
 	IsAffectedByDiversion bool      `db:"is_affected_by_diversion"`
 
-	Type                       string         `db:"type"`
-	PublicArrivalTime          *string        `db:"public_arrival_time"`
-	PublicDepartureTime        *string        `db:"public_departure_time"`
-	WorkingArrivalTime         *string        `db:"working_arrival_time"`
-	WorkingPassingTime         *string        `db:"working_passing_time"`
-	WorkingDepartureTime       *string        `db:"working_departure_time"`
-	RoutingDelay               *time.Duration `db:"routing_delay"`
-	FalseDestinationLocationID *string        `db:"false_destination_location_id"`
+	Type                       string  `db:"type"`
+	PublicArrivalTime          *string `db:"public_arrival_time"`
+	PublicDepartureTime        *string `db:"public_departure_time"`
+	WorkingArrivalTime         *string `db:"working_arrival_time"`
+	WorkingPassingTime         *string `db:"working_passing_time"`
+	WorkingDepartureTime       *string `db:"working_departure_time"`
+	RoutingDelay               *int    `db:"routing_delay"`
+	FalseDestinationLocationID *string `db:"false_destination_location_id"`
 
 	CancellationReasonID             *int    `db:"cancellation_reason_id"`
 	CancellationReasonLocationID     *string `db:"cancellation_reason_location_id"`
@@ -136,7 +145,6 @@ type ScheduleLocationRow struct {
 type ScheduleLocation interface {
 	InsertMany(schedules []ScheduleLocationRow) error
 	SelectByScheduleID(scheduleID string) (rows []ScheduleLocationRow, err error)
-	SelectByScheduleIDAndLocationID(scheduleID string, locationID string) (rows []ScheduleLocationRow, err error)
 }
 type PGXScheduleLocation struct {
 	ctx context.Context
@@ -156,12 +164,5 @@ func (sr PGXScheduleLocation) SelectByScheduleID(scheduleID string) (rows []Sche
 	sr.log.Info("selecting ScheduleLocationRows by schedule_id", slog.String("schedule_id", scheduleID))
 	return database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
 		"schedule_id": scheduleID,
-	})
-}
-func (sr PGXScheduleLocation) SelectByScheduleIDAndLocationID(scheduleID string, locationID string) (rows []ScheduleLocationRow, err error) {
-	sr.log.Info("selecting ScheduleLocationRows by schedule_id and location_id", slog.String("schedule_id", scheduleID), slog.String("location_id", locationID))
-	return database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id AND location_id = @location_id", pgx.StrictNamedArgs{
-		"schedule_id": scheduleID,
-		"location_id": locationID,
 	})
 }

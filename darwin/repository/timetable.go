@@ -40,6 +40,10 @@ func (mr PGXTimetable) SelectLast() (*TimetableRow, error) {
 		SELECT (filename) FROM timetable_files ORDER BY timetable_file_id DESC LIMIT 1;
 	`).Scan(&timetable.Filename)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			mr.log.Debug("no TimetableRow found")
+			return nil, nil
+		}
 		return nil, nil
 	}
 	mr.log.Debug("fetched last TimetableRow", slog.String("filename", timetable.Filename))

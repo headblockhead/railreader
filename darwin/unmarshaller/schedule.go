@@ -38,7 +38,7 @@ type Schedule struct {
 	// This is provided at the service level, and/or the location level.
 	CancellationReason *DisruptionReason `xml:"cancelReason"`
 	// DivertedVia is the optionally provided TIPLOC that this service has been diverted via (which may or may not be on the timetable).
-	DivertedVia *railreader.TimingPointLocationCode `xml:"divertedVia"`
+	DivertedVia *string `xml:"divertedVia"`
 	// DiversionReason is the optionally provided reason why this service has been diverted.
 	DiversionReason *DisruptionReason `xml:"diversionReason"`
 }
@@ -138,7 +138,7 @@ func (lg *ScheduleLocation) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 // LocationBase is the base struct for all location types.
 type LocationBase struct {
 	// TIPLOC is the code for the location
-	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
+	TIPLOC string `xml:"tpl,attr"`
 	// Activities optionally provides what is happening at this location.
 	// Activities can be converted into a slice of railreader.ActivityCode.
 	// If it is empty, it should be interpreted as a slice containing 1 railreader.ActivityNone.
@@ -168,7 +168,7 @@ type OriginLocation struct {
 	WorkingArrivalTime   *string `xml:"wta,attr"`
 	WorkingDepartureTime string  `xml:"wtd,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
-	FalseDestination *railreader.TimingPointLocationCode `xml:"fd,attr"`
+	FalseDestination *string `xml:"fd,attr"`
 }
 
 type OperationalOriginLocation struct {
@@ -189,7 +189,7 @@ type IntermediateLocation struct {
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
 	RoutingDelay *int `xml:"rdelay,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
-	FalseDestination *railreader.TimingPointLocationCode `xml:"fd,attr"`
+	FalseDestination *string `xml:"fd,attr"`
 }
 
 type OperationalIntermediateLocation struct {

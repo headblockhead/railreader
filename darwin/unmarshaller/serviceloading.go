@@ -3,8 +3,6 @@ package unmarshaller
 import (
 	"encoding/xml"
 	"fmt"
-
-	"github.com/headblockhead/railreader"
 )
 
 // ServiceLoading contains the typical percentage loading (or LoadingCategory) for an entire service at a specific location. It does not vary based on real-time data.
@@ -13,7 +11,7 @@ type ServiceLoading struct {
 	// RID is the unique 16-character ID for a specific train.
 	RID string `xml:"rid,attr"`
 	// TIPLOC is the code for the location where the loading information applies.
-	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
+	TIPLOC string `xml:"tpl,attr"`
 
 	// zero or one of:
 	LoadingCategory   *LoadingCategory   `xml:"loadingCategory"`

@@ -23,21 +23,21 @@ var associationTestCases = []unmarshalTestCase[Association]{
 			MainService: AssociatedService{
 				RID: "012345678901234",
 				LocationTimeIdentifiers: LocationTimeIdentifiers{
-					WorkingArrivalTime:   pointerTo(TrainTime("00:01")),
-					WorkingDepartureTime: pointerTo(TrainTime("00:02")),
-					WorkingPassingTime:   pointerTo(TrainTime("00:03")),
-					PublicArrivalTime:    pointerTo(TrainTime("00:04")),
-					PublicDepartureTime:  pointerTo(TrainTime("00:05")),
+					WorkingArrivalTime:   pointerTo("00:01"),
+					WorkingDepartureTime: pointerTo("00:02"),
+					WorkingPassingTime:   pointerTo("00:03"),
+					PublicArrivalTime:    pointerTo("00:04"),
+					PublicDepartureTime:  pointerTo("00:05"),
 				},
 			},
 			AssociatedService: AssociatedService{
 				RID: "012345678901235",
 				LocationTimeIdentifiers: LocationTimeIdentifiers{
-					WorkingArrivalTime:   pointerTo(TrainTime("00:06")),
-					WorkingDepartureTime: pointerTo(TrainTime("00:07")),
-					WorkingPassingTime:   pointerTo(TrainTime("00:08")),
-					PublicArrivalTime:    pointerTo(TrainTime("00:09")),
-					PublicDepartureTime:  pointerTo(TrainTime("00:10")),
+					WorkingArrivalTime:   pointerTo("00:06"),
+					WorkingDepartureTime: pointerTo("00:07"),
+					WorkingPassingTime:   pointerTo("00:08"),
+					PublicArrivalTime:    pointerTo("00:09"),
+					PublicDepartureTime:  pointerTo("00:10"),
 				},
 			},
 		},
@@ -58,7 +58,7 @@ var associationTestCases = []unmarshalTestCase[Association]{
 			MainService: AssociatedService{
 				RID: "012345678901236",
 				LocationTimeIdentifiers: LocationTimeIdentifiers{
-					WorkingArrivalTime:   pointerTo(TrainTime("10:01")),
+					WorkingArrivalTime:   pointerTo("10:01"),
 					WorkingDepartureTime: nil,
 					WorkingPassingTime:   nil,
 					PublicArrivalTime:    nil,
@@ -69,7 +69,7 @@ var associationTestCases = []unmarshalTestCase[Association]{
 				RID: "012345678901237",
 				LocationTimeIdentifiers: LocationTimeIdentifiers{
 					WorkingArrivalTime:   nil,
-					WorkingDepartureTime: pointerTo(TrainTime("10:02")),
+					WorkingDepartureTime: pointerTo("10:02"),
 					WorkingPassingTime:   nil,
 					PublicArrivalTime:    nil,
 					PublicDepartureTime:  nil,

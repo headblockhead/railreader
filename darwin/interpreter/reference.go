@@ -127,8 +127,10 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference, filenam
 	if err := u.loadingCategoryRepository.DeleteAll(); err != nil {
 		return fmt.Errorf("failed to delete existing loading categories: %w", err)
 	}
-	if err := u.loadingCategoryRepository.InsertMany(loadingCategories); err != nil {
-		return fmt.Errorf("failed to insert loading categories: %w", err)
+	for _, lc := range loadingCategories {
+		if err := u.loadingCategoryRepository.Insert(lc); err != nil {
+			return fmt.Errorf("failed to insert loading category: %w", err)
+		}
 	}
 	return nil
 }

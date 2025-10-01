@@ -17,11 +17,11 @@ var formationLoadingTestCases = []unmarshalTestCase[FormationLoading]{
 			RID:         "012345678901234",
 			TIPLOC:      "ABCD",
 			LocationTimeIdentifiers: LocationTimeIdentifiers{
-				PublicArrivalTime:    pointerTo(TrainTime("00:04")),
-				PublicDepartureTime:  pointerTo(TrainTime("00:05")),
-				WorkingArrivalTime:   pointerTo(TrainTime("00:01")),
-				WorkingDepartureTime: pointerTo(TrainTime("00:02")),
-				WorkingPassingTime:   pointerTo(TrainTime("00:03")),
+				PublicArrivalTime:    pointerTo("00:04"),
+				PublicDepartureTime:  pointerTo("00:05"),
+				WorkingArrivalTime:   pointerTo("00:01"),
+				WorkingDepartureTime: pointerTo("00:02"),
+				WorkingPassingTime:   pointerTo("00:03"),
 			},
 			Loading: []CoachLoading{
 				{

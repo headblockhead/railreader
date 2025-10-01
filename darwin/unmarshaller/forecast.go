@@ -3,8 +3,6 @@ package unmarshaller
 import (
 	"encoding/xml"
 	"fmt"
-
-	"github.com/headblockhead/railreader"
 )
 
 // ForecastTime contains a list of updates to predicted and actual train times at locations along a specific train's schedule.
@@ -22,7 +20,7 @@ type ForecastTime struct {
 type ForecastLocation struct {
 	LocationTimeIdentifiers
 	// TIPLOC is the code for the location
-	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
+	TIPLOC string `xml:"tpl,attr"`
 
 	// zero or one of:
 	ArrivalData   *ForecastTimes `xml:"arr"`

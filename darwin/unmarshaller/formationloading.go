@@ -1,7 +1,5 @@
 package unmarshaller
 
-import "github.com/headblockhead/railreader"
-
 // FormationLoading contains the real-time estimated percentage loading per coach for a specific formation+location+service.
 type FormationLoading struct {
 	LocationTimeIdentifiers
@@ -10,7 +8,7 @@ type FormationLoading struct {
 	// FormationID is used to link this information to a specific train formation.
 	FormationID string `xml:"fid,attr"`
 	// TIPLOC is the code for the location where the loading information applies.
-	TIPLOC railreader.TimingPointLocationCode `xml:"tpl,attr"`
+	TIPLOC string `xml:"tpl,attr"`
 
 	Loading []CoachLoading `xml:"loading"`
 }

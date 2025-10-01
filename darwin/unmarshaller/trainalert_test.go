@@ -2,8 +2,6 @@ package unmarshaller
 
 import (
 	"testing"
-
-	"github.com/headblockhead/railreader"
 )
 
 var trainAlertTestCases = []unmarshalTestCase[TrainAlert]{
@@ -37,7 +35,7 @@ var trainAlertTestCases = []unmarshalTestCase[TrainAlert]{
 					RID:                pointerTo("012345678901234"),
 					UID:                pointerTo("A00001"),
 					ScheduledStartDate: pointerTo("2025-08-23"),
-					Locations:          []railreader.TimingPointLocationCode{"LDS", "MAN"},
+					Locations:          []string{"LDS", "MAN"},
 				},
 			},
 			SendSMS:          true,

@@ -2,8 +2,6 @@ package unmarshaller
 
 import (
 	"testing"
-
-	"github.com/headblockhead/railreader"
 )
 
 var alarmTestCases = []unmarshalTestCase[Alarm]{
@@ -23,7 +21,7 @@ var alarmTestCases = []unmarshalTestCase[Alarm]{
 			ClearedAlarm: pointerTo(132),
 			NewAlarm: &NewAlarm{
 				ID:                 325,
-				TDFailure:          pointerTo(railreader.TrainDescriber("Y2")),
+				TDFailure:          pointerTo("Y2"),
 				TDTotalFailure:     true,
 				TyrellTotalFailure: true,
 			},
@@ -41,7 +39,7 @@ var alarmTestCases = []unmarshalTestCase[Alarm]{
 		expected: Alarm{
 			NewAlarm: &NewAlarm{
 				ID:        578,
-				TDFailure: pointerTo(railreader.TrainDescriber("Y1")),
+				TDFailure: pointerTo("Y1"),
 			},
 		},
 	},

@@ -2,8 +2,6 @@ package unmarshaller
 
 import (
 	"encoding/xml"
-
-	"github.com/headblockhead/railreader"
 )
 
 func pointerTo[T any](v T) *T {
@@ -50,7 +48,7 @@ type TrainIdentifiers struct {
 
 type DisruptionReason struct {
 	// TIPLOC is the optionally provided location code for the position of the disruption.
-	TIPLOC *railreader.TimingPointLocationCode `xml:"tiploc,attr"`
+	TIPLOC *string `xml:"tiploc,attr"`
 	// Near is true if the disruption should be interpreted as being near the provided TIPLOC, rather than at the exact location.
 	Near bool `xml:"near,attr"`
 

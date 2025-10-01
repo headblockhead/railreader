@@ -153,8 +153,9 @@ func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response
 	if err := u.responseRepository.Insert(row); err != nil {
 		return fmt.Errorf("failed to insert response record: %w", err)
 	}
+	// TODO: interpret other types of repsonse contents
 	for _, schedule := range resp.Schedules {
-		if err := u.interpretSchedule(u.messageID, schedule); err != nil {
+		if err := u.InterpretSchedule(schedule); err != nil {
 			return fmt.Errorf("failed to process Schedule %s: %w", schedule.RID, err)
 		}
 	}

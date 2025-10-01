@@ -267,10 +267,6 @@ func (sc ServiceCategory) String() string {
 	return "Unknown"
 }
 
-// TimingPointLocationCode (TIPLOC) is a code representing a location.
-// TIPLOCs can be a passenger station, junction, or any other relevant location.
-type TimingPointLocationCode string
-
 type AssociationCategory string
 
 const (
@@ -287,9 +283,3 @@ const (
 	// AssociationNext indicates the next service to be run using the same rolling stock.
 	AssociationNext AssociationCategory = "NP"
 )
-
-// TrainDescriber is a two-letter code.
-type TrainDescriber string
-
-// TrainDescriberBerth is a four-character area of track dictated usually by a signal. Verths are not unique between TrainDescribers.
-type TrainDescriberBerth string
