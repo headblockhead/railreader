@@ -121,11 +121,11 @@ type ScheduleLocationRow struct {
 
 	LocationID string `db:"location_id"`
 
-	Activities            *[]string `db:"activities"`
-	PlannedActivities     *[]string `db:"planned_activities"`
-	IsCancelled           bool      `db:"is_cancelled"`
-	FormationID           *string   `db:"formation_id"`
-	IsAffectedByDiversion bool      `db:"is_affected_by_diversion"`
+	Activities            []string `db:"activities"`
+	PlannedActivities     []string `db:"planned_activities"`
+	IsCancelled           bool     `db:"is_cancelled"`
+	FormationID           *string  `db:"formation_id"`
+	IsAffectedByDiversion bool     `db:"is_affected_by_diversion"`
 
 	Type                       string  `db:"type"`
 	PublicArrivalTime          *string `db:"public_arrival_time"`

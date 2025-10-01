@@ -142,10 +142,10 @@ func newLocationRowFromBase(baseValues unmarshaller.LocationBase, sequence int) 
 	row.Sequence = sequence
 	row.LocationID = baseValues.TIPLOC
 	if baseValues.Activities != nil {
-		row.Activities = pointerTo(sliceActivities(*baseValues.Activities))
+		row.Activities = sliceActivities(*baseValues.Activities)
 	}
 	if baseValues.PlannedActivities != nil {
-		row.PlannedActivities = pointerTo(sliceActivities(*baseValues.PlannedActivities))
+		row.PlannedActivities = sliceActivities(*baseValues.PlannedActivities)
 	}
 	row.IsCancelled = baseValues.Cancelled
 	row.FormationID = baseValues.FormationID
