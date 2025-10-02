@@ -15,11 +15,11 @@ The aim of RailReader is to provide useful and modern APIs for handling data fro
 > The database schema will continue to change without migrations until a first version is released.
 > Be prepared to drop your database when updating.
 
-### Inputs
+## Inputs
 - (**work-in-progress**) Darwin Real Time Train Information XML Push Port (Rail Delivery Group)
 - Darwin Timetable Files (Rail Delivery Group)
 
-### Outputs
+## Outputs
 - SQL queries to the database
 - (**TODO**) [General Transit Feed Specification](https://gtfs.org/documentation/schedule/reference/)
 - (**TODO**) [General Transit Feed Specification Realtime](https://gtfs.org/documentation/realtime/reference/)
@@ -28,6 +28,10 @@ The aim of RailReader is to provide useful and modern APIs for handling data fro
 |Input name|Schemas|Documentation|
 |-|-|-|
 |Darwin|[XML Schema Definition](resources/darwin_push_port_v24_xsd.zip)|[P75301004 Issue 24](resources/P75301004.pdf), [CIF specification version 29](resources/CIF_v29.pdf)|
+
+### Software to display XML schemas
+
+For dealing with very large XML schemas with lots of types split accross multiple files, I've found Altova XMLSpy to do an extremly good job of exploring the whole schema visually. It is paid software, and is Windows only, but a 30-day free trial is availiable without payment details and if you plan to work with any of the XML schemas, it's almost certainly worth the effort to set up.
 
 ## Setup instructions
 
@@ -57,16 +61,12 @@ For configuration options, read [`service.nix`](service.nix).
 
 Any PostgreSQL database hosted by any other manner will work.
 
-### Inputs
+## How to get data in:
 
-#### [Rail Data Marketplace](https://raildata.org.uk)
+- ### Darwin Real Time Train Information
+    Subscribe to the [Darwin Real Time Train Information](https://raildata.org.uk/dashboard/dataProduct/P-d3bf124c-1058-4040-8a62-87181a877d59/overview) product via the [Rail Data Marketplace](https://raildata.org.uk) and use the Kafka subscription details for the XML topic on the Pub/Sub page.
+- ### Darwin Timetable Files
+    Use the S3 details under "Darwin File Information" in the [National Rail Data Portal](https://opendata.nationalrail.co.uk/).
 
-##### Darwin Real Time Train Information
+## How to get data out:
 
-Subscribe to the [Darwin Real Time Train Information](https://raildata.org.uk/dashboard/dataProduct/P-d3bf124c-1058-4040-8a62-87181a877d59/overview) product and use the Kafka subscription details for the XML topic on the Pub/Sub page.
-
-#### [National Rail Data Portal](https://opendata.nationalrail.co.uk/)
-
-##### Darwin Timetable Files
-
-Use the S3 details under "Darwin File Information".
