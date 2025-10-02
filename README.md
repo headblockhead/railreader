@@ -20,13 +20,13 @@ The aim of RailReader is to provide useful and modern APIs for handling data fro
 - Darwin Timetable Files (Rail Delivery Group)
 
 ## Outputs
-- SQL queries to the database
+- SQL queries on the database
 - (**TODO**) [General Transit Feed Specification](https://gtfs.org/documentation/schedule/reference/)
 - (**TODO**) [General Transit Feed Specification Realtime](https://gtfs.org/documentation/realtime/reference/)
 
 ## Resources used
 |Input name|Schemas|Documentation|
-|-|-|-|
+|----------|-------|-------------|
 |Darwin|[XML Schema Definition](resources/darwin_push_port_v24_xsd.zip)|[P75301004 Issue 24](resources/P75301004.pdf), [CIF specification version 29](resources/CIF_v29.pdf)|
 
 ### Software to display XML schemas
@@ -70,3 +70,10 @@ Any PostgreSQL database hosted by any other manner will work.
 
 ## How to get data out:
 
+- ### PostgreSQL
+    Write SQL queries to select from the database.
+
+## AI declaration
+
+Github Copilot was used to autocomplete predictable or repetative lines of code.
+All logic and documentation (including this file) was written **without** the assistance of AI in order to ensure accuracy.
