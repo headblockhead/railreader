@@ -37,6 +37,8 @@ For dealing with very large XML schemas with lots of types split accross multipl
 
 ### PostgreSQL
 
+RailReader requires a minimum of PostgreSQL version 15.
+
 #### Docker Compose
 
 The included Docker Compose file will run a PostgreSQL server on port 5432 with the username `postgres` and the password `change_me`.
@@ -59,7 +61,7 @@ For configuration options, read [`service.nix`](service.nix).
 
 #### Your own
 
-Any PostgreSQL database hosted by any other manner will work.
+Any PostgreSQL database that is at least version 15 will work.
 
 ## How to get data in:
 
