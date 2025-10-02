@@ -73,6 +73,31 @@ Any PostgreSQL database hosted by any other manner will work.
 - ### PostgreSQL
     Write SQL queries to select from the database.
 
+    #### Example queries
+
+    - Destinations of trains originating from Leeds:
+
+        ```sql
+        SELECT name FROM locations l JOIN
+            (
+                SELECT location_id
+                    FROM (
+                        SELECT s.schedule_id FROM schedules s
+                        JOIN schedule_locations sl ON s.schedule_id = sl.schedule_id
+                        WHERE
+                            sl.location_id = 'LEEDS'
+                            AND sl.type = 'OR' -- Originates from Leeds
+                            AND sl.working_departure_time >= to_char(now(), 'HH24:MI') -- Departs after now
+                            AND s.scheduled_start_date >= now()::date
+                        ORDER BY sl.working_departure_time -- List in order of departure
+                    ) as ssli
+                JOIN schedule_locations sl ON ssli.schedule_id = sl.schedule_id
+                    WHERE
+                        sl.type = 'DT' -- Get the destination location
+            ) as ssli2
+        ON ssli2.location_id = l.location_id; -- Use display names over location_ids
+        ```
+
 ## AI declaration
 
 Github Copilot was used to autocomplete predictable or repetative lines of code.
