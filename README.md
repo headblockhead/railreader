@@ -63,6 +63,17 @@ For configuration options, read [`service.nix`](service.nix).
 
 Any PostgreSQL database that is at least version 15 will work.
 
+### Running RailReader
+
+Use Nix to run RailReader anywhere:
+```bash
+nix run github:headblockhead/railreader -- ingest --help
+```
+Or, if developing locally, use Go:
+```bash
+go run ./cmd/railreader ingest --help
+```
+
 ## How to get data in:
 
 - ### Darwin Real Time Train Information

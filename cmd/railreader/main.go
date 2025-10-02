@@ -11,7 +11,6 @@ import (
 
 type CLI struct {
 	Ingest IngestCommand `cmd:"ingest" help:"Ingest data into the database from the message feeds."`
-	Serve  ServeCommand  `cmd:"serve" help:"Run the HTTP API server."`
 }
 
 func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
