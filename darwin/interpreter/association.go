@@ -22,7 +22,7 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 			WorkingArrivalTime:   loc.WorkingArrivalTime,
 			WorkingDepartureTime: loc.WorkingDepartureTime,
 			WorkingPassingTime:   loc.WorkingPassingTime,
-		}, association.MainService.LocationTimeIdentifiers) {
+		}, association.MainService.LocationTimeIdentifiers) && loc.LocationID == association.TIPLOC {
 			row.MainScheduleLocationSequence = loc.Sequence
 			break
 		}
@@ -39,7 +39,7 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 			WorkingArrivalTime:   loc.WorkingArrivalTime,
 			WorkingDepartureTime: loc.WorkingDepartureTime,
 			WorkingPassingTime:   loc.WorkingPassingTime,
-		}, association.AssociatedService.LocationTimeIdentifiers) {
+		}, association.AssociatedService.LocationTimeIdentifiers) && loc.LocationID == association.TIPLOC {
 			row.AssociatedScheduleLocationSequence = loc.Sequence
 			break
 		}
