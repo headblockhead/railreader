@@ -49,8 +49,12 @@ func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable, filenam
 		return fmt.Errorf("failed to insert schedule location rows into repository: %w", err)
 	}
 
-	//for _, association := range timetable.Associations {
-	//}
+	for _, association := range timetable.Associations {
+		err := u.interpretAssociation(association)
+		if err != nil {
+			return fmt.Errorf("failed to interpret association: %w", err)
+		}
+	}
 
 	return nil
 }
