@@ -143,8 +143,8 @@ type ScheduleLocationRow struct {
 	Platform *string `db:"platform"`
 }
 type ScheduleLocation interface {
+	SelectManyByScheduleID(scheduleID string) ([]ScheduleLocationRow, error)
 	InsertMany(schedules []ScheduleLocationRow) error
-	SelectByScheduleID(scheduleID string) (rows []ScheduleLocationRow, err error)
 }
 type PGXScheduleLocation struct {
 	ctx context.Context
@@ -156,13 +156,19 @@ func NewPGXScheduleLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PG
 	return PGXScheduleLocation{ctx, log, tx}
 }
 
+func (sr PGXScheduleLocation) SelectManyByScheduleID(scheduleID string) ([]ScheduleLocationRow, error) {
+	log := sr.log.With(slog.String("schedule_id", scheduleID))
+	log.Info("selecting many ScheduleLocationRows by schedule_id")
+	selectedRows, err := database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id ORDER BY sequence ASC", pgx.StrictNamedArgs{
+		"schedule_id": scheduleID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return selectedRows, nil
+}
+
 func (sr PGXScheduleLocation) InsertMany(schedules []ScheduleLocationRow) error {
 	sr.log.Debug("inserting many ScheduleLocationRows", slog.Int("count", len(schedules)))
 	return database.InsertManyIntoTable(sr.ctx, sr.tx, "schedule_locations", schedules)
-}
-func (sr PGXScheduleLocation) SelectByScheduleID(scheduleID string) (rows []ScheduleLocationRow, err error) {
-	sr.log.Info("selecting ScheduleLocationRows by schedule_id", slog.String("schedule_id", scheduleID))
-	return database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
-		"schedule_id": scheduleID,
-	})
 }

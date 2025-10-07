@@ -116,8 +116,9 @@ CREATE TABLE IF NOT EXISTS associations (
 				,is_cancelled boolean NOT NULL
 				,is_deleted boolean NOT NULL
 				,main_schedule_id text NOT NULL
+				,main_schedule_location_sequence int NOT NULL
 				,associated_schedule_id text NOT NULL
-				-- TODO: add location information
+				,associated_schedule_location_sequence int NOT NULL
 );
 
 -- alarms

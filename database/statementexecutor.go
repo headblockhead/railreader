@@ -86,5 +86,10 @@ func InsertManyIntoTable[T any](ctx context.Context, tx pgx.Tx, tableName string
 		return fmt.Errorf("failed to insert from temp_%s into %s: %w", tableName, tableName, err)
 	}
 
+	_, err = tx.Exec(ctx, `DROP TABLE temp_`+tableName+`;`)
+	if err != nil {
+		return fmt.Errorf("failed to drop temp_%s: %w", tableName, err)
+	}
+
 	return nil
 }

@@ -11,18 +11,39 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 	row.IsCancelled = association.Cancelled
 	row.IsDeleted = association.Deleted
 	row.MainScheduleID = association.MainService.RID
+	mainScheduleLocations, err := u.scheduleLocationRepository.SelectManyByScheduleID(association.MainService.RID)
+	if err != nil {
+		return err
+	}
+	for _, loc := range mainScheduleLocations {
+		if timesEqual(unmarshaller.LocationTimeIdentifiers{
+			PublicArrivalTime:    loc.PublicArrivalTime,
+			PublicDepartureTime:  loc.PublicDepartureTime,
+			WorkingArrivalTime:   loc.WorkingArrivalTime,
+			WorkingDepartureTime: loc.WorkingDepartureTime,
+			WorkingPassingTime:   loc.WorkingPassingTime,
+		}, association.MainService.LocationTimeIdentifiers) {
+			row.MainScheduleLocationSequence = loc.Sequence
+			break
+		}
+	}
 	row.AssociatedScheduleID = association.AssociatedService.RID
-	// TODO: sequence index
-	/* mainLocation, err := u.locationFromTIPLOCAndTimes(association.MainService.RID, association.TIPLOC, association.MainService.LocationTimeIdentifiers)*/
-	/*if err != nil {*/
-	/*return err*/
-	/*}*/
-	/*row.MainScheduleLocationSequence = mainLocation.Sequence*/
-	/*associatedLocation, err := u.locationFromTIPLOCAndTimes(association.AssociatedService.RID, association.TIPLOC, association.AssociatedService.LocationTimeIdentifiers)*/
-	/*if err != nil {*/
-	/*return err*/
-	/*}*/
-	/*row.AssociatedScheduleLocationSequence = associatedLocation.Sequence*/
+	associatedScheduleLocations, err := u.scheduleLocationRepository.SelectManyByScheduleID(association.AssociatedService.RID)
+	if err != nil {
+		return err
+	}
+	for _, loc := range associatedScheduleLocations {
+		if timesEqual(unmarshaller.LocationTimeIdentifiers{
+			PublicArrivalTime:    loc.PublicArrivalTime,
+			PublicDepartureTime:  loc.PublicDepartureTime,
+			WorkingArrivalTime:   loc.WorkingArrivalTime,
+			WorkingDepartureTime: loc.WorkingDepartureTime,
+			WorkingPassingTime:   loc.WorkingPassingTime,
+		}, association.AssociatedService.LocationTimeIdentifiers) {
+			row.AssociatedScheduleLocationSequence = loc.Sequence
+			break
+		}
+	}
 
 	return u.associationRepository.Insert(row)
 }

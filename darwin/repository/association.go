@@ -9,13 +9,13 @@ import (
 )
 
 type AssociationRow struct {
-	Category       string `db:"category"`
-	IsCancelled    bool   `db:"is_cancelled"`
-	IsDeleted      bool   `db:"is_deleted"`
-	MainScheduleID string `db:"main_schedule_id"`
-	//MainScheduleLocationSequence       int    `db:"main_schedule_location_sequence"`
-	AssociatedScheduleID string `db:"associated_schedule_id"`
-	//AssociatedScheduleLocationSequence int    `db:"associated_schedule_location_sequence"`
+	Category                           string `db:"category"`
+	IsCancelled                        bool   `db:"is_cancelled"`
+	IsDeleted                          bool   `db:"is_deleted"`
+	MainScheduleID                     string `db:"main_schedule_id"`
+	MainScheduleLocationSequence       int    `db:"main_schedule_location_sequence"`
+	AssociatedScheduleID               string `db:"associated_schedule_id"`
+	AssociatedScheduleLocationSequence int    `db:"associated_schedule_location_sequence"`
 }
 
 type Association interface {
