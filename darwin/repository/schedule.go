@@ -60,7 +60,7 @@ func NewPGXSchedule(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXSchedul
 
 func (sr PGXSchedule) Select(scheduleID string) (row ScheduleRow, err error) {
 	log := sr.log.With(slog.String("schedule_id", scheduleID))
-	log.Info("selecting ScheduleRow")
+	log.Debug("selecting ScheduleRow")
 	return database.SelectOneFromTable(sr.ctx, sr.tx, "schedules", ScheduleRow{}, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
 		"schedule_id": scheduleID,
 	})
@@ -78,7 +78,7 @@ func (sr PGXSchedule) InsertMany(schedules []ScheduleRow) error {
 
 func (sr PGXSchedule) Update(s ScheduleRow) error {
 	log := sr.log.With(slog.String("schedule_id", s.ScheduleID))
-	log.Info("updating ScheduleRow")
+	log.Debug("updating ScheduleRow")
 	statement, args := database.BuildUpdate("schedules", s, "schedule_id = @schedule_id", pgx.StrictNamedArgs{
 		"schedule_id": s.ScheduleID,
 	})
@@ -90,7 +90,7 @@ func (sr PGXSchedule) Update(s ScheduleRow) error {
 
 func (sr PGXSchedule) Delete(scheduleID string) error {
 	log := sr.log.With(slog.String("schedule_id", scheduleID))
-	log.Info("deleting ScheduleRow")
+	log.Debug("deleting ScheduleRow")
 	statement, args := database.BuildDelete("schedules", "schedule_id = @schedule_id", pgx.StrictNamedArgs{
 		"schedule_id": scheduleID,
 	})
@@ -105,7 +105,7 @@ func (sr PGXSchedule) Delete(scheduleID string) error {
 
 func (sr PGXSchedule) Exists(scheduleID string) (exists bool, err error) {
 	log := sr.log.With(slog.String("schedule_id", scheduleID))
-	log.Info("checking existence of ScheduleRow")
+	log.Debug("checking existence of ScheduleRow")
 	err = sr.tx.QueryRow(sr.ctx, `SELECT EXISTS (SELECT 1 FROM schedules WHERE schedule_id = @schedule_id);`, pgx.StrictNamedArgs{
 		"schedule_id": scheduleID,
 	}).Scan(&exists)
@@ -158,7 +158,7 @@ func NewPGXScheduleLocation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PG
 
 func (sr PGXScheduleLocation) SelectManyByScheduleID(scheduleID string) ([]ScheduleLocationRow, error) {
 	log := sr.log.With(slog.String("schedule_id", scheduleID))
-	log.Info("selecting many ScheduleLocationRows by schedule_id")
+	log.Debug("selecting many ScheduleLocationRows by schedule_id")
 	selectedRows, err := database.SelectFromTable(sr.ctx, sr.tx, "schedule_locations", ScheduleLocationRow{}, "schedule_id = @schedule_id ORDER BY sequence ASC", pgx.StrictNamedArgs{
 		"schedule_id": scheduleID,
 	})

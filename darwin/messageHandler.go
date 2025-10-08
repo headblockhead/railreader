@@ -89,7 +89,7 @@ func insertMessageCapsule(ctx context.Context, log *slog.Logger, db database.Dat
 
 func interpretPushPortMessage(ctx context.Context, log *slog.Logger, db database.Database, fg filegetter.FileGetter, messageID string, pport unmarshaller.PushPortMessage) error {
 	log.Debug("creating a new UnitOfWork for interpreting the PushPortMessage")
-	u, err := interpreter.NewUnitOfWork(ctx, log, messageID, db, fg)
+	u, err := interpreter.NewUnitOfWork(ctx, log, db, fg, &messageID, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
 	}

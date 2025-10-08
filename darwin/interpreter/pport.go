@@ -32,7 +32,7 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
 	}
 	if err := u.pportMessageRepository.Insert(repository.PPortMessageRow{
-		MessageID:       u.messageID,
+		MessageID:       *u.messageID,
 		SentAt:          timestamp,
 		FirstReceivedAt: time.Now(),
 		Version:         pport.Version,
@@ -123,7 +123,7 @@ func GetUnmarshalAndInterpretFile[T any](log *slog.Logger, fg filegetter.FileGet
 func (u UnitOfWork) interpretStatus(status *unmarshaller.Status) error {
 	u.log.Debug("interpreting a Status")
 	var row repository.StatusRow
-	row.MessageID = u.messageID
+	row.MessageID = *u.messageID
 	row.Code = string(status.Code)
 	row.ReceivedAt = time.Now()
 	row.Description = status.Description
@@ -136,7 +136,7 @@ func (u UnitOfWork) interpretStatus(status *unmarshaller.Status) error {
 func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response) error {
 	u.log.Debug("interpreting a Response", slog.Bool("snapshot", snapshot))
 	var row repository.ResponseRow
-	row.MessageID = u.messageID
+	row.MessageID = *u.messageID
 	row.IsSnapshot = snapshot
 	if resp.Source != nil && *resp.Source != "" {
 		u.log.Debug("source is set")

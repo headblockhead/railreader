@@ -9,17 +9,20 @@ import (
 )
 
 type AssociationRow struct {
-	Category                           string `db:"category"`
-	IsCancelled                        bool   `db:"is_cancelled"`
-	IsDeleted                          bool   `db:"is_deleted"`
-	MainScheduleID                     string `db:"main_schedule_id"`
-	MainScheduleLocationSequence       int    `db:"main_schedule_location_sequence"`
-	AssociatedScheduleID               string `db:"associated_schedule_id"`
-	AssociatedScheduleLocationSequence int    `db:"associated_schedule_location_sequence"`
+	MessageID                          *string `db:"message_id"`
+	TimetableID                        *string `db:"timetable_id"`
+	Category                           string  `db:"category"`
+	IsCancelled                        bool    `db:"is_cancelled"`
+	IsDeleted                          bool    `db:"is_deleted"`
+	MainScheduleID                     string  `db:"main_schedule_id"`
+	MainScheduleLocationSequence       int     `db:"main_schedule_location_sequence"`
+	AssociatedScheduleID               string  `db:"associated_schedule_id"`
+	AssociatedScheduleLocationSequence int     `db:"associated_schedule_location_sequence"`
 }
 
 type Association interface {
 	Insert(association AssociationRow) error
+	InsertMany(associations []AssociationRow) error
 }
 type PGXAssociation struct {
 	ctx context.Context
@@ -34,4 +37,9 @@ func NewPGXAssociation(ctx context.Context, log *slog.Logger, tx pgx.Tx) PGXAsso
 func (ar PGXAssociation) Insert(association AssociationRow) error {
 	ar.log.Debug("inserting AssociationRow")
 	return database.InsertIntoTable(ar.ctx, ar.tx, "associations", association)
+}
+
+func (ar PGXAssociation) InsertMany(associations []AssociationRow) error {
+	ar.log.Debug("inserting many AssociationRows", slog.Int("count", len(associations)))
+	return database.InsertManyIntoTable(ar.ctx, ar.tx, "associations", associations)
 }

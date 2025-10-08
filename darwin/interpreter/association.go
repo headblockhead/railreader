@@ -6,14 +6,23 @@ import (
 )
 
 func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) error {
-	var row repository.AssociationRow
+	row, err := u.associationToRow(association)
+	if err != nil {
+		return err
+	}
+	return u.associationRepository.Insert(row)
+}
+
+func (u UnitOfWork) associationToRow(association unmarshaller.Association) (row repository.AssociationRow, err error) {
+	row.MessageID = u.messageID
+	row.TimetableID = u.timetableID
 	row.Category = string(association.Category)
 	row.IsCancelled = association.Cancelled
 	row.IsDeleted = association.Deleted
 	row.MainScheduleID = association.MainService.RID
 	mainScheduleLocations, err := u.scheduleLocationRepository.SelectManyByScheduleID(association.MainService.RID)
 	if err != nil {
-		return err
+		return row, err
 	}
 	for _, loc := range mainScheduleLocations {
 		if timesEqual(unmarshaller.LocationTimeIdentifiers{
@@ -30,7 +39,7 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 	row.AssociatedScheduleID = association.AssociatedService.RID
 	associatedScheduleLocations, err := u.scheduleLocationRepository.SelectManyByScheduleID(association.AssociatedService.RID)
 	if err != nil {
-		return err
+		return row, err
 	}
 	for _, loc := range associatedScheduleLocations {
 		if timesEqual(unmarshaller.LocationTimeIdentifiers{
@@ -45,5 +54,5 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 		}
 	}
 
-	return u.associationRepository.Insert(row)
+	return row, nil
 }

@@ -65,7 +65,7 @@ func loadNewestDarwinFiles(log *slog.Logger, db database.Database, fg filegetter
 		return fmt.Errorf("error getting latest darwin timetable file path: %w", err)
 	}
 	log.Debug("creating a new UnitOfWork for interpreting the data")
-	u, err := interpreter.NewUnitOfWork(context.Background(), log, "", db, fg)
+	u, err := interpreter.NewUnitOfWork(context.Background(), log, db, fg, nil, nil) // timetableID is set with interpreter.InterpretTimetable
 	if err != nil {
 		return fmt.Errorf("failed to create a new UnitOfWork: %w", err)
 	}

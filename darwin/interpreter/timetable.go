@@ -13,9 +13,8 @@ func (u UnitOfWork) GetLastTimetable() (*repository.TimetableRow, error) {
 	return u.timetableRepository.SelectLast()
 }
 
-// TODO: tidy this generally, and figure out how to use copy to make this not take several minutes.
-
-func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable, filename string) error {
+func (u *UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable, filename string) error {
+	u.timetableID = &timetable.ID
 	log := u.log.With(slog.String("timetable_id", timetable.ID))
 	log.Debug("interpreting a Timetable")
 	location, err := time.LoadLocation("Europe/London")
@@ -49,11 +48,17 @@ func (u UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable, filenam
 		return fmt.Errorf("failed to insert schedule location rows into repository: %w", err)
 	}
 
+	var associationRows []repository.AssociationRow
 	for _, association := range timetable.Associations {
-		err := u.interpretAssociation(association)
+		row, err := u.associationToRow(association)
 		if err != nil {
-			return fmt.Errorf("failed to interpret association: %w", err)
+			return fmt.Errorf("failed to convert association to row: %w", err)
 		}
+		associationRows = append(associationRows, row)
+	}
+
+	if err := u.associationRepository.InsertMany(associationRows); err != nil {
+		return fmt.Errorf("failed to insert schedule association rows into repository: %w", err)
 	}
 
 	return nil

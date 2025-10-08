@@ -105,7 +105,7 @@ CREATE TABLE IF NOT EXISTS timetable_files (
 -- associations
 
 CREATE TABLE IF NOT EXISTS associations (
-				association_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+				association_id SERIAL PRIMARY KEY
 
 				-- sources
 				,message_id text

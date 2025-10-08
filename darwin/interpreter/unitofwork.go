@@ -12,11 +12,14 @@ import (
 )
 
 type UnitOfWork struct {
-	ctx       context.Context
-	log       *slog.Logger
-	messageID string
-	tx        pgx.Tx
-	fg        filegetter.FileGetter
+	ctx context.Context
+	log *slog.Logger
+	tx  pgx.Tx
+	fg  filegetter.FileGetter
+
+	// IDs
+	messageID   *string
+	timetableID *string
 
 	// Reference
 	referenceRepository                 repository.Reference
@@ -49,7 +52,7 @@ type UnitOfWork struct {
 	scheduleLocationRepository repository.ScheduleLocation
 }
 
-func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db database.Database, fg filegetter.FileGetter) (unit UnitOfWork, err error) {
+func NewUnitOfWork(ctx context.Context, log *slog.Logger, db database.Database, fg filegetter.FileGetter, messageID *string, timetableID *string) (unit UnitOfWork, err error) {
 	tx, err := db.BeginTx()
 	if err != nil {
 		err = fmt.Errorf("failed to begin new transaction: %w", err)
@@ -58,9 +61,11 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, messageID string, db d
 	unit = UnitOfWork{
 		ctx,
 		log,
-		messageID,
 		tx,
 		fg,
+
+		messageID,
+		timetableID,
 
 		// Reference
 		repository.NewPGXReference(ctx, log.With(slog.String("repository", "Reference")), tx),

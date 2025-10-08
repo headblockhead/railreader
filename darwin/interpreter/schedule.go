@@ -16,7 +16,7 @@ func (u UnitOfWork) InterpretSchedule(schedule unmarshaller.Schedule) error {
 
 	var row repository.ScheduleRow
 	row.ScheduleID = schedule.RID
-	row.MessageID = &u.messageID
+	row.MessageID = u.messageID
 	row.UID = schedule.UID
 	location, err := time.LoadLocation("Europe/London")
 	if err != nil {
