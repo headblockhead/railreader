@@ -23,9 +23,9 @@ func (u *UnitOfWork) InterpretTimetable(timetable unmarshaller.Timetable, filena
 	}
 
 	if err := u.timetableRepository.Insert(repository.TimetableRow{
-		TimetableID:     timetable.ID,
-		FirstReceivedAt: time.Now().In(location),
-		Filename:        filename,
+		TimetableID: timetable.ID,
+		Filename:    filename,
+		ReceivedAt:  time.Now().In(location),
 	}); err != nil {
 		return fmt.Errorf("failed to insert timetable into repository: %w", err)
 	}

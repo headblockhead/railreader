@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/headblockhead/railreader/database"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -17,9 +16,9 @@ type IngestCommand struct {
 		Kafka struct {
 			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" required:"" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
 			Topic             string        `env:"DARWIN_KAFKA_TOPIC" required:"" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
-			Group             string        `env:"DARWIN_KAFKA_GROUP" required:"" help:"Consumer group."`
-			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:"" help:"Cnsumer username."`
-			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:"" help:"Consumer password."`
+			Group             string        `env:"DARWIN_KAFKA_GROUP" required:""`
+			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:""`
+			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:""`
 			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" required:"" default:"30s" help:"Timeout for connecting to the Kafka broker."`
 		} `embed:"" prefix:"kafka."`
 		S3 struct {
@@ -51,22 +50,27 @@ type messageHandler interface {
 func (c IngestCommand) Run() error {
 	log := getLogger(c.Logging.Level, c.Logging.Format == "json")
 
-	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
-	go onSignal(log, func() {
-		messageFetcherCancel()
-	})
+	var signalContext, signalCancel = context.WithCancel(context.Background())
+	defer signalCancel()
 
-	db, err := database.New(context.Background(), log.With(slog.String("source", "database")), c.DatabaseURL)
+	var databaseContext, databaseCancel = context.WithCancel(context.Background())
+	defer databaseCancel()
+	dbpool, err := connectToDatabase(databaseContext, log.With(slog.String("process", "database")), c.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to database: %w", err)
 	}
+	defer dbpool.Close(databaseContext)
 
-	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(log.With(slog.String("source", "darwin")), db)
+	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(log.With(slog.String("source", "darwin")), dbpool)
 	if err != nil {
 		return fmt.Errorf("error setting up darwin connection: %w", err)
 	}
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
 
+	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
+	go onSignal(log, signalContext, func() {
+		messageFetcherCancel()
+	})
 	var fetcherGroup sync.WaitGroup
 	fetcherGroup.Go(func() {
 		fetchMessages(messageFetcherContext, log.With(slog.String("source", "darwin"), slog.String("process", "fetcher")), darwinKafkaMessages, darwinFetcherCommiter)
@@ -86,9 +90,7 @@ func (c IngestCommand) Run() error {
 	if err := darwinFetcherCommiter.Close(); err != nil {
 		log.Error("error closing darwin kafka connection", slog.Any("error", err))
 	}
-	if err := db.Close(5 * time.Second); err != nil {
-		log.Error("error closing darwin database connection", slog.Any("error", err))
-	}
+
 	return nil
 }
 

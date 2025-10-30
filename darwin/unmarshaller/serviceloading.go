@@ -18,8 +18,6 @@ type ServiceLoading struct {
 	LoadingPercentage *LoadingPercentage `xml:"loadingPercentage"`
 }
 
-// Struct embedding is not used here because it (for unknown reasons) breaks XML unmarshalling of the chardata when a custom UnmarshalXML method is defined for the base struct.
-
 type LoadingCategory struct {
 	// Type can be "Expected" or "Typical", and defaults to "Typical" if not specified.
 	Type LoadingCategoryType `xml:"type,attr"`

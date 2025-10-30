@@ -6,11 +6,11 @@ import (
 	"log/slog"
 
 	"github.com/headblockhead/railreader/darwin/filegetter"
-	"github.com/headblockhead/railreader/darwin/repository"
-	"github.com/headblockhead/railreader/database"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// A UnitOfWork represents a single transaction scope.
 type UnitOfWork struct {
 	ctx context.Context
 	log *slog.Logger
@@ -20,96 +20,39 @@ type UnitOfWork struct {
 	// IDs
 	messageID   *string
 	timetableID *string
-
-	// Reference
-	referenceRepository                 repository.Reference
-	locationRepository                  repository.Location
-	trainOperatingCompanyRepository     repository.TrainOperatingCompany
-	lateReasonRepository                repository.LateReason
-	cancellationReasonRepository        repository.CancellationReason
-	viaConditionRepository              repository.ViaCondition
-	customerInformationSystemRepository repository.CustomerInformationSystem
-	loadingCategoryRepository           repository.LoadingCategory
-
-	// MessageXML
-	messageXMLRepository repository.MessageXML
-
-	// PPort
-	pportMessageRepository repository.PPortMessage
-	responseRepository     repository.Response
-
-	// Status
-	statusRepository repository.Status
-
-	// Timetable
-	timetableRepository repository.Timetable
-
-	// Association
-	associationRepository repository.Association
-
-	// Schedule
-	scheduleRepository         repository.Schedule
-	scheduleLocationRepository repository.ScheduleLocation
 }
 
-func NewUnitOfWork(ctx context.Context, log *slog.Logger, db database.Database, fg filegetter.FileGetter, messageID *string, timetableID *string) (unit UnitOfWork, err error) {
-	tx, err := db.BeginTx()
+func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fg filegetter.FileGetter, messageID *string, timetableID *string) (unit *UnitOfWork, err error) {
+	log.Debug("creating new transaction for new unit of work")
+	tx, err := dbpool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
-		err = fmt.Errorf("failed to begin new transaction: %w", err)
-		return
+		return nil, fmt.Errorf("failed to begin new transaction: %w", err)
 	}
-	unit = UnitOfWork{
-		ctx,
-		log,
-		tx,
-		fg,
-
-		messageID,
-		timetableID,
-
-		// Reference
-		repository.NewPGXReference(ctx, log.With(slog.String("repository", "Reference")), tx),
-		repository.NewPGXLocation(ctx, log.With(slog.String("repository", "Location")), tx),
-		repository.NewPGXTrainOperatingCompany(ctx, log.With(slog.String("repository", "TrainOperatingCompany")), tx),
-		repository.NewPGXLateReason(ctx, log.With(slog.String("repository", "LateReason")), tx),
-		repository.NewPGXCancellationReason(ctx, log.With(slog.String("repository", "CancellationReason")), tx),
-		repository.NewPGXViaCondition(ctx, log.With(slog.String("repository", "ViaCondition")), tx),
-		repository.NewPGXCustomerInformationSystem(ctx, log.With(slog.String("repository", "CustomerInformationSystem")), tx),
-		repository.NewPGXLoadingCategory(ctx, log.With(slog.String("repository", "LoadingCategory")), tx),
-
-		// MessageXML
-		repository.NewPGXMessageXML(ctx, log.With(slog.String("repository", "MessageXML")), tx),
-
-		// PPort
-		repository.NewPGXPPortMessage(ctx, log.With(slog.String("repository", "PPortMessage")), tx),
-		repository.NewPGXResponse(ctx, log.With(slog.String("repository", "Response")), tx),
-
-		// Status
-		repository.NewPGXStatus(ctx, log.With(slog.String("repository", "Status")), tx),
-
-		// Timetable
-		repository.NewPGXTimetable(ctx, log.With(slog.String("repository", "Timetable")), tx),
-
-		// Association
-		repository.NewPGXAssociation(ctx, log.With(slog.String("repository", "Association")), tx),
-
-		// Schedule
-		repository.NewPGXSchedule(ctx, log.With(slog.String("repository", "Schedule")), tx),
-		repository.NewPGXScheduleLocation(ctx, log.With(slog.String("repository", "ScheduleLocation")), tx),
-	}
-	return
+	log.Debug("transaction created for new unit of work")
+	return &UnitOfWork{
+		ctx:         ctx,
+		log:         log,
+		tx:          tx,
+		fg:          fg,
+		messageID:   messageID,
+		timetableID: timetableID,
+	}, nil
 }
 
 func (u UnitOfWork) Commit() error {
+	u.log.Debug("committing transaction for unit of work")
 	if err := u.tx.Commit(u.ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
+	u.log.Debug("transaction committed for unit of work")
 	return nil
 }
 
 func (u UnitOfWork) Rollback() error {
+	u.log.Debug("rolling back transaction for unit of work")
 	if err := u.tx.Rollback(u.ctx); err != nil {
 		return fmt.Errorf("failed to rollback transaction: %w", err)
 	}
+	u.log.Debug("transaction rolled back for unit of work")
 	return nil
 }

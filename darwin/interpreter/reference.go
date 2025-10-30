@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
@@ -15,7 +16,8 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference, filenam
 	u.log.Debug("interpreting a Reference")
 
 	if err := u.referenceRepository.Insert(repository.ReferenceRow{
-		Filename: filename,
+		Filename:   filename,
+		RecievedAt: time.Now(),
 	}); err != nil {
 		return fmt.Errorf("failed to insert reference record: %w", err)
 	}
@@ -114,8 +116,9 @@ func (u UnitOfWork) InterpretReference(reference unmarshaller.Reference, filenam
 	}
 
 	var loadingCategories []repository.LoadingCategoryRow
-	for _, lc := range reference.LoadingCategories {
+	for i, lc := range reference.LoadingCategories {
 		row := repository.LoadingCategoryRow{}
+		row.LoadingCategoryID = i
 		row.LoadingCategoryCode = lc.Code
 		row.TrainOperatingCompanyID = lc.TOC
 		row.Name = lc.Name

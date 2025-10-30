@@ -1,58 +1,56 @@
 package interpreter
 
 import (
-	"github.com/headblockhead/railreader/darwin/repository"
+	"github.com/google/uuid"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
+// interpretAssociation takes an unmarshalled Association object, converts it into a database record, and inserts it into the database.
 func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) error {
-	row, err := u.associationToRow(association)
+	record, err := u.associationToRecord(association)
 	if err != nil {
 		return err
 	}
-	return u.associationRepository.Insert(row)
+	return u.insertOneAssociationRecord(record)
 }
 
-func (u UnitOfWork) associationToRow(association unmarshaller.Association) (row repository.AssociationRow, err error) {
-	row.MessageID = u.messageID
-	row.TimetableID = u.timetableID
-	row.Category = string(association.Category)
-	row.IsCancelled = association.Cancelled
-	row.IsDeleted = association.Deleted
-	row.MainScheduleID = association.MainService.RID
-	mainScheduleLocations, err := u.scheduleLocationRepository.SelectManyByScheduleID(association.MainService.RID)
-	if err != nil {
-		return row, err
-	}
-	for _, loc := range mainScheduleLocations {
-		if timesEqual(unmarshaller.LocationTimeIdentifiers{
-			PublicArrivalTime:    loc.PublicArrivalTime,
-			PublicDepartureTime:  loc.PublicDepartureTime,
-			WorkingArrivalTime:   loc.WorkingArrivalTime,
-			WorkingDepartureTime: loc.WorkingDepartureTime,
-			WorkingPassingTime:   loc.WorkingPassingTime,
-		}, association.MainService.LocationTimeIdentifiers) && loc.LocationID == association.TIPLOC {
-			row.MainScheduleLocationSequence = loc.Sequence
-			break
-		}
-	}
-	row.AssociatedScheduleID = association.AssociatedService.RID
-	associatedScheduleLocations, err := u.scheduleLocationRepository.SelectManyByScheduleID(association.AssociatedService.RID)
-	if err != nil {
-		return row, err
-	}
-	for _, loc := range associatedScheduleLocations {
-		if timesEqual(unmarshaller.LocationTimeIdentifiers{
-			PublicArrivalTime:    loc.PublicArrivalTime,
-			PublicDepartureTime:  loc.PublicDepartureTime,
-			WorkingArrivalTime:   loc.WorkingArrivalTime,
-			WorkingDepartureTime: loc.WorkingDepartureTime,
-			WorkingPassingTime:   loc.WorkingPassingTime,
-		}, association.AssociatedService.LocationTimeIdentifiers) && loc.LocationID == association.TIPLOC {
-			row.AssociatedScheduleLocationSequence = loc.Sequence
-			break
-		}
-	}
+type AssociationRecord struct {
+	AssociationID                      uuid.UUID
+	MessageID                          *string
+	TimetableID                        *string
+	Category                           string
+	IsCancelled                        bool
+	IsDeleted                          bool
+	MainScheduleID                     string
+	MainScheduleLocationSequence       int
+	AssociatedScheduleID               string
+	AssociatedScheduleLocationSequence int
+}
 
-	return row, nil
+// associationToRecord converts an unmarshalled Association object into an association database record.
+// It requires both of the schedules (and their locations) to already exist in the database.
+func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (AssociationRecord, error) {
+	var record AssociationRecord
+	record.AssociationID = uuid.New()
+	record.MessageID = u.messageID
+	record.TimetableID = u.timetableID
+	record.Category = string(association.Category)
+	record.IsCancelled = association.Cancelled
+	record.IsDeleted = association.Deleted
+	record.MainScheduleID = association.MainService.RID
+	var err error
+	record.MainScheduleLocationSequence, err = u.findLocationSequence(association.MainService.RID, association.TIPLOC, association.MainService.LocationTimeIdentifiers)
+	if err != nil {
+		return record, err
+	}
+	record.AssociatedScheduleID = association.AssociatedService.RID
+	record.AssociatedScheduleLocationSequence, err = u.findLocationSequence(association.AssociatedService.RID, association.TIPLOC, association.AssociatedService.LocationTimeIdentifiers)
+	if err != nil {
+		return record, err
+	}
+	return record, nil
+}
+
+// insertOneAssociationRecord inserts a single association record into the database.
+func (u UnitOfWork) insertOneAssociationRecord(record AssociationRecord) error {
 }
