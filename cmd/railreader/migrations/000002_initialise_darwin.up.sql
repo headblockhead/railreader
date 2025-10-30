@@ -220,3 +220,9 @@ CREATE TABLE IF NOT EXISTS darwin.alarms ( -- Alarms raised when Darwin has not 
 				,all_train_describers_failed boolean
 				,tyrell_failed boolean
 );
+
+-- forecasts
+
+CREATE TABLE IF NOT EXISTS darwin.forecasts (
+
+);

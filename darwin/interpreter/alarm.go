@@ -11,7 +11,7 @@ import (
 // interpretAlarm takes an unmarshalled Alarm event, and records it in the database.
 func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 	if alarm.ClearedAlarm != nil {
-		_, err := u.tx.Exec(u.ctx, `UPDATE alarms SET has_cleared = TRUE, cleared_at = @cleared_at WHERE id = @alarm_id;`, pgx.StrictNamedArgs{
+		_, err := u.tx.Exec(u.ctx, `UPDATE darwin.alarms SET has_cleared = TRUE, cleared_at = @cleared_at WHERE id = @alarm_id;`, pgx.StrictNamedArgs{
 			"cleared_at": time.Now(),
 			"alarm_id":   *alarm.ClearedAlarm,
 		})
@@ -39,33 +39,33 @@ func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 
 type AlarmRecord struct {
 	ID                       int
-	messageID                *string
-	recievedAt               time.Time
-	hasCleared               bool
-	clearedAt                *time.Time
-	trainDescriberFailure    *string
-	allTrainDescribersFailed *bool
-	tyrellFailed             *bool
+	MessageID                *string
+	ReceivedAt               time.Time
+	HasCleared               bool
+	ClearedAt                *time.Time
+	TrainDescriberFailure    *string
+	AllTrainDescribersFailed *bool
+	TyrellFailed             *bool
 }
 
 // newAlarmToRecord converts an unmarshalled NewAlarm object into an alarm database record.
 func (u UnitOfWork) newAlarmToRecord(alarm unmarshaller.NewAlarm) (AlarmRecord, error) {
 	var record AlarmRecord
 	record.ID = alarm.ID
-	record.messageID = u.messageID
-	record.recievedAt = time.Now()
-	record.hasCleared = false
-	record.clearedAt = nil
-	record.trainDescriberFailure = alarm.TDFailure
-	record.allTrainDescribersFailed = (*bool)(&alarm.TDTotalFailure)
-	record.tyrellFailed = (*bool)(&alarm.TyrellTotalFailure)
+	record.MessageID = u.messageID
+	record.ReceivedAt = time.Now()
+	record.HasCleared = false
+	record.ClearedAt = nil
+	record.TrainDescriberFailure = alarm.TDFailure
+	record.AllTrainDescribersFailed = (*bool)(&alarm.TDTotalFailure)
+	record.TyrellFailed = (*bool)(&alarm.TyrellTotalFailure)
 	return record, nil
 }
 
 // insertOneAlarmRecord inserts a single alarm record into the database.
 func (u UnitOfWork) insertOneAlarmRecord(record AlarmRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
-		INSERT INTO alarms (
+		INSERT INTO darwin.alarms (
 			id
 			,message_id
 			,received_at
@@ -86,13 +86,13 @@ func (u UnitOfWork) insertOneAlarmRecord(record AlarmRecord) error {
 		);
 		`, pgx.StrictNamedArgs{
 		"id":                          record.ID,
-		"message_id":                  record.messageID,
-		"received_at":                 record.recievedAt,
-		"has_cleared":                 record.hasCleared,
-		"cleared_at":                  record.clearedAt,
-		"train_describer_failure":     record.trainDescriberFailure,
-		"all_train_describers_failed": record.allTrainDescribersFailed,
-		"tyrell_failed":               record.tyrellFailed,
+		"message_id":                  record.MessageID,
+		"received_at":                 record.ReceivedAt,
+		"has_cleared":                 record.HasCleared,
+		"cleared_at":                  record.ClearedAt,
+		"train_describer_failure":     record.TrainDescriberFailure,
+		"all_train_describers_failed": record.AllTrainDescribersFailed,
+		"tyrell_failed":               record.TyrellFailed,
 	})
 	if err != nil {
 		return err
