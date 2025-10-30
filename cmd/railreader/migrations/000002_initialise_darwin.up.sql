@@ -177,6 +177,24 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 
 				-- Journey
 				,platform text
+
+				-- Forecast
+				,late_reason_id int
+				,late_reason_location_id text
+				,late_reason_is_near_location boolean
+				
+				,disruption_risk text
+				,disruption_risk_reason_id int
+				,disruption_risk_reason_location_id text
+				,disruption_risk_reason_is_near_location boolean
+
+				,affected_by text
+ 				,length int -- may or may not match formation data
+				,platform_supressed boolean
+				,platform_supressed_by_cis boolean
+				,platform_data_source text
+				,platform_confirmed boolean
+				,platform text
 );
 
 -- associations
@@ -221,8 +239,12 @@ CREATE TABLE IF NOT EXISTS darwin.alarms ( -- Alarms raised when Darwin has not 
 				,tyrell_failed boolean
 );
 
--- forecasts
+-- forecast
 
 CREATE TABLE IF NOT EXISTS darwin.forecasts (
-
+				schedule_id text
+				,CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
+				,sequence int
+				,forecast_type text -- arrival, passing, departure
+				,PRIMARY KEY (schedule_id, sequence, forecast_type)
 );
