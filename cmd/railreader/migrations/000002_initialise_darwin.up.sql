@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 				,platform text
 
 				-- Forecast
+
 				,late_reason_id int
 				,late_reason_location_id text
 				,late_reason_is_near_location boolean
@@ -209,9 +210,11 @@ CREATE TABLE IF NOT EXISTS darwin.associations ( -- Links between two schedules
 				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(id) ON DELETE CASCADE
 
 				-- Association
+				,location_id text NOT NULL
+				,CONSTRAINT fk_location FOREIGN KEY(location_id) REFERENCES locations(id)
 				,category text NOT NULL -- 2-letter association category code (join, spilt, etc. - see type railreader.AssociationCategory)
-				,is_cancelled boolean NOT NULL -- won't happen
-				,is_deleted boolean NOT NULL -- doesn't exist
+				,is_cancelled boolean -- won't happen
+				,is_deleted boolean -- doesn't exist
 				,main_schedule_id text NOT NULL
 				,CONSTRAINT fk_main_schedule FOREIGN KEY(main_schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
 				,main_schedule_location_sequence int NOT NULL -- sequence number in the schedule_locations table
@@ -237,14 +240,4 @@ CREATE TABLE IF NOT EXISTS darwin.alarms ( -- Alarms raised when Darwin has not 
 				,train_describer_failure text -- a specific train describer that is suspected to have failed
 				,all_train_describers_failed boolean
 				,tyrell_failed boolean
-);
-
--- forecast
-
-CREATE TABLE IF NOT EXISTS darwin.forecasts (
-				schedule_id text
-				,CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
-				,sequence int
-				,forecast_type text -- arrival, passing, departure
-				,PRIMARY KEY (schedule_id, sequence, forecast_type)
 );

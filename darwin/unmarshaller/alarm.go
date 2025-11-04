@@ -13,6 +13,7 @@ type NewAlarm struct {
 	ID int `xml:"id,attr"`
 
 	// only one of:
+
 	// TDFailure gives the code of a specific Train Describer that Darwin has not received any data from for a period of time (darwin suspects that the TD has failed)
 	TDFailure *string `xml:"tdAreaFail"`
 	// TDTotalFailure is true if Darwin has not received any data from any Train Describers for a period of time.

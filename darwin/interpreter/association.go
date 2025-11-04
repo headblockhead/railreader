@@ -12,16 +12,17 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 	if err != nil {
 		return err
 	}
-	return u.insertOneAssociationRecord(record)
+	return u.upsertOneAssociationRecord(record)
 }
 
 type AssociationRecord struct {
 	ID                                 uuid.UUID
 	MessageID                          *string
 	TimetableID                        *string
+	LocationID                         string
 	Category                           string
-	IsCancelled                        bool
-	IsDeleted                          bool
+	IsCancelled                        *bool
+	IsDeleted                          *bool
 	MainScheduleID                     string
 	MainScheduleLocationSequence       int
 	AssociatedScheduleID               string
@@ -35,6 +36,7 @@ func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (A
 	record.ID = uuid.New()
 	record.MessageID = u.messageID
 	record.TimetableID = u.timetableID
+	record.LocationID = association.TIPLOC
 	record.Category = string(association.Category)
 	record.IsCancelled = association.Cancelled
 	record.IsDeleted = association.Deleted
@@ -52,13 +54,14 @@ func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (A
 	return record, nil
 }
 
-// insertOneAssociationRecord inserts a single association record into the database.
-func (u UnitOfWork) insertOneAssociationRecord(record AssociationRecord) error {
+// upsertOneAssociationRecord inserts a new (or updates an existing) association record in the database.
+func (u UnitOfWork) upsertOneAssociationRecord(record AssociationRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.associations (
 			id
 			,message_id
 			,timetable_id
+			,location_id
 			,category
 			,is_cancelled
 			,is_deleted
@@ -70,6 +73,7 @@ func (u UnitOfWork) insertOneAssociationRecord(record AssociationRecord) error {
 			@id
 			,@message_id
 			,@timetable_id
+			,@location_id
 			,@category
 			,@is_cancelled
 			,@is_deleted
@@ -77,11 +81,23 @@ func (u UnitOfWork) insertOneAssociationRecord(record AssociationRecord) error {
 			,@main_schedule_location_sequence
 			,@associated_schedule_id
 			,@associated_schedule_location_sequence
+		) ON CONFLICT (id) DO UPDATE SET (
+			message_id = EXCLUDED.message_id
+			,timetable_id = EXCLUDED.timetable_id
+			,location_id = EXCLUDED.location_id
+			,category = EXCLUDED.category
+			,is_cancelled = EXCLUDED.is_cancelled
+			,is_deleted = EXCLUDED.is_deleted
+			,main_schedule_id = EXCLUDED.main_schedule_id
+			,main_schedule_location_sequence = EXCLUDED.main_schedule_location_sequence
+			,associated_schedule_id = EXCLUDED.associated_schedule_id
+			,associated_schedule_location_sequence = EXCLUDED.associated_schedule_location_sequence
 		);
 		`, pgx.StrictNamedArgs{
 		"id":                                    record.ID,
 		"message_id":                            record.MessageID,
 		"timetable_id":                          record.TimetableID,
+		"location_id":                           record.LocationID,
 		"category":                              record.Category,
 		"is_cancelled":                          record.IsCancelled,
 		"is_deleted":                            record.IsDeleted,

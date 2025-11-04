@@ -11,9 +11,10 @@ import (
 // interpretAlarm takes an unmarshalled Alarm event, and records it in the database.
 func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 	if alarm.ClearedAlarm != nil {
-		_, err := u.tx.Exec(u.ctx, `UPDATE darwin.alarms SET has_cleared = TRUE, cleared_at = @cleared_at WHERE id = @alarm_id;`, pgx.StrictNamedArgs{
-			"cleared_at": time.Now(),
-			"alarm_id":   *alarm.ClearedAlarm,
+		_, err := u.tx.Exec(u.ctx, `UPDATE darwin.alarms SET has_cleared = @has_cleared, cleared_at = @cleared_at WHERE id = @alarm_id;`, pgx.StrictNamedArgs{
+			"has_cleared": true,
+			"cleared_at":  time.Now(),
+			"alarm_id":    *alarm.ClearedAlarm,
 		})
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -27,7 +28,7 @@ func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 		if err != nil {
 			return err
 		}
-		err = u.insertOneAlarmRecord(record)
+		err = u.upsertOneAlarmRecord(record)
 		if err != nil {
 			return err
 		}
@@ -62,8 +63,8 @@ func (u UnitOfWork) newAlarmToRecord(alarm unmarshaller.NewAlarm) (AlarmRecord, 
 	return record, nil
 }
 
-// insertOneAlarmRecord inserts a single alarm record into the database.
-func (u UnitOfWork) insertOneAlarmRecord(record AlarmRecord) error {
+// upsertOneAlarmRecord inserts a new (or updates an existing) alarm record in the database.
+func (u UnitOfWork) upsertOneAlarmRecord(record AlarmRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.alarms (
 			id
@@ -83,6 +84,14 @@ func (u UnitOfWork) insertOneAlarmRecord(record AlarmRecord) error {
 			,@train_describer_failure
 			,@all_train_describers_failed
 			,@tyrell_failed
+		) ON CONFLICT (id) UPDATE SET (
+			message_id = EXCLUDED.message_id
+			,received_at = EXCLUDED.received_at
+			,has_cleared = EXCLUDED.has_cleared
+			,cleared_at = EXCLUDED.cleared_at
+			,train_describer_failure = EXCLUDED.train_describer_failure
+			,all_train_describers_failed = EXCLUDED.all_train_describers_failed
+			,tyrell_failed = EXCLUDED.tyrell_failed
 		);
 		`, pgx.StrictNamedArgs{
 		"id":                          record.ID,
