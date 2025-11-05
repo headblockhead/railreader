@@ -89,7 +89,7 @@ var scheduleTestCases = []unmarshalTestCase[Schedule]{
 						PublicDepartureTime:  pointerTo("00:08"),
 						WorkingArrivalTime:   "00:09",
 						WorkingDepartureTime: "00:10",
-						RoutingDelay:         pointerTo(2),
+						RoutingDelay:         2,
 						FalseDestination:     pointerTo("YZAB"),
 					},
 				},
@@ -98,14 +98,14 @@ var scheduleTestCases = []unmarshalTestCase[Schedule]{
 					OperationalIntermediate: &OperationalIntermediateLocation{
 						WorkingArrivalTime:   "00:11",
 						WorkingDepartureTime: "00:12",
-						RoutingDelay:         pointerTo(3),
+						RoutingDelay:         3,
 					},
 				},
 				{
 					Type: LocationTypeIntermediatePassing,
 					IntermediatePassing: &IntermediatePassingLocation{
 						WorkingPassingTime: "00:13",
-						RoutingDelay:       pointerTo(4),
+						RoutingDelay:       4,
 					},
 				},
 				{
@@ -115,7 +115,7 @@ var scheduleTestCases = []unmarshalTestCase[Schedule]{
 						PublicDepartureTime:  pointerTo("00:15"),
 						WorkingArrivalTime:   "00:16",
 						WorkingDepartureTime: pointerTo("00:17"),
-						RoutingDelay:         pointerTo(5),
+						RoutingDelay:         5,
 					},
 				},
 				{
@@ -123,7 +123,7 @@ var scheduleTestCases = []unmarshalTestCase[Schedule]{
 					OperationalDestination: &OperationalDestinationLocation{
 						WorkingArrivalTime:   "00:18",
 						WorkingDepartureTime: pointerTo("00:19"),
-						RoutingDelay:         pointerTo(6),
+						RoutingDelay:         6,
 					},
 				},
 			},

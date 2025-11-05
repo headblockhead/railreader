@@ -37,15 +37,15 @@ var formationTestCases = []unmarshalTestCase[FormationsOfService]{
 							Identifier: "A",
 							Class:      pointerTo("First"),
 							Toilet: FormationCoachToilet{
-								Status: ToiletStatusNotInService,
-								Type:   ToiletTypeStandard,
+								Status: "NotInService",
+								Type:   "Standard",
 							},
 						},
 						{
 							Identifier: "B",
 							Toilet: FormationCoachToilet{
-								Status: ToiletStatusInService,
-								Type:   ToiletTypeUnknown,
+								Status: "InService",
+								Type:   "Unknown",
 							},
 						},
 					},
