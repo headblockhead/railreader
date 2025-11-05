@@ -179,9 +179,6 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 				,CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(id)
 				,cancellation_reason_is_near_location boolean NULL
 
-				-- Journey
-				,platform varchar(3) NULL
-
 				-- Forecast
 				,arrival_estimated_time char(5) NULL -- HH:MM
 				,arrival_estimated_working_time char(5) NULL
@@ -232,7 +229,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 				,platform_supressed_by_cis boolean NULL
 				,platform_data_source char NULL -- "P", "A", "M"
 				,platform_confirmed boolean NULL
-				,platform varchar(3) NULL
+				,platform varchar(3) NULL -- also set by Journey data in timetables
 );
 
 -- associations
