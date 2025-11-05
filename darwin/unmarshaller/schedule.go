@@ -187,7 +187,7 @@ type IntermediateLocation struct {
 	WorkingArrivalTime   string  `xml:"wta,attr"`
 	WorkingDepartureTime string  `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+	RoutingDelay int `xml:"rdelay,attr"`
 	// FalseDestination is an optionally provided destination TIPLOC that is not the train's true destination, but should be displayed to the public as the train's destination, at this location.
 	FalseDestination *string `xml:"fd,attr"`
 }
@@ -197,14 +197,14 @@ type OperationalIntermediateLocation struct {
 	WorkingArrivalTime   string `xml:"wta,attr"`
 	WorkingDepartureTime string `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type IntermediatePassingLocation struct {
 	LocationBase
 	WorkingPassingTime string `xml:"wtp,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type DestinationLocation struct {
@@ -217,7 +217,7 @@ type DestinationLocation struct {
 	// WorkingDepartureTime is optionally provided.
 	WorkingDepartureTime *string `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+	RoutingDelay int `xml:"rdelay,attr"`
 }
 
 type OperationalDestinationLocation struct {
@@ -226,5 +226,5 @@ type OperationalDestinationLocation struct {
 	// WorkingDepartureTime is optionally provided.
 	WorkingDepartureTime *string `xml:"wtd,attr"`
 	// RoutingDelay is an optionally provided amount of minutes a change in the train's routing has delayed this location's PublicArrivalTime.
-	RoutingDelay *int `xml:"rdelay,attr"`
+	RoutingDelay int `xml:"rdelay,attr"`
 }

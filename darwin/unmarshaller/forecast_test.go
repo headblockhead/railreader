@@ -49,10 +49,10 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 					},
 					ArrivalData: &ForecastTimes{
 						EstimatedTime:        pointerTo("00:12"),
-						WorkingTime:          pointerTo("00:13"),
+						EstimatedWorkingTime: pointerTo("00:13"),
 						ActualTime:           pointerTo("00:14"),
 						ActualTimeRevoked:    true,
-						ActualTimeSource:     pointerTo("Manual"),
+						ActualTimeClass:      pointerTo("Manual"),
 						EstimatedTimeMinimum: pointerTo("00:11"),
 						EstimatedTimeUnknown: true,
 						Delayed:              true,
@@ -61,10 +61,10 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 					},
 					DepartureData: &ForecastTimes{
 						EstimatedTime:        pointerTo("00:16"),
-						WorkingTime:          pointerTo("00:17"),
+						EstimatedWorkingTime: pointerTo("00:17"),
 						ActualTime:           pointerTo("00:18"),
 						ActualTimeRevoked:    true,
-						ActualTimeSource:     pointerTo("Manual"),
+						ActualTimeClass:      pointerTo("Manual"),
 						EstimatedTimeMinimum: pointerTo("00:15"),
 						EstimatedTimeUnknown: true,
 						Delayed:              true,
@@ -73,10 +73,10 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 					},
 					PassingData: &ForecastTimes{
 						EstimatedTime:        pointerTo("00:20"),
-						WorkingTime:          pointerTo("00:21"),
+						EstimatedWorkingTime: pointerTo("00:21"),
 						ActualTime:           pointerTo("00:22"),
 						ActualTimeRevoked:    true,
-						ActualTimeSource:     pointerTo("Manual"),
+						ActualTimeClass:      pointerTo("Manual"),
 						EstimatedTimeMinimum: pointerTo("00:19"),
 						EstimatedTimeUnknown: true,
 						Delayed:              true,
@@ -103,7 +103,7 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 					PlatformData: &ForecastPlatform{
 						Suppressed:      true,
 						SuppressedByCIS: true,
-						Source:          PlatformDataSourceManual,
+						Source:          "M",
 						Confirmed:       true,
 						Platform:        "2",
 					},
@@ -124,7 +124,7 @@ var forecastTestCases = []unmarshalTestCase[ForecastTime]{
 			Locations: []ForecastLocation{
 				{
 					PlatformData: &ForecastPlatform{
-						Source: PlatformDataSourcePlanned,
+						Source: "P",
 					},
 				},
 			},

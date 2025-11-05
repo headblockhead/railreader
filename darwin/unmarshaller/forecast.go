@@ -12,7 +12,7 @@ type ForecastTime struct {
 	// documentation from schema: "Indicates whether a train that divides is working with portions in reverse to their normal formation. The value applies to the whole train."
 	// documentation from specification: "Whether a train that divides is running in reverse formation at the divide location"
 	// Presence of this attribute does not necessarily mean there actually is a divide association for this service.
-	ReverseFormation *bool `xml:"isReverseFormation,attr"`
+	ReverseFormation bool `xml:"isReverseFormation,attr"`
 
 	// LateReason is optional.
 	LateReason *DisruptionReason  `xml:"LateReason"`
@@ -36,20 +36,19 @@ type ForecastLocation struct {
 	// It is *expected* to contain a National Rail Enquires incident number, but can contain any text.
 	AffectedBy *string `xml:"affectedBy"`
 	// Length may or may not match the Formation data. If it is given as 0, it is unknown.
-	Length       *int              `xml:"length"`
+	Length       int               `xml:"length"`
 	PlatformData *ForecastPlatform `xml:"plat"`
 	// Suppressed indicates that this service should not be shown to users at this location.
-	Suppressed *bool `xml:"suppr"`
+	Suppressed bool `xml:"suppr"`
 	// DetachesFromFront is true (at a location where train stock is detached) if train stock will be detached from the front of the train at this location, and false if it will be detached from the rear.
 	// documentation from schema: "Indicates from which end of the train stock will be detached. The value is set to “true” if stock will be detached from the front of the train at this location. It will be set at each location where stock will be detached from the front."
 	// Presence of this attribute does not necessarily mean there actually is a stock detachment activity code at this location.
-	DetachesFromFront *bool `xml:"detachFront"`
+	DetachesFromFront bool `xml:"detachFront"`
 }
 
 // ForecastDisruptionRisk contains information about a potential future disruption to a service.
 type ForecastDisruptionRisk struct {
-	// Effect indicates the predicted effect of the uncertainty (eg, delay, cancellation, etc).
-	// TODO: find real examples of Effect values.
+	// Effect indicates the predicted effect of the uncertainty (eg, "Delay", "Cancellation", "Other").
 	Effect string `xml:"status,attr"`
 
 	Reason *DisruptionReason `xml:"reason"`
@@ -58,13 +57,13 @@ type ForecastDisruptionRisk struct {
 // ForecastPlatform provides the platform a train will be at.
 type ForecastPlatform struct {
 	// Suppressed indicates that the provided platform data should not be shown to the user.
-	Suppressed *bool `xml:"platsup,attr"`
+	Suppressed bool `xml:"platsup,attr"`
 	// SuppressedByCIS indicates that the platform data should not be shown to the user, and that this was requested manually.
-	SuppressedByCIS *bool `xml:"cisPlatsup,attr"`
+	SuppressedByCIS bool `xml:"cisPlatsup,attr"`
 	// Source is the source of the platform data. Can be P for Planned, A for Automatic, or M for Manual.
-	Source *string `xml:"platsrc,attr"`
+	Source string `xml:"platsrc,attr"`
 	// Confirmed indicates the platform is almost certain to be correct.
-	Confirmed *bool `xml:"conf,attr"`
+	Confirmed bool `xml:"conf,attr"`
 
 	Platform string `xml:",chardata"`
 }
@@ -75,7 +74,7 @@ func (f *ForecastPlatform) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	var platform Alias
 
 	// Set default values.
-	platform.Source = pointerTo("P") // Planned
+	platform.Source = "P" // Planned
 
 	if err := d.DecodeElement(&platform, &start); err != nil {
 		return fmt.Errorf("failed to decode ForecastPlatform: %w", err)
@@ -89,24 +88,24 @@ func (f *ForecastPlatform) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 
 // ForecastTimes contains the time data for arrival, departure, or passing a location.
 type ForecastTimes struct {
-	// EstimatedTime is optional, generated from the public time table (or the Working Time Table if the location does not have public times).
+	// EstimatedTime is optional, generated from the public timetable (or the Working Time Table if the location does not have public times).
 	EstimatedTime *string `xml:"et,attr"`
-	// WorkingTime is optional, generated from the Working Time Table.
-	WorkingTime *string `xml:"wet,attr"`
+	// EstimatedWorkingTime is optional, simmilar to EstimatedTime but generated from the Working Time Table instead of the public timetable.
+	EstimatedWorkingTime *string `xml:"wet,attr"`
 	// ActualTime is optional, and may not be reported for all locations.
 	ActualTime *string `xml:"at,attr"`
 	// ActualTimeRevoked indicates that a previously given 'actual time' was incorrect, and has been replaced by an estimated time.
-	ActualTimeRevoked *bool `xml:"atRemoved,attr"`
-	// ActualTimeSource is the optionally provided source of the Actual Time data, such as "Manual", "GPS", etc.
-	ActualTimeSource *string `xml:"atClass,attr"`
+	ActualTimeRevoked bool `xml:"atRemoved,attr"`
+	// ActualTimeClass is the optionally provided class of the Actual Time data, such as "Manual", "GPS", etc.
+	ActualTimeClass *string `xml:"atClass,attr"`
 	// EstimatedTimeMinimum is optional, and indicates the absolute minimum value the estimated time could be.
 	EstimatedTimeMinimum *string `xml:"etmin,attr"`
 	// EstimatedTimeUnknown indicates that the forecast for this location has been manually set to "unknown delay".
-	// This is usually shown on signage as "Delayed", without a specific time.
-	EstimatedTimeUnknown *bool `xml:"etUnknown,attr"`
+	// This (might be) usually shown on signage as "Delayed", without a specific time.
+	EstimatedTimeUnknown bool `xml:"etUnknown,attr"`
 	// Delayed indicates that the forecast for this location is "unknown delay".
 	// This is usually shown on signage as "Delayed", without a specific time.
-	Delayed *bool `xml:"delayed,attr"`
+	Delayed bool `xml:"delayed,attr"`
 	// Source is the optionally provided source of the time data, such as "Darwin", "CIS", "TRUST", etc.
 	Source *string `xml:"src,attr"`
 	// SourceSystem is optional. If Source is "CIS", it may be a CISCode. If Source is "TRUST", it may be something like "Auto" or "Manu"
