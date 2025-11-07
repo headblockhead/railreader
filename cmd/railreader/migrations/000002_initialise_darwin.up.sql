@@ -145,6 +145,9 @@ CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train s
 
 				-- Journey
 				,is_cancelled boolean NOT NULL
+
+				-- Forecast
+				,is_reverse_formation boolean NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a schedule visits
@@ -230,6 +233,8 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 				,platform_data_source char NULL -- "P", "A", "M"
 				,platform_confirmed boolean NULL
 				,platform varchar(3) NULL -- also set by Journey data in timetables
+				,suppressed boolean NULL
+				,detaches_from_front boolean NULL
 );
 
 -- associations
