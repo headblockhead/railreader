@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -100,7 +101,7 @@ func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.
 	for {
 		message, err := fetcherCommitter.FetchMessage(ctx)
 		if err != nil {
-			if err == context.Canceled {
+			if errors.Is(err, context.Canceled) {
 				break
 			}
 			log.Error("error fetching message", slog.Any("error", err))

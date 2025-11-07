@@ -21,8 +21,8 @@ type AssociationRecord struct {
 	TimetableID                        *string
 	LocationID                         string
 	Category                           string
-	IsCancelled                        *bool
-	IsDeleted                          *bool
+	IsCancelled                        bool
+	IsDeleted                          bool
 	MainScheduleID                     string
 	MainScheduleLocationSequence       int
 	AssociatedScheduleID               string
