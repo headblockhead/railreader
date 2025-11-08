@@ -134,11 +134,11 @@ CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train s
 				,CONSTRAINT fk_cancellation_reason_location FOREIGN KEY(cancellation_reason_location_id) REFERENCES locations(id)
 				,cancellation_reason_is_near_location boolean NULL
 
-				,late_reason_id int NULL
-				,CONSTRAINT fk_late_reason FOREIGN KEY(late_reason_id) REFERENCES late_reasons(id)
-				,late_reason_location_id varchar(7) NULL
-				,CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(id)
-				,late_reason_is_near_location boolean NULL
+				,diversion_reason_id int NULL
+				,CONSTRAINT fk_diversion_reason FOREIGN KEY(diversion_reason_id) REFERENCES cancellation_reasons(id)
+				,diversion_reason_location_id varchar(7) NULL
+				,CONSTRAINT fk_diversion_reason_location FOREIGN KEY(diversion_reason_location_id) REFERENCES locations(id)
+				,diversion_reason_is_near_location boolean NULL
 
 				,diverted_via_location_id varchar(7) NULL
 				,CONSTRAINT fk_diverted_via_location FOREIGN KEY(diverted_via_location_id) REFERENCES locations(id)
@@ -148,6 +148,12 @@ CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train s
 
 				-- Forecast
 				,is_reverse_formation boolean NOT NULL
+
+				,late_reason_id int NULL
+				,CONSTRAINT fk_late_reason FOREIGN KEY(late_reason_id) REFERENCES late_reasons(id)
+				,late_reason_location_id varchar(7) NULL
+				,CONSTRAINT fk_late_reason_location FOREIGN KEY(late_reason_location_id) REFERENCES locations(id)
+				,late_reason_is_near_location boolean NULL
 );
 
 CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a schedule visits
@@ -228,12 +234,12 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 
 				,affected_by varchar(16) NULL
  				,length int NULL -- may or may not match formation data
-				,platform_supressed boolean NULL
-				,platform_supressed_by_cis boolean NULL
+				,platform_is_supressed boolean NULL
+				,platform_is_supressed_by_cis boolean NULL
 				,platform_data_source char NULL -- "P", "A", "M"
 				,platform_confirmed boolean NULL
 				,platform varchar(3) NULL -- also set by Journey data in timetables
-				,suppressed boolean NULL
+				,is_suppressed boolean NULL
 				,detaches_from_front boolean NULL
 );
 

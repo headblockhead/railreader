@@ -15,7 +15,7 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 	return u.upsertOneAssociationRecord(record)
 }
 
-type AssociationRecord struct {
+type associationRecord struct {
 	ID                                 uuid.UUID
 	MessageID                          *string
 	TimetableID                        *string
@@ -31,8 +31,8 @@ type AssociationRecord struct {
 
 // associationToRecord converts an unmarshalled Association object into an association database record.
 // It requires both of the schedules (and their locations) to already exist in the database.
-func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (AssociationRecord, error) {
-	var record AssociationRecord
+func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (associationRecord, error) {
+	var record associationRecord
 	record.ID = uuid.New()
 	record.MessageID = u.messageID
 	record.TimetableID = u.timetableID
@@ -55,7 +55,7 @@ func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (A
 }
 
 // upsertOneAssociationRecord inserts a new (or updates an existing) association record in the database.
-func (u UnitOfWork) upsertOneAssociationRecord(record AssociationRecord) error {
+func (u UnitOfWork) upsertOneAssociationRecord(record associationRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.associations (
 			id
@@ -81,7 +81,7 @@ func (u UnitOfWork) upsertOneAssociationRecord(record AssociationRecord) error {
 			,@main_schedule_location_sequence
 			,@associated_schedule_id
 			,@associated_schedule_location_sequence
-		) ON CONFLICT (id) DO UPDATE SET (
+		) ON CONFLICT (id) DO UPDATE SET 
 			message_id = EXCLUDED.message_id
 			,timetable_id = EXCLUDED.timetable_id
 			,location_id = EXCLUDED.location_id
@@ -91,8 +91,7 @@ func (u UnitOfWork) upsertOneAssociationRecord(record AssociationRecord) error {
 			,main_schedule_id = EXCLUDED.main_schedule_id
 			,main_schedule_location_sequence = EXCLUDED.main_schedule_location_sequence
 			,associated_schedule_id = EXCLUDED.associated_schedule_id
-			,associated_schedule_location_sequence = EXCLUDED.associated_schedule_location_sequence
-		);
+			,associated_schedule_location_sequence = EXCLUDED.associated_schedule_location_sequence;
 		`, pgx.StrictNamedArgs{
 		"id":                                    record.ID,
 		"message_id":                            record.MessageID,
@@ -106,8 +105,5 @@ func (u UnitOfWork) upsertOneAssociationRecord(record AssociationRecord) error {
 		"associated_schedule_id":                record.AssociatedScheduleID,
 		"associated_schedule_location_sequence": record.AssociatedScheduleLocationSequence,
 	})
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

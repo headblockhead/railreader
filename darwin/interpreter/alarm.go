@@ -38,7 +38,7 @@ func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 	return nil
 }
 
-type AlarmRecord struct {
+type alarmRecord struct {
 	ID                       int
 	MessageID                *string
 	ReceivedAt               time.Time
@@ -50,8 +50,8 @@ type AlarmRecord struct {
 }
 
 // newAlarmToRecord converts an unmarshalled NewAlarm object into an alarm database record.
-func (u UnitOfWork) newAlarmToRecord(alarm unmarshaller.NewAlarm) (AlarmRecord, error) {
-	var record AlarmRecord
+func (u UnitOfWork) newAlarmToRecord(alarm unmarshaller.NewAlarm) (alarmRecord, error) {
+	var record alarmRecord
 	record.ID = alarm.ID
 	record.MessageID = u.messageID
 	record.ReceivedAt = time.Now()
@@ -64,7 +64,7 @@ func (u UnitOfWork) newAlarmToRecord(alarm unmarshaller.NewAlarm) (AlarmRecord, 
 }
 
 // upsertOneAlarmRecord inserts a new (or updates an existing) alarm record in the database.
-func (u UnitOfWork) upsertOneAlarmRecord(record AlarmRecord) error {
+func (u UnitOfWork) upsertOneAlarmRecord(record alarmRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.alarms (
 			id

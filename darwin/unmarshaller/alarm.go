@@ -3,6 +3,7 @@ package unmarshaller
 // Alarm is a report of an internal issue/failure of a data-source that feeds Darwin.
 type Alarm struct {
 	// only one of:
+
 	// ClearedAlarm may contain the ID of an alarm that has been cleared.
 	ClearedAlarm *int `xml:"clear"`
 	// NewAlarm may contain details of a new alarm that has been raised.
