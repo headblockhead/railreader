@@ -22,8 +22,10 @@ func (u *UnitOfWork) findLocationSequence(scheduleID string, locationID string, 
 		"location_id": locationID,
 	}
 
-	// For reasons that I do not know, [associations, TODO: possibly more?] will sometimes specify PublicArrivalTime and PublicDepartureTimes, even though the location they refer to does not have them.
+	// For reasons that I do not know, LocationTimeIdentifiers will sometimes specify PublicArrivalTime and PublicDepartureTimes, even though the location they refer to does not have them.
 	// Because of this, I don't check for a match of PublicArrivalTime and PublicDepartureTime here, and instead only check Working times.
+	// This may only be the case for when loading from a timetable, but I haven't checked yet.
+	// TODO: check if locationtimeids only [set pta+ptd when the location doesn't have them] when loading from a timetable.
 
 	if times.WorkingArrivalTime != nil {
 		if _, err = b.WriteString(" AND working_arrival_time = @working_arrival_time"); err != nil {

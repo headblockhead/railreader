@@ -81,17 +81,7 @@ func (u UnitOfWork) upsertOneAssociationRecord(record associationRecord) error {
 			,@main_schedule_location_sequence
 			,@associated_schedule_id
 			,@associated_schedule_location_sequence
-		) ON CONFLICT (id) DO UPDATE SET 
-			message_id = EXCLUDED.message_id
-			,timetable_id = EXCLUDED.timetable_id
-			,location_id = EXCLUDED.location_id
-			,category = EXCLUDED.category
-			,is_cancelled = EXCLUDED.is_cancelled
-			,is_deleted = EXCLUDED.is_deleted
-			,main_schedule_id = EXCLUDED.main_schedule_id
-			,main_schedule_location_sequence = EXCLUDED.main_schedule_location_sequence
-			,associated_schedule_id = EXCLUDED.associated_schedule_id
-			,associated_schedule_location_sequence = EXCLUDED.associated_schedule_location_sequence;
+		);
 		`, pgx.StrictNamedArgs{
 		"id":                                    record.ID,
 		"message_id":                            record.MessageID,
