@@ -27,8 +27,9 @@ func (u UnitOfWork) interpretForecast(forecastT unmarshaller.ForecastTime) error
 type scheduleForecastRecord struct {
 	ID uuid.UUID
 
+	MessageID string
+
 	ScheduleID string
-	MessageID  string
 
 	IsReverseFormation bool
 
@@ -40,8 +41,8 @@ type scheduleForecastRecord struct {
 func (u UnitOfWork) forecastTimeToRecord(forecastT unmarshaller.ForecastTime) scheduleForecastRecord {
 	var scheduleUpdates scheduleForecastRecord
 	scheduleUpdates.ID = uuid.New()
-	scheduleUpdates.ScheduleID = forecastT.RID
 	scheduleUpdates.MessageID = *u.messageID
+	scheduleUpdates.ScheduleID = forecastT.RID
 	scheduleUpdates.IsReverseFormation = forecastT.ReverseFormation
 	if forecastT.LateReason != nil {
 		scheduleUpdates.LateReasonID = &forecastT.LateReason.ReasonID
@@ -54,16 +55,16 @@ func (u UnitOfWork) insertScheduleForecastRecord(record scheduleForecastRecord) 
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.schedule_forecasts (
 			id
-			,schedule_id
 			,message_id
+			,schedule_id
 			,is_reverse_formation
 			,late_reason_id
 			,late_reason_location_id
 			,late_reason_is_near_location
 		) VALUES (
 			@id
-			,@schedule_id
 			,@message_id
+			,@schedule_id
 			,@is_reverse_formation
 			,@late_reason_id
 			,@late_reason_location_id
@@ -71,8 +72,8 @@ func (u UnitOfWork) insertScheduleForecastRecord(record scheduleForecastRecord) 
 		);
 		`, pgx.StrictNamedArgs{
 		"id":                           record.ID,
-		"schedule_id":                  record.ScheduleID,
 		"message_id":                   record.MessageID,
+		"schedule_id":                  record.ScheduleID,
 		"is_reverse_formation":         record.IsReverseFormation,
 		"late_reason_id":               record.LateReasonID,
 		"late_reason_location_id":      record.LateReasonTIPLOC,
@@ -84,9 +85,15 @@ func (u UnitOfWork) insertScheduleForecastRecord(record scheduleForecastRecord) 
 type scheduleLocationForecastRecord struct {
 	ID uuid.UUID
 
-	ScheduleID string
-	Sequence   int
-	MessageID  string
+	MessageID string
+
+	ScheduleID                   string
+	LocationID                   string
+	ScheduleWorkingArrivalTime   *string
+	ScheduleWorkingPassingTime   *string
+	ScheduleWorkingDepartureTime *string
+	SchedulePublicArrivalTime    *string
+	SchedulePublicDepartureTime  *string
 
 	ArrivalEstimatedTime          *string
 	ArrivalEstimatedWorkingTime   *string
@@ -141,13 +148,14 @@ type scheduleLocationForecastRecord struct {
 func (u UnitOfWork) forecastTimeLocationToRecord(scheduleID string, forecastL unmarshaller.ForecastLocation) (scheduleLocationForecastRecord, error) {
 	var record scheduleLocationForecastRecord
 	record.ID = uuid.New()
+	record.MessageID = *u.messageID
 	record.ScheduleID = scheduleID
-
-	sequence, err := u.findLocationSequence(scheduleID, forecastL.TIPLOC, forecastL.LocationTimeIdentifiers)
-	if err != nil {
-		return record, err
-	}
-	record.Sequence = sequence
+	record.LocationID = forecastL.TIPLOC
+	record.ScheduleWorkingArrivalTime = forecastL.LocationTimeIdentifiers.WorkingArrivalTime
+	record.ScheduleWorkingPassingTime = forecastL.LocationTimeIdentifiers.WorkingPassingTime
+	record.ScheduleWorkingDepartureTime = forecastL.LocationTimeIdentifiers.WorkingDepartureTime
+	record.SchedulePublicArrivalTime = forecastL.LocationTimeIdentifiers.PublicArrivalTime
+	record.SchedulePublicDepartureTime = forecastL.LocationTimeIdentifiers.PublicDepartureTime
 
 	if forecastL.ArrivalData != nil {
 		record.ArrivalEstimatedTime = forecastL.ArrivalData.EstimatedTime
@@ -215,9 +223,14 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 		batch.Queue(`
 			INSERT INTO darwin.schedule_location_forecasts (
 				id
-				,schedule_id
-				,sequence
 				,message_id
+				,schedule_id
+				,location_id
+				,schedule_working_arrival_time
+				,schedule_working_passing_time
+				,schedule_working_departure_time
+				,schedule_public_arrival_time
+				,schedule_public_departure_time
 				,arrival_estimated_time
 				,arrival_estimated_working_time
 				,arrival_minimum_estimated_time
@@ -263,9 +276,14 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 				,detaches_from_front
 			) VALUES (
 				@id
-				,@schedule_id
-				,@sequence
 				,@message_id
+				,@schedule_id
+				,@location_id
+				,@schedule_working_arrival_time
+				,@schedule_working_passing_time
+				,@schedule_working_departure_time
+				,@schedule_public_arrival_time
+				,@schedule_public_departure_time
 				,@arrival_estimated_time
 				,@arrival_estimated_working_time
 				,@arrival_minimum_estimated_time
@@ -312,9 +330,14 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 			);
 			`, pgx.StrictNamedArgs{
 			"id":                                      record.ID,
-			"schedule_id":                             record.ScheduleID,
-			"sequence":                                record.Sequence,
 			"message_id":                              record.MessageID,
+			"schedule_id":                             record.ScheduleID,
+			"location_id":                             record.LocationID,
+			"schedule_working_arrival_time":           record.ScheduleWorkingArrivalTime,
+			"schedule_working_passing_time":           record.ScheduleWorkingPassingTime,
+			"schedule_working_departure_time":         record.ScheduleWorkingDepartureTime,
+			"schedule_public_arrival_time":            record.SchedulePublicArrivalTime,
+			"schedule_public_departure_time":          record.SchedulePublicDepartureTime,
 			"arrival_estimated_time":                  record.ArrivalEstimatedTime,
 			"arrival_estimated_working_time":          record.ArrivalEstimatedWorkingTime,
 			"arrival_minimum_estimated_time":          record.ArrivalMinimumEstimatedTime,

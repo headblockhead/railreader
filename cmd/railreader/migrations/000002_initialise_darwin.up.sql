@@ -58,8 +58,6 @@ CREATE TABLE IF NOT EXISTS darwin.tocs ( -- Train Operating Companies
 				,url varchar(512) NULL
 );
 
--- late_reason IDs and cancellation_reason IDs overlap, so it is important to distinguish between them.
-
 CREATE TABLE IF NOT EXISTS darwin.late_reasons ( -- Reasons why a train service is running late.
 				id int PRIMARY KEY 
 				,description varchar(256) NOT NULL
@@ -102,7 +100,6 @@ CREATE TABLE IF NOT EXISTS darwin.loading_categories ( -- Categories that can be
 				,definition varchar(1000) NOT NULL
 );
 
-
 -- timetable
 
 CREATE TABLE IF NOT EXISTS darwin.timetables ( -- Timetable files that have been imported
@@ -113,86 +110,72 @@ CREATE TABLE IF NOT EXISTS darwin.timetables ( -- Timetable files that have been
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 );
 
--- schedule
+-- alarm
 
-CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train service
-				id char(16) PRIMARY KEY -- this is the RID, renamed to be consistent with other tables
+CREATE TABLE IF NOT EXISTS darwin.alarms ( -- Alarms raised when Darwin has not recieved data from some of its sources.
+				id uuid PRIMARY KEY
 
-				-- sources
+				,message_id text NOT NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+		  	,alarm_id int 
+				,has_cleared boolean NOT NULL
+
+				-- if has_cleared is false:
+				,train_describer_failure char(2) NULL -- a specific train describer that is suspected to have failed
+				,all_train_describers_failed boolean NULL
+				,tyrell_failed boolean NULL
+);
+
+-- association
+
+CREATE TABLE IF NOT EXISTS darwin.associations ( -- Links between two schedules
+				id uuid PRIMARY KEY
+
 				,message_id text NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 				,timetable_id char(14) NULL
 				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(id) ON DELETE CASCADE
 
-				-- TrainIdentifiers
-				,uid char(6) NOT NULL
-				,scheduled_start_date date NOT NULL
+				,location_id varchar(7) NOT NULL
+				,category char(2) NOT NULL -- "JJ", "VV", "LK", "NP"
+				,is_cancelled boolean NOT NULL -- won't happen
+				,is_deleted boolean NOT NULL -- doesn't exist, possibly invalid
 
-				-- Schedule
-				,headcode char(4) NOT NULL
-				,retail_service_id varchar(8) NULL
-				,toc_id char(2) NOT NULL -- no foreign key contraint here, reference data on TOCs is not complete
-				-- No foreign key constraint is used here because not all possible toc_ids are included in the reference data set.
-				,service char NOT NULL
-				,category varchar(2) NOT NULL
-				,is_passenger_service boolean NOT NULL
-				,is_active boolean NOT NULL
-				,is_deleted boolean NOT NULL
-				,is_charter boolean NOT NULL
+				,main_schedule_id char(16) NOT NULL
+				,main_schedule_working_arrival_time varchar(8) NULL
+				,main_schedule_working_passing_time varchar(8) NULL
+				,main_schedule_working_departure_time varchar(8) NULL
+				,main_schedule_public_arrival_time char(5) NULL
+				,main_schedule_public_departure_time char(5) NULL
 
-				,cancellation_reason_id int NULL
-				,cancellation_reason_location_id varchar(7) NULL
-				,cancellation_reason_is_near_location boolean NULL
-
-				,diversion_reason_id int NULL
-				,diversion_reason_location_id varchar(7) NULL
-				,diversion_reason_is_near_location boolean NULL
-
-				,diverted_via_location_id varchar(7) NULL
-
-				-- Journey
-				,is_cancelled boolean NOT NULL
+				,associated_schedule_id char(16) NOT NULL
+				,associated_schedule_working_arrival_time varchar(8) NULL
+				,associated_schedule_working_passing_time varchar(8) NULL
+				,associated_schedule_working_departure_time varchar(8) NULL
+				,associated_schedule_public_arrival_time char(5) NULL
+				,associated_schedule_public_departure_time char(5) NULL
 );
 
-CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a schedule visits
+-- deactivation
+
+CREATE TABLE IF NOT EXISTS darwin.deactivations (
+				id uuid PRIMARY KEY
 				schedule_id char(16)
-				,CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
-				,sequence int
-				,PRIMARY KEY (schedule_id, sequence)
-
-				-- Schedule
-				,location_id varchar(7) NOT NULL
-				,activities char(2) ARRAY NULL
-				,planned_activities char(2) ARRAY NULL
-				,is_cancelled boolean NOT NULL
-				,formation_id varchar(20) NULL
-				,is_affected_by_diversion boolean NOT NULL
-
-				,type text NOT NULL
-				-- Times are given here as text so that they can be serached through in their original format. They can be converted to timestamps as needed.
-				,public_arrival_time char(5) NULL -- HH:MM
-				,public_departure_time char(5) NULL
-				,working_arrival_time	varchar(8) NULL -- HH:MM[:SS]
-				,working_passing_time varchar(8) NULL
-				,working_departure_time varchar(8) NULL
-				,routing_delay int NOT NULL -- in minutes
-				,false_destination_location_id varchar(7) NULL
-
-				,cancellation_reason_id int NULL
-				,cancellation_reason_location_id varchar(7) NULL
-				,cancellation_reason_is_near_location boolean NULL
+				,message_id text NOT NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 );
 
 -- forecast
 
 CREATE TABLE IF NOT EXISTS darwin.schedule_forecasts (
-				id uuid PRIMARY KEY -- Generated by railreader
+				id uuid PRIMARY KEY
 
-				schedule_id char(16)
 				,message_id text NOT NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 
-				-- Forecast
+				,schedule_id char(16) NOT NULL
+
 				,is_reverse_formation boolean NOT NULL
 
 				,late_reason_id int NULL
@@ -201,12 +184,18 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_forecasts (
 );
 
 CREATE TABLE IF NOT EXISTS darwin.schedule_location_forecasts (
-				id uuid PRIMARY KEY -- Generated by railreader
+				id uuid PRIMARY KEY
 
-				schedule_id char(16)
-				,sequence int
 				,message_id text NOT NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+				,schedule_id char(16) NOT NULL
+				,location_id varchar(7) NOT NULL
+				,schedule_working_arrival_time varchar(8) NULL
+				,schedule_working_passing_time varchar(8) NULL
+				,schedule_working_departure_time varchar(8) NULL
+				,schedule_public_arrival_time char(5) NULL
+				,schedule_public_departure_time char(5) NULL
 
 				,arrival_estimated_time char(5) NULL -- HH:MM
 				,arrival_estimated_working_time char(5) NULL
@@ -249,38 +238,77 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_location_forecasts (
 
 				,affected_by varchar(16) NULL
  				,length int NULL -- may or may not match formation data
+
 				,platform_is_supressed boolean NULL
 				,platform_is_supressed_by_cis boolean NULL
 				,platform_data_source char NULL -- "P", "A", "M"
-				,platform_confirmed boolean NULL
+				,platform_is_confirmed boolean NULL
 				,platform varchar(3) NULL -- also set by Journey data in timetables
-				,is_suppressed boolean NULL
-				,detaches_from_front boolean NULL
+
+				,is_suppressed boolean NOT NULL
+				,detaches_from_front boolean NOT NULL
 );
 
--- alarms
+-- formation
 
-CREATE TABLE IF NOT EXISTS darwin.alarms ( -- Alarms raised when Darwin has not recieved data from some of its sources.
-		  	id int PRIMARY KEY
-
-				,message_id text NULL
+CREATE TABLE IF NOT EXISTS darwin.formations (
+				id uuid PRIMARY KEY
+				,message_id text NOT NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 
-				,train_describer_failure char(2) NULL -- a specific train describer that is suspected to have failed
-				,all_train_describers_failed boolean NOT NULL
-				,tyrell_failed boolean NOT NULL
+				,schedule_id char(16) NOT NULL
+				,formation_id varchar(20) NOT NULL
+				,source text NULL
+				,source_system char(4) NULL
 );
 
-CREATE TABLE IF NOT EXISTS darwin.alarms_cleared ( -- IDs of cleared alarms, and the message that cleared them.
-			  id int PRIMARY KEY
+CREATE TABLE IF NOT EXISTS darwin.formation_coach (
+				id uuid PRIMARY KEY
 
-				,message_id text NULL
-				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+				,formation_id varchar(20) NOT NULL
+				,CONSTRAINT fk_formation FOREIGN KEY(formation_id) REFERENCES formations(formation_id) ON DELETE CASCADE
+
+				,identifier varchar(2) NOT NULL
+				,class text NULL
+				,toilet_type text NULL
+				,toilet_status text NULL
 );
 
--- associations
+-- formationloading
 
-CREATE TABLE IF NOT EXISTS darwin.associations ( -- Links between two schedules
+CREATE TABLE IF NOT EXISTS darwin.formation_loading (
+				id uuid PRIMARY KEY
+
+				,schedule_id char(16) NOT NULL
+				,location_id varchar(7) NOT NULL
+				,schedule_working_arrival_time varchar(8) NULL
+				,schedule_working_passing_time varchar(8) NULL
+				,schedule_working_departure_time varchar(8) NULL
+				,schedule_public_arrival_time char(5) NULL
+				,schedule_public_departure_time char(5) NULL
+				,formation_id varchar(20) NOT NULL
+				
+				,identifier varchar(2) NOT NULL
+				,source text NULL
+				,source_system char(4) NULL
+				,percentage int NOT NULL
+);
+
+-- headcodechange
+
+CREATE TABLE IF NOT EXISTS darwin.headcode_change (
+				id uuid PRIMARY KEY
+
+				,old_headcode char(4) NOT NULL
+				,new_headcode char(4) NOT NULL
+
+				,train_describer_area char(2) NOT NULL
+				,train_describer_berth char(4) NOT NULL
+);
+
+-- schedule
+
+CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train service
 				id uuid PRIMARY KEY
 
 				,message_id text NULL
@@ -288,22 +316,173 @@ CREATE TABLE IF NOT EXISTS darwin.associations ( -- Links between two schedules
 				,timetable_id char(14) NULL
 				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(id) ON DELETE CASCADE
 
+				,schedule_id char(16) NOT NULL -- the RID
+				,uid char(6) NOT NULL
+				,scheduled_start_date date NOT NULL
+
+				,headcode char(4) NOT NULL
+				,retail_service_id varchar(8) NULL
+				,toc_id char(2) NOT NULL 
+				-- No foreign key constraint is used here because not all possible toc_ids are included in the reference data set.
+				,service char NOT NULL
+				,category varchar(2) NOT NULL
+				,is_passenger_service boolean NOT NULL
+				,is_active boolean NOT NULL
+				,is_deleted boolean NOT NULL
+				,is_charter boolean NOT NULL
+
+				,cancellation_reason_id int NULL
+				,cancellation_reason_location_id varchar(7) NULL
+				,cancellation_reason_is_near_location boolean NULL
+
+				,diverted_via_location_id varchar(7) NULL
+
+				,diversion_reason_id int NULL
+				,diversion_reason_location_id varchar(7) NULL
+				,diversion_reason_is_near_location boolean NULL
+
+				-- only in Journey
+				,is_cancelled boolean NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a schedule visits
+				id uuid PRIMARY KEY
+				
+				schedule_id char(16)
+				,CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
+
+				-- Schedule
 				,location_id varchar(7) NOT NULL
-				,category char(2) NOT NULL -- "JJ", "VV", "LK", "NP"
-				,is_cancelled boolean NOT NULL -- won't happen
-				,is_deleted boolean NOT NULL -- doesn't exist
+				,activities char(2) ARRAY NULL
+				,planned_activities char(2) ARRAY NULL
+				,is_cancelled boolean NOT NULL
+				,formation_id varchar(20) NULL
+				,is_affected_by_diversion boolean NOT NULL
 
-				,main_schedule_id char(16) NOT NULL
-				,main_schedule_working_arrival_time varchar(8) NULL
-				,main_schedule_working_passing_time varchar(8) NULL
-				,main_schedule_working_departure_time varchar(8) NULL
-				,main_schedule_public_arrival_time char(5) NULL
-				,main_schedule_public_departure_time char(5) NULL
+				,type text NOT NULL
+				-- Times are given here as text so that they can be serached through in their original format. They can be converted to timestamps as needed.
+				,public_arrival_time char(5) NULL -- HH:MM
+				,public_departure_time char(5) NULL
+				,working_arrival_time	varchar(8) NULL -- HH:MM[:SS]
+				,working_passing_time varchar(8) NULL
+				,working_departure_time varchar(8) NULL
+				,routing_delay int NOT NULL -- in minutes
+				,false_destination_location_id varchar(7) NULL
 
-				,associated_schedule_id char(16) NOT NULL
-				,associated_schedule_working_arrival_time varchar(8) NULL
-				,associated_schedule_working_passing_time varchar(8) NULL
-				,associated_schedule_working_departure_time varchar(8) NULL
-				,associated_schedule_public_arrival_time char(5) NULL
-				,associated_schedule_public_departure_time char(5) NULL
+				,cancellation_reason_id int NULL
+				,cancellation_reason_location_id varchar(7) NULL
+				,cancellation_reason_is_near_location boolean NULL
+);
+
+-- serviceloading
+
+CREATE TABLE IF NOT EXISTS darwin.service_loadings (
+				id uuid PRIMARY KEY
+
+				,message_id text NOT NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+				,schedule_id char(16) NOT NULL
+				,location_id varchar(7) NOT NULL
+				,schedule_working_arrival_time varchar(8) NULL
+				,schedule_working_passing_time varchar(8) NULL
+				,schedule_working_departure_time varchar(8) NULL
+				,schedule_public_arrival_time char(5) NULL
+				,schedule_public_departure_time char(5) NULL
+
+				,loading_category_code varchar(4) NULL
+				,loading_category_source text NULL
+				,loading_category_source_system char(4) NULL
+				,loading_category_type text NULL -- "Typical", "Expected"
+
+				,loading_percentage int NULL
+				,loading_percentage_source text NULL
+				,loading_percentage_source_system char(4) NULL
+				,loading_percentage_type text NULL -- "Typical", "Expected"
+);
+
+-- stationmessage
+
+CREATE TABLE IF NOT EXISTS darwin.station_messages (
+				id uuid PRIMARY KEY
+
+				,message_id text NOT NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+				,station_message_id int NOT NULL
+				,station_message_category text NOT NULL -- "Train", "Station", "Connections", "System", "Misc", "PriorTrains", "PriorOther"
+				,station_message_severity text NOT NULL -- "0", "1", "2", "3"
+				,is_suppressed boolean NOT NULL
+
+				,station_crs_codes char(3) ARRAY NOT NULL
+				,body xml NOT NULL
+);
+
+-- trainalert
+
+CREATE TABLE IF NOT EXISTS darwin.train_alerts (
+				id uuid PRIMARY KEY
+
+				,message_id text NOT NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+				,alert_id varchar(16) NOT NULL
+				,copied_from_alert_id varchar(16) NULL
+				,should_send_sms boolean NOT NULL
+				,should_send_email boolean NOT NULL
+				,should_send_tweet boolean NOT NULL
+				,source text NOT NULL
+				,copied_from_source text NULL
+				,audience text NOT NULL -- "Customer", "Staff", "Operations"
+				,type text NOT NULL -- "Normal", "Forced"
+
+				,body xml NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS darwin.train_alert_schedule_locations (
+				id uuid PRIMARY KEY
+
+				,train_alert_id uuid NOT NULL
+				,CONSTRAINT fk_train_alert FOREIGN KEY(train_alert_id) REFERENCES train_alerts(id) ON DELETE CASCADE
+
+				,schedule_id char(16) NOT NULL
+				,location_ids varchar(7) ARRAY NOT NULL
+);
+
+-- trainorder
+
+CREATE TABLE IF NOT EXISTS darwin.train_orders (
+				id uuid PRIMARY KEY
+
+				,message_id text NOT NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+				,location_id varchar(7) NOT NULL
+				,platform varchar(3) NOT NULL
+
+				,clear_order boolean NOT NULL
+
+				,first_service_rid char(16) NOT NULL
+				,first_service_headcode char(4) NOT NULL
+				,first_service_working_arrival_time varchar(8) NULL
+				,first_service_working_passing_time varchar(8) NULL
+				,first_service_working_departure_time varchar(8) NULL
+				,first_service_public_arrival_time char(5) NULL
+				,first_service_public_departure_time char(5) NULL
+
+				,second_service_rid char(16) NOT NULL
+				,second_service_headcode char(4) NOT NULL
+				,second_service_working_arrival_time varchar(8) NULL
+				,second_service_working_passing_time varchar(8) NULL
+				,second_service_working_departure_time varchar(8) NULL
+				,second_service_public_arrival_time char(5) NULL
+				,second_service_public_departure_time char(5)  NULL
+
+				,third_service_rid char(16) NULL
+				,third_service_headcode char(4)  NULL
+				,third_service_working_arrival_time varchar(8) NULL
+				,third_service_working_passing_time varchar(8) NULL
+				,third_service_working_departure_time varchar(8) NULL
+				,third_service_public_arrival_time char(5) NULL
+				,third_service_public_departure_time char(5) NULL
 );
