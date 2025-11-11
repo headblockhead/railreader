@@ -357,9 +357,10 @@ CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train s
 
 CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a schedule visits
 				id uuid PRIMARY KEY
-				
-				schedule_id char(16)
-				,CONSTRAINT fk_schedule FOREIGN KEY(schedule_id) REFERENCES schedules(id) ON DELETE CASCADE
+
+				,schedule_uuid uuid NOT NULL
+				,CONSTRAINT fk_schedule_uuid FOREIGN KEY(schedule_uuid) REFERENCES schedules(id) ON DELETE CASCADE
+				,schedule_id char(16) NOT NULL
 
 				-- Schedule
 				,location_id varchar(7) NOT NULL
@@ -371,11 +372,12 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_locations ( -- Locations that a sched
 
 				,type text NOT NULL
 				-- Times are given here as text so that they can be serached through in their original format. They can be converted to timestamps as needed.
-				,public_arrival_time char(5) NULL -- HH:MM
-				,public_departure_time char(5) NULL
+
 				,working_arrival_time	varchar(8) NULL -- HH:MM[:SS]
 				,working_passing_time varchar(8) NULL
 				,working_departure_time varchar(8) NULL
+				,public_arrival_time char(5) NULL -- HH:MM
+				,public_departure_time char(5) NULL
 				,routing_delay int NOT NULL -- in minutes
 				,false_destination_location_id varchar(7) NULL
 

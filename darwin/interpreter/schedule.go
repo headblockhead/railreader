@@ -4,17 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 )
 
-func (u UnitOfWork) InterpretSchedule(schedule unmarshaller.Schedule) error {
-	// Delete existing schedule with same RID, if any.
-	if err := u.scheduleRepository.Delete(schedule.RID); err != nil {
-		return fmt.Errorf("failed to delete existing schedule with RID %q: %w", schedule.RID, err)
-	}
-
-	var row repository.ScheduleRow
+func (u UnitOfWork) interpretSchedule(schedule unmarshaller.Schedule) error {
+	var row scheduleRecord
 	row.ScheduleID = schedule.RID
 	row.MessageID = u.messageID
 	row.UID = schedule.UID
@@ -29,8 +25,8 @@ func (u UnitOfWork) InterpretSchedule(schedule unmarshaller.Schedule) error {
 	row.ScheduledStartDate = startDate
 
 	row.Headcode = schedule.Headcode
-	row.RetailServiceID = schedule.RetailServiceID
-	row.TrainOperatingCompanyID = schedule.TOC
+	row.RetailServiceID = *schedule.RetailServiceID
+	row.TOCid = schedule.TOC
 	row.Service = string(schedule.Service)
 	row.Category = string(schedule.Category)
 	row.IsPassengerService = schedule.PassengerService
@@ -45,9 +41,9 @@ func (u UnitOfWork) InterpretSchedule(schedule unmarshaller.Schedule) error {
 	}
 	row.DivertedViaLocationID = schedule.DivertedVia
 	if schedule.DiversionReason != nil {
-		row.LateReasonID = &schedule.DiversionReason.ReasonID
-		row.LateReasonLocationID = schedule.DiversionReason.TIPLOC
-		row.LateReasonIsNearLocation = &schedule.DiversionReason.Near
+		row.DiversionReasonID = &schedule.DiversionReason.ReasonID
+		row.DiversionReasonLocationID = schedule.DiversionReason.TIPLOC
+		row.DiversionReasonIsNearLocation = &schedule.DiversionReason.Near
 	}
 
 	locationRows, err := scheduleLocationsToRows(schedule.Locations, schedule.RID)
@@ -55,107 +51,175 @@ func (u UnitOfWork) InterpretSchedule(schedule unmarshaller.Schedule) error {
 		return fmt.Errorf("failed to convert schedule locations to rows: %w", err)
 	}
 
-	if err := u.scheduleRepository.Insert(row); err != nil {
-		return fmt.Errorf("failed to insert schedule into repository: %w", err)
-	}
-	if err := u.scheduleLocationRepository.InsertMany(locationRows); err != nil {
-		return fmt.Errorf("failed to insert schedule locations into repository: %w", err)
-	}
 	return nil
 }
 
-func scheduleLocationsToRows(locations []unmarshaller.ScheduleLocation, scheduleID string) ([]repository.ScheduleLocationRow, error) {
-	var rows []repository.ScheduleLocationRow
+type scheduleRecord struct {
+	ID uuid.UUID
+
+	MessageID   *string
+	TimetableID *string
+
+	ScheduleID         string
+	UID                string
+	ScheduledStartDate time.Time
+
+	Headcode           string
+	RetailServiceID    string
+	TOCid              string
+	Service            string
+	Category           string
+	IsPassengerService bool
+	IsActive           bool
+	IsDeleted          bool
+	IsCharter          bool
+
+	CancellationReasonID             *int
+	CancellationReasonLocationID     *string
+	CancellationReasonIsNearLocation *bool
+
+	DivertedViaLocationID *string
+
+	DiversionReasonID             *int
+	DiversionReasonLocationID     *string
+	DiversionReasonIsNearLocation *bool
+
+	IsCancelled bool
+}
+
+type scheduleLocationRecord struct {
+	ID uuid.UUID
+
+	ScheduleUUID uuid.UUID
+	ScheduleID   string
+
+	LocationID            string
+	Activities            []string
+	PlannedActivities     []string
+	IsCancelled           bool
+	FormationID           *string
+	IsAffectedByDiversion bool
+
+	Type                       string
+	WorkingArrivalTime         *string
+	WorkingDepartureTime       *string
+	WorkingPassingTime         *string
+	PublicArrivalTime          *string
+	PublicDepartureTime        *string
+	RoutingDelay               int
+	FalseDestinationLocationID *string
+
+	CancellationReasonID             *int
+	CancellationReasonLocationID     *string
+	CancellationReasonIsNearLocation *bool
+}
+
+func (u UnitOfWork) scheduleToRecords(schedule unmarshaller.Schedule) (scheduleRecord, []scheduleLocationRecord, error) {
+	var sRecord scheduleRecord
+	var slRecords []scheduleLocationRecord
+
+	// TODO
+
+	for _, sch := range schedule.Locations {
+		
+	}
+}
+
+func scheduleLocationsToRows(locations []unmarshaller.ScheduleLocation, scheduleID string) ([]scheduleLocationRecord, error) {
+	var records []scheduleLocationRecord
 	var previousFormationID *string
 
-	for i, location := range locations {
-		var row repository.ScheduleLocationRow
+	for _, location := range locations {
+		var record scheduleLocationRecord
 		switch location.Type {
 		case unmarshaller.LocationTypeOrigin:
 			loc := location.Origin
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingDepartureTime = &loc.WorkingDepartureTime
-			row.WorkingArrivalTime = loc.WorkingArrivalTime
-			row.PublicArrivalTime = loc.PublicArrivalTime
-			row.PublicDepartureTime = loc.PublicDepartureTime
-			row.FalseDestinationLocationID = loc.FalseDestination
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingDepartureTime = &loc.WorkingDepartureTime
+			record.WorkingArrivalTime = loc.WorkingArrivalTime
+			record.PublicArrivalTime = loc.PublicArrivalTime
+			record.PublicDepartureTime = loc.PublicDepartureTime
+			record.FalseDestinationLocationID = loc.FalseDestination
 		case unmarshaller.LocationTypeOperationalOrigin:
 			loc := location.OperationalOrigin
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingDepartureTime = &loc.WorkingDepartureTime
-			row.WorkingArrivalTime = loc.WorkingArrivalTime
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingDepartureTime = &loc.WorkingDepartureTime
+			record.WorkingArrivalTime = loc.WorkingArrivalTime
 		case unmarshaller.LocationTypeIntermediate:
 			loc := location.Intermediate
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingArrivalTime = &loc.WorkingArrivalTime
-			row.WorkingDepartureTime = &loc.WorkingDepartureTime
-			row.PublicArrivalTime = loc.PublicArrivalTime
-			row.PublicDepartureTime = loc.PublicDepartureTime
-			row.FalseDestinationLocationID = loc.FalseDestination
-			row.RoutingDelay = loc.RoutingDelay
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingArrivalTime = &loc.WorkingArrivalTime
+			record.WorkingDepartureTime = &loc.WorkingDepartureTime
+			record.PublicArrivalTime = loc.PublicArrivalTime
+			record.PublicDepartureTime = loc.PublicDepartureTime
+			record.FalseDestinationLocationID = loc.FalseDestination
+			record.RoutingDelay = loc.RoutingDelay
 		case unmarshaller.LocationTypeOperationalIntermediate:
 			loc := location.OperationalIntermediate
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingArrivalTime = &loc.WorkingArrivalTime
-			row.WorkingDepartureTime = &loc.WorkingDepartureTime
-			row.RoutingDelay = loc.RoutingDelay
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingArrivalTime = &loc.WorkingArrivalTime
+			record.WorkingDepartureTime = &loc.WorkingDepartureTime
+			record.RoutingDelay = loc.RoutingDelay
 		case unmarshaller.LocationTypeIntermediatePassing:
 			loc := location.IntermediatePassing
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingPassingTime = &loc.WorkingPassingTime
-			row.RoutingDelay = loc.RoutingDelay
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingPassingTime = &loc.WorkingPassingTime
+			record.RoutingDelay = loc.RoutingDelay
 		case unmarshaller.LocationTypeDestination:
 			loc := location.Destination
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingArrivalTime = &loc.WorkingArrivalTime
-			row.WorkingDepartureTime = loc.WorkingDepartureTime
-			row.RoutingDelay = loc.RoutingDelay
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingArrivalTime = &loc.WorkingArrivalTime
+			record.WorkingDepartureTime = loc.WorkingDepartureTime
+			record.RoutingDelay = loc.RoutingDelay
 		case unmarshaller.LocationTypeOperationalDestination:
 			loc := location.OperationalDestination
-			row = newLocationRowFromBase(loc.LocationBase, i)
-			row.WorkingArrivalTime = &loc.WorkingArrivalTime
-			row.WorkingDepartureTime = loc.WorkingDepartureTime
-			row.RoutingDelay = loc.RoutingDelay
+			record = baseScheduleToRecord(loc.LocationBase)
+			record.WorkingArrivalTime = &loc.WorkingArrivalTime
+			record.WorkingDepartureTime = loc.WorkingDepartureTime
+			record.RoutingDelay = loc.RoutingDelay
 		default:
 			return nil, fmt.Errorf("unknown location type %s", location.Type)
 		}
-		row.Type = string(location.Type)
-		row.ScheduleID = scheduleID
+
+		record.ID = uuid.New()
+		record.ScheduleID = scheduleID
+		record.ScheduleUUID = 
+
+		record.Type = string(location.Type)
 
 		// Deal with FormationID 'rippling' rules.
-		if row.IsCancelled {
+		if record.IsCancelled {
 			previousFormationID = nil
 		}
-		if row.FormationID == nil && previousFormationID != nil {
-			row.FormationID = previousFormationID
+		if record.FormationID == nil && previousFormationID != nil {
+			record.FormationID = previousFormationID
 		}
-		if row.FormationID != nil {
-			previousFormationID = row.FormationID
+		if record.FormationID != nil {
+			previousFormationID = record.FormationID
 		}
-		rows = append(rows, row)
+		records = append(records, record)
 	}
-	return rows, nil
+	return records, nil
 }
 
-func newLocationRowFromBase(baseValues unmarshaller.LocationBase, sequence int) repository.ScheduleLocationRow {
-	var row repository.ScheduleLocationRow
-	row.Sequence = sequence
-	row.LocationID = baseValues.TIPLOC
-	if baseValues.Activities != nil {
-		row.Activities = sliceActivities(*baseValues.Activities)
+func baseScheduleToRecord(base unmarshaller.LocationBase) scheduleLocationRecord {
+	var record repository.ScheduleLocationRow
+	record.LocationID = base.TIPLOC
+	if base.Activities != nil {
+		record.Activities = sliceActivities(*base.Activities)
 	}
-	if baseValues.PlannedActivities != nil {
-		row.PlannedActivities = sliceActivities(*baseValues.PlannedActivities)
+	if base.PlannedActivities != nil {
+		record.PlannedActivities = sliceActivities(*base.PlannedActivities)
 	}
-	row.IsCancelled = baseValues.Cancelled
-	row.FormationID = baseValues.FormationID
-	row.IsAffectedByDiversion = baseValues.AffectedByDiversion
-	if baseValues.CancellationReason != nil {
-		row.CancellationReasonID = &baseValues.CancellationReason.ReasonID
-		row.CancellationReasonLocationID = baseValues.CancellationReason.TIPLOC
-		row.CancellationReasonIsNearLocation = &baseValues.CancellationReason.Near
+	record.IsCancelled = base.Cancelled
+	record.FormationID = base.FormationID
+	record.IsAffectedByDiversion = base.AffectedByDiversion
+	if base.CancellationReason != nil {
+		record.CancellationReasonID = &base.CancellationReason.ReasonID
+		record.CancellationReasonLocationID = base.CancellationReason.TIPLOC
+		record.CancellationReasonIsNearLocation = &base.CancellationReason.Near
 	}
-	return row
+	return record
 }
 
 // sliceActivities takes a string of 2-character activity codes and returns a slice of those codes (as strings).
