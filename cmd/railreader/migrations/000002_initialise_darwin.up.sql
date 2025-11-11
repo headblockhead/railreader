@@ -268,9 +268,10 @@ CREATE TABLE IF NOT EXISTS darwin.formations (
 CREATE TABLE IF NOT EXISTS darwin.formation_coach (
 				id uuid PRIMARY KEY
 
-				,formation_id varchar(20) NOT NULL
-				,CONSTRAINT fk_formation FOREIGN KEY(formation_id) REFERENCES formations(formation_id) ON DELETE CASCADE
+				,formation_uuid uuid NOT NULL
+				,CONSTRAINT fk_formation_uuid FOREIGN KEY(formation_uuid) REFERENCES formaitions(id) ON DELETE CASCADE
 
+				,formation_id varchar(20) NOT NULL
 				,identifier varchar(2) NOT NULL
 				,class text NULL
 				,toilet_type text NULL
@@ -282,6 +283,8 @@ CREATE TABLE IF NOT EXISTS darwin.formation_coach (
 CREATE TABLE IF NOT EXISTS darwin.formation_loading (
 				id uuid PRIMARY KEY
 
+				,message_id text NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 
 				,schedule_id char(16) NOT NULL
 				,formation_id varchar(20) NOT NULL
@@ -303,11 +306,13 @@ CREATE TABLE IF NOT EXISTS darwin.formation_loading (
 CREATE TABLE IF NOT EXISTS darwin.headcode_change (
 				id uuid PRIMARY KEY
 
+				,message_id text NULL
+				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 
 				,old_headcode char(4) NOT NULL
 				,new_headcode char(4) NOT NULL
 
-				,train_describer_area char(2) NOT NULL
+				,train_describer char(2) NOT NULL
 				,train_describer_berth char(4) NOT NULL
 );
 

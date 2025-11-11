@@ -32,7 +32,9 @@ type formationRecord struct {
 }
 
 type formationCoachRecord struct {
-	ID           uuid.UUID
+	ID            uuid.UUID
+	FormationUUID uuid.UUID
+
 	FormationID  string
 	Identifier   string
 	Class        *string
@@ -55,6 +57,7 @@ func (u UnitOfWork) formationsToRecords(formations unmarshaller.FormationsOfServ
 		for _, c := range f.Coaches {
 			var cRecord formationCoachRecord
 			cRecord.ID = uuid.New()
+			cRecord.FormationUUID = fRecord.ID
 			cRecord.FormationID = f.ID
 			cRecord.Identifier = c.Identifier
 			cRecord.Class = c.Class
@@ -104,6 +107,7 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) 
 		batch.Queue(`
 			INSERT INTO darwin.formations (
 				id
+				,formation_uuid
 				,formation_id
 				,identifier
 				,class
@@ -111,6 +115,7 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) 
 				,toliet_status
 			) VALUES (
 				@id
+				,@formation_uuid
 				,@formation_id
 				,@identifier
 				,@class
@@ -118,12 +123,13 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) 
 				,@toliet_status
 			);
 			`, pgx.StrictNamedArgs{
-			"id":            record.ID,
-			"formation_id":  record.FormationID,
-			"identifier":    record.Identifier,
-			"class":         record.Class,
-			"toilet_type":   record.ToiletType,
-			"toilet_status": record.ToiletStatus,
+			"id":             record.ID,
+			"formation_uuid": record.FormationUUID,
+			"formation_id":   record.FormationID,
+			"identifier":     record.Identifier,
+			"class":          record.Class,
+			"toilet_type":    record.ToiletType,
+			"toilet_status":  record.ToiletStatus,
 		})
 	}
 	results := u.tx.SendBatch(u.ctx, batch)
