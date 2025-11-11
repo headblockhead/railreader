@@ -1,1 +1,123 @@
 package interpreter
+
+import (
+	"github.com/google/uuid"
+	"github.com/headblockhead/railreader/darwin/unmarshaller"
+	"github.com/jackc/pgx/v5"
+)
+
+func (u UnitOfWork) interpretFormation(formation unmarshaller.FormationsOfService) error {
+	fRecords, cRecords, err := u.formationToRecords(formation)
+	if err != nil {
+		return err
+	}
+	err = u.insertOneFormationRecord(record)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type formationRecord struct {
+	ID           uuid.UUID
+	MessageID    string
+	ScheduleID   string
+	FormationID  string
+	Source       *string
+	SourceSystem *string
+}
+
+type formationCoachRecord struct {
+	ID           uuid.UUID
+	FormationID  string
+	Identifier   string
+	Class        *string
+	ToiletType   string
+	ToiletStatus string
+}
+
+func (u UnitOfWork) formationsToRecords(formations unmarshaller.FormationsOfService) ([]formationRecord, []formationCoachRecord, error) {
+	var fRecords []formationRecord
+	var cRecords []formationCoachRecord
+	for _, f := range formations.Formations {
+		var fRecord formationRecord
+		fRecord.ID = uuid.New()
+		fRecord.MessageID = *u.messageID
+		fRecord.ScheduleID = formations.RID
+		fRecord.FormationID = f.ID
+		fRecord.Source = f.Source
+		fRecord.SourceSystem = f.SourceSystem
+		fRecords = append(fRecords, fRecord)
+		for _, c := range f.Coaches {
+			var cRecord formationCoachRecord
+			cRecord.ID = uuid.New()
+			cRecord.FormationID = f.ID
+			cRecord.Identifier = c.Identifier
+			cRecord.Class = c.Class
+			cRecord.ToiletType = c.Toilet.Type
+			cRecord.ToiletStatus = c.Toilet.Status
+			cRecords = append(cRecords, cRecord)
+		}
+	}
+	return fRecords, cRecords, nil
+}
+
+func (u UnitOfWork) insertFormationRecords(records []formationRecord) error {
+	batch := &pgx.Batch{}
+	for _, record := range records {
+		batch.Queue(`
+			INSERT INTO darwin.formations (
+				id
+				,message_id
+				,schedule_id
+				,formation_id
+				,source
+				,source_system
+			) VALUES (
+				@id
+				,@message_id
+				,@schedule_id
+				,@formation_id
+				,@source
+				,@source_system
+			);
+			`, pgx.StrictNamedArgs{
+			"id":            record.ID,
+			"message_id":    record.MessageID,
+			"schedule_id":   record.ScheduleID,
+			"formation_id":  record.FormationID,
+			"source":        record.Source,
+			"source_system": record.SourceSystem,
+		})
+	}
+	results := u.tx.SendBatch(u.ctx, batch)
+	return results.Close()
+}
+
+func (u UnitOfWork) insertFormationCoachRecords(records []formationRecord) error {
+	batch := &pgx.Batch{}
+	for _, record := range records {
+		batch.Queue(`
+			INSERT INTO darwin.formations (
+				id
+				,formation_id
+				,identifier
+				,class
+				,toilet_type
+				,toliet_status
+			) VALUES (
+				@id
+				,@formation_id
+				,@identifier
+				,@class
+				,@toilet_type
+				,@toliet_status
+			);
+			`, pgx.StrictNamedArgs{
+			"id":           record.ID,
+			"formation_id": record.FormationID,
+		})
+	}
+	results := u.tx.SendBatch(u.ctx, batch)
+	return results.Close()
+}
