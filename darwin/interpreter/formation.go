@@ -7,11 +7,15 @@ import (
 )
 
 func (u UnitOfWork) interpretFormation(formation unmarshaller.FormationsOfService) error {
-	fRecords, cRecords, err := u.formationToRecords(formation)
+	fRecords, cRecords, err := u.formationsToRecords(formation)
 	if err != nil {
 		return err
 	}
-	err = u.insertOneFormationRecord(record)
+	err = u.insertFormationRecords(fRecords)
+	if err != nil {
+		return err
+	}
+	err = u.insertFormationCoachRecords(cRecords)
 	if err != nil {
 		return err
 	}
@@ -94,7 +98,7 @@ func (u UnitOfWork) insertFormationRecords(records []formationRecord) error {
 	return results.Close()
 }
 
-func (u UnitOfWork) insertFormationCoachRecords(records []formationRecord) error {
+func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) error {
 	batch := &pgx.Batch{}
 	for _, record := range records {
 		batch.Queue(`
@@ -114,8 +118,12 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationRecord) error
 				,@toliet_status
 			);
 			`, pgx.StrictNamedArgs{
-			"id":           record.ID,
-			"formation_id": record.FormationID,
+			"id":            record.ID,
+			"formation_id":  record.FormationID,
+			"identifier":    record.Identifier,
+			"class":         record.Class,
+			"toilet_type":   record.ToiletType,
+			"toilet_status": record.ToiletStatus,
 		})
 	}
 	results := u.tx.SendBatch(u.ctx, batch)
