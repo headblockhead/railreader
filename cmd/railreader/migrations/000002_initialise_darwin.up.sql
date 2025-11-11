@@ -161,9 +161,11 @@ CREATE TABLE IF NOT EXISTS darwin.associations ( -- Links between two schedules
 
 CREATE TABLE IF NOT EXISTS darwin.deactivations (
 				id uuid PRIMARY KEY
-				schedule_id char(16)
+
 				,message_id text NOT NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+
+				schedule_id char(16)
 );
 
 -- forecast
@@ -253,6 +255,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_location_forecasts (
 
 CREATE TABLE IF NOT EXISTS darwin.formations (
 				id uuid PRIMARY KEY
+
 				,message_id text NOT NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 
@@ -279,14 +282,15 @@ CREATE TABLE IF NOT EXISTS darwin.formation_coach (
 CREATE TABLE IF NOT EXISTS darwin.formation_loading (
 				id uuid PRIMARY KEY
 
+
 				,schedule_id char(16) NOT NULL
+				,formation_id varchar(20) NOT NULL
 				,location_id varchar(7) NOT NULL
 				,schedule_working_arrival_time varchar(8) NULL
 				,schedule_working_passing_time varchar(8) NULL
 				,schedule_working_departure_time varchar(8) NULL
 				,schedule_public_arrival_time char(5) NULL
 				,schedule_public_departure_time char(5) NULL
-				,formation_id varchar(20) NOT NULL
 				
 				,identifier varchar(2) NOT NULL
 				,source text NULL
@@ -298,6 +302,7 @@ CREATE TABLE IF NOT EXISTS darwin.formation_loading (
 
 CREATE TABLE IF NOT EXISTS darwin.headcode_change (
 				id uuid PRIMARY KEY
+
 
 				,old_headcode char(4) NOT NULL
 				,new_headcode char(4) NOT NULL

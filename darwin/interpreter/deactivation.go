@@ -10,16 +10,16 @@ func (u UnitOfWork) interpretDeactivation(deactivation unmarshaller.Deactivation
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.deactivations (
 			id
-			,schedule_id
 			,message_id
+			,schedule_id
 		) VALUES (
 			@id
-			,@schedule_id
 			,@message_id
+			,@schedule_id
 		);
 	`, pgx.StrictNamedArgs{
-		"schedule_id": deactivation.RID,
 		"message_id":  u.messageID,
+		"schedule_id": deactivation.RID,
 	})
 	if err != nil {
 		return err
