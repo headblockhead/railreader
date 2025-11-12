@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train s
 
 				,schedule_id char(16) NOT NULL -- the RID
 				,uid char(6) NOT NULL
-				,scheduled_start_date date NOT NULL
+				,scheduled_start_date char(10) NOT NULL -- YYYY-MM-DD
 
 				,headcode char(4) NOT NULL
 				,retail_service_id varchar(8) NULL
