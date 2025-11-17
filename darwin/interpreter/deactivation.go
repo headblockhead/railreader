@@ -1,6 +1,7 @@
 package interpreter
 
 import (
+	"github.com/google/uuid"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 	"github.com/jackc/pgx/v5"
 )
@@ -25,4 +26,13 @@ func (u UnitOfWork) interpretDeactivation(deactivation unmarshaller.Deactivation
 		return err
 	}
 	return nil
+}
+
+type deactivationRecord struct {
+	ID         uuid.UUID
+	MessageID  string
+	ScheduleID string
+}
+
+func (u UnitOfWork) insertDeactivation(record deactivationRecord) error {
 }

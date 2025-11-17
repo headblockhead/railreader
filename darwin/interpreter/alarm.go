@@ -14,7 +14,7 @@ func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 	if err != nil {
 		return err
 	}
-	err = u.insertOneAlarmRecord(record)
+	err = u.insertAlarmRecord(record)
 	if err != nil {
 		return err
 	}
@@ -22,10 +22,13 @@ func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
 }
 
 type alarmRecord struct {
-	ID                       uuid.UUID
-	MessageID                *string
-	AlarmID                  int
-	HasCleared               bool
+	ID uuid.UUID
+
+	MessageID *string
+
+	AlarmID    int
+	HasCleared bool
+
 	TrainDescriberFailure    *string
 	AllTrainDescribersFailed *bool
 	TyrellFailed             *bool
@@ -49,8 +52,8 @@ func (u UnitOfWork) alarmToRecord(alarm unmarshaller.Alarm) (alarmRecord, error)
 	return record, nil
 }
 
-// insertOneAlarmRecord inserts a new alarm record in the database.
-func (u UnitOfWork) insertOneAlarmRecord(record alarmRecord) error {
+// insertAlarmRecord inserts a new alarm record in the database.
+func (u UnitOfWork) insertAlarmRecord(record alarmRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.alarms (
 			id

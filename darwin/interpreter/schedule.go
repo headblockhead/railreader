@@ -12,6 +12,14 @@ func (u UnitOfWork) interpretSchedule(schedule unmarshaller.Schedule) error {
 	if err != nil {
 		return err
 	}
+	err = u.insertScheduleRecord(scheduleRecord)
+	if err != nil {
+		return err
+	}
+	err = u.insertScheduleLocationRecords(scheduleLocationRecords)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -212,4 +220,8 @@ func sliceActivities(activities string) []string {
 	return slice
 }
 
-// TODO: add insertion functions
+func (u UnitOfWork) insertScheduleRecord(record scheduleRecord) error {
+}
+
+func (u UnitOfWork) insertScheduleLocationRecords(records []scheduleLocationRecord) error {
+}

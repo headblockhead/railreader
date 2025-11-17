@@ -12,7 +12,7 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 	if err != nil {
 		return err
 	}
-	err = u.insertOneAssociationRecord(record)
+	err = u.insertAssociationRecord(record)
 	if err != nil {
 		return err
 	}
@@ -20,19 +20,23 @@ func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) e
 }
 
 type associationRecord struct {
-	ID                                     uuid.UUID
-	MessageID                              *string
-	TimetableID                            *string
-	LocationID                             string
-	Category                               string
-	IsCancelled                            bool
-	IsDeleted                              bool
-	MainScheduleID                         string
-	MainScheduleWorkingArrivalTime         *string
-	MainScheduleWorkingPassingTime         *string
-	MainScheduleWorkingDepartureTime       *string
-	MainSchedulePublicArrivalTime          *string
-	MainSchedulePublicDepartureTime        *string
+	ID uuid.UUID
+
+	MessageID   *string
+	TimetableID *string
+
+	LocationID  string
+	Category    string
+	IsCancelled bool
+	IsDeleted   bool
+
+	MainScheduleID                   string
+	MainScheduleWorkingArrivalTime   *string
+	MainScheduleWorkingPassingTime   *string
+	MainScheduleWorkingDepartureTime *string
+	MainSchedulePublicArrivalTime    *string
+	MainSchedulePublicDepartureTime  *string
+
 	AssociatedScheduleID                   string
 	AssociatedScheduleWorkingArrivalTime   *string
 	AssociatedScheduleWorkingPassingTime   *string
@@ -66,8 +70,8 @@ func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (a
 	return record, nil
 }
 
-// insertOneAssociationRecord inserts a new association record in the database.
-func (u UnitOfWork) insertOneAssociationRecord(record associationRecord) error {
+// insertAssociationRecord inserts a new association record in the database.
+func (u UnitOfWork) insertAssociationRecord(record associationRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.associations (
 			id
