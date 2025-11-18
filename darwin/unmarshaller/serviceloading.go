@@ -27,10 +27,8 @@ type LoadingCategory struct {
 	SourceSystem *string `xml:"srcInst,attr"`
 
 	// Category is between 1 and 4 characters, and can be looked up in the reference data.
-	Category LoadingCategoryID `xml:",chardata"`
+	Category string `xml:",chardata"`
 }
-
-type LoadingCategoryID string
 
 type LoadingCategoryType string
 

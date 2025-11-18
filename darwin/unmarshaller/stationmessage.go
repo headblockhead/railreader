@@ -55,9 +55,9 @@ const (
 	StationMessageCategoryStation StationMessageCategory = "Station"
 	// StationMessageCategoryTrain is about the trains that call at a station.
 	StationMessageCategoryTrain StationMessageCategory = "Train"
-	// StationMessageCategoryPriorTrain is an advance message about something that will affect trains in the future.
+	// StationMessageCategoryPriorTrain is a prior warning about something that will affect trains in the future.
 	StationMessageCategoryPriorTrain StationMessageCategory = "PriorTrains"
-	// StationMessageCategoryPriorOther is an advance message about something in the future, such as lifts being out of order for the next week.
+	// StationMessageCategoryPriorOther is a prior warning about something in the future that affects something other than train services.
 	StationMessageCategoryPriorOther StationMessageCategory = "PriorOthers"
 	// StationMessageCategoryConnections is about the connecting services at a station, such as the London Underground.
 	StationMessageCategoryConnections StationMessageCategory = "Connections"

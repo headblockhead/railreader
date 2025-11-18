@@ -43,7 +43,7 @@ func (u UnitOfWork) headcodeChangeToRecord(headcodeChange unmarshaller.HeadcodeC
 
 func (u UnitOfWork) insertHeadcodeChangeRecord(record headcodeChangeRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
-		INSERT INTO headcode_changes (
+		INSERT INTO darwin.headcode_changes (
 			id
 			,message_id
 			,old_headcode

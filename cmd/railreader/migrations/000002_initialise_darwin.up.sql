@@ -424,8 +424,8 @@ CREATE TABLE IF NOT EXISTS darwin.station_messages (
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 
 				,station_message_id int NOT NULL
-				,station_message_category text NOT NULL -- "Train", "Station", "Connections", "System", "Misc", "PriorTrains", "PriorOther"
-				,station_message_severity text NOT NULL -- "0", "1", "2", "3"
+				,category text NOT NULL -- "Train", "Station", "Connections", "System", "Misc", "PriorTrains", "PriorOther"
+				,severity int NOT NULL -- 0 (normal), 1 (minor), 2 (major), 3 (severe)
 				,is_suppressed boolean NOT NULL
 
 				,station_crs_codes char(3) ARRAY NOT NULL
