@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS darwin.messages (
 				,last_received_at timestamp WITH TIME ZONE NOT NULL -- The most recent time that railreader has recieved this message.
 
 				-- If a status element is given:
-				,status_code varchar(32) NULL -- The status of the message feed's connection to Darwin.
+				,status_code varchar(32) NULL -- The status of the message feed's connection to Darwin: HBOK, HBINIT, HBFAIL, HBPENDING
 				,status_description varchar(128) NULL -- Human-readable description of the status code.
 
 				-- If a response element is given:

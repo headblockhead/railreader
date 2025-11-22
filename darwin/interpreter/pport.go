@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/headblockhead/railreader/darwin/filegetter"
-	"github.com/headblockhead/railreader/darwin/repository"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
+	"github.com/jackc/pgx/v5"
 )
 
 // when updating this, don't forget to update the version referenced in the unmarshaller package and its tests.
-var expectedPushPortVersion = "18.0"
+const expectedPushPortVersion = "18.0"
 
 func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
 	u.log.Debug("interpreting a PushPortMessage")
@@ -23,21 +23,25 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 		// Warn, but attempt to continue anyway.
 		u.log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", expectedPushPortVersion), slog.String("actual_version", pport.Version))
 	}
-	location, err := time.LoadLocation("Europe/London")
+
+	exists, err := u.doesMessageRecordExist(*u.messageID)
 	if err != nil {
-		return fmt.Errorf("failed to load time location: %w", err)
+		return err
 	}
-	timestamp, err := time.ParseInLocation(time.RFC3339Nano, pport.Timestamp, location)
-	if err != nil {
-		return fmt.Errorf("failed to parse timestamp %q: %w", pport.Timestamp, err)
-	}
-	if err := u.pportMessageRepository.Insert(repository.PPortMessageRow{
-		MessageID:       *u.messageID,
-		SentAt:          timestamp,
-		FirstReceivedAt: time.Now(),
-		Version:         pport.Version,
-	}); err != nil {
-		return fmt.Errorf("failed to insert message record: %w", err)
+	if exists {
+		err := u.updateMessageRecordTime(*u.messageID)
+		if err != nil {
+			return err
+		}
+	} else {
+		record, err := u.messageToRecord(pport)
+		if err != nil {
+			return err
+		}
+		err = u.insertMessageRecord(record)
+		if err != nil {
+			return err
+		}
 	}
 
 	if pport.NewFiles != nil {
@@ -46,25 +50,141 @@ func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage)
 		}
 		return nil
 	}
-	if pport.StatusUpdate != nil {
-		if err := u.interpretStatus(pport.StatusUpdate); err != nil {
-			return fmt.Errorf("failed to process StatusUpdate: %w", err)
-		}
-		return nil
-	}
 	if pport.UpdateResponse != nil {
-		if err := u.interpretResponse(false, pport.UpdateResponse); err != nil {
-			return fmt.Errorf("failed to process UpdateResponse: %w", err)
+		if err := u.interpretResponse(pport.UpdateResponse); err != nil {
+			return err
 		}
 		return nil
 	}
 	if pport.SnapshotResponse != nil {
-		if err := u.interpretResponse(true, pport.SnapshotResponse); err != nil {
-			return fmt.Errorf("failed to process SnapshotResponse: %w", err)
+		if err := u.interpretResponse(pport.SnapshotResponse); err != nil {
+			return err
 		}
 		return nil
 	}
 	return errors.New("PushPortMessage was empty")
+}
+
+type messageRecord struct {
+	RDMId           string
+	Version         string
+	SentAt          time.Time
+	FirstReceivedAt time.Time
+	LastReceivedAt  time.Time
+
+	StatusCode        *string
+	StatusDescription *string
+
+	ResponseIsSnapshot  *bool
+	RequestSource       *string
+	RequestSourceSystem *string
+	RequestID           *string
+}
+
+func (u UnitOfWork) doesMessageRecordExist(RDMId string) (bool, error) {
+	row := u.tx.QueryRow(u.ctx, `SELECT null FROM darwin.messages WHERE rdm_id = @rdm_id;`)
+	err := row.Scan(nil)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// brand new message
+func (u UnitOfWork) messageToRecord(message unmarshaller.PushPortMessage) (messageRecord, error) {
+	var record messageRecord
+	record.RDMId = *u.messageID
+	record.Version = message.Version
+	sentAt, err := time.ParseInLocation(time.RFC3339Nano, message.Timestamp, u.timezone)
+	if err != nil {
+		return record, err
+	}
+	record.SentAt = sentAt
+	now := time.Now().In(u.timezone)
+	record.FirstReceivedAt = now
+	record.LastReceivedAt = now
+
+	if message.StatusUpdate != nil {
+		record.StatusCode = (*string)(&message.StatusUpdate.Code)
+		record.StatusDescription = &message.StatusUpdate.Description
+		record.RequestSourceSystem = message.StatusUpdate.SourceSystem
+		record.RequestID = message.StatusUpdate.RequestID
+	} else if message.UpdateResponse != nil {
+		isSnapshot := false
+		record.ResponseIsSnapshot = &isSnapshot
+		record.RequestSource = message.UpdateResponse.Source
+		record.RequestSourceSystem = message.UpdateResponse.SourceSystem
+		record.RequestID = message.UpdateResponse.RequestID
+	} else if message.SnapshotResponse != nil {
+		isSnapshot := true
+		record.ResponseIsSnapshot = &isSnapshot
+		record.RequestSource = message.SnapshotResponse.Source
+		record.RequestSourceSystem = message.SnapshotResponse.SourceSystem
+		record.RequestID = message.SnapshotResponse.RequestID
+	}
+	return record, nil
+}
+
+func (u UnitOfWork) insertMessageRecord(record messageRecord) error {
+	_, err := u.tx.Exec(u.ctx, `
+	INSERT INTO darwin.messages (
+		rdm_id
+		,version
+		,sent_at
+		,first_received_at
+		,last_received_at
+		,status_code
+		,status_description
+		,response_is_snapshot
+		,request_source
+		,request_source_system
+		,request_id
+	) VALUES (
+		@rdm_id
+		,@version
+		,@sent_at
+		,@first_received_at
+		,@last_received_at
+		,@status_code
+		,@status_description
+		,@response_is_snapshot
+		,@request_source
+		,@request_source_system
+		,@request_id
+	);	`, pgx.StrictNamedArgs{
+		"rdm_id":                record.RDMId,
+		"version":               record.Version,
+		"sent_at":               record.SentAt,
+		"first_received_at":     record.FirstReceivedAt,
+		"last_received_at":      record.LastReceivedAt,
+		"status_code":           record.StatusCode,
+		"status_description":    record.StatusDescription,
+		"response_is_snapshot":  record.ResponseIsSnapshot,
+		"request_source":        record.RequestSource,
+		"request_source_system": record.RequestSourceSystem,
+		"request_id":            record.RequestID,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (u UnitOfWork) updateMessageRecordTime(RDMId string) error {
+	_, err := u.tx.Exec(u.ctx, `
+	UPDATE darwin.messages SET (
+		last_received_at = @last_received_at
+	) WHERE rdm_id = @rdm_id;
+	`, pgx.StrictNamedArgs{
+		"rdm_id":           RDMId,
+		"last_received_at": time.Now().In(u.timezone),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
@@ -120,43 +240,11 @@ func GetUnmarshalAndInterpretFile[T any](log *slog.Logger, fg filegetter.FileGet
 	return nil
 }
 
-func (u UnitOfWork) interpretStatus(status *unmarshaller.Status) error {
-	u.log.Debug("interpreting a Status")
-	var row repository.StatusRow
-	row.MessageID = *u.messageID
-	row.Code = string(status.Code)
-	row.ReceivedAt = time.Now()
-	row.Description = status.Description
-	if err := u.statusRepository.Insert(row); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (u UnitOfWork) interpretResponse(snapshot bool, resp *unmarshaller.Response) error {
-	u.log.Debug("interpreting a Response", slog.Bool("snapshot", snapshot))
-	var row repository.ResponseRow
-	row.MessageID = *u.messageID
-	row.IsSnapshot = snapshot
-	if resp.Source != nil && *resp.Source != "" {
-		u.log.Debug("source is set")
-		row.Source = resp.Source
-	}
-	if resp.SourceSystem != nil && *resp.SourceSystem != "" {
-		u.log.Debug("source system is set")
-		row.SourceSystem = resp.SourceSystem
-	}
-	if resp.RequestID != nil && *resp.RequestID != "" {
-		u.log.Debug("request ID is set")
-		row.RequestID = resp.RequestID
-	}
-	if err := u.responseRepository.Insert(row); err != nil {
-		return fmt.Errorf("failed to insert response record: %w", err)
-	}
+func (u UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
 	// TODO: interpret other types of repsonse contents
 	for _, schedule := range resp.Schedules {
-		if err := u.InterpretSchedule(schedule); err != nil {
-			return fmt.Errorf("failed to process Schedule %s: %w", schedule.RID, err)
+		if err := u.interpretSchedule(schedule); err != nil {
+			return err
 		}
 	}
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/headblockhead/railreader/darwin/filegetter"
 	"github.com/jackc/pgx/v5"
@@ -12,10 +13,11 @@ import (
 
 // A UnitOfWork represents a single transaction scope.
 type UnitOfWork struct {
-	ctx context.Context
-	log *slog.Logger
-	tx  pgx.Tx
-	fg  filegetter.FileGetter
+	ctx      context.Context
+	log      *slog.Logger
+	timezone *time.Location
+	tx       pgx.Tx
+	fg       filegetter.FileGetter
 
 	// IDs
 	messageID   *string
@@ -29,9 +31,16 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, 
 		return nil, fmt.Errorf("failed to begin new transaction: %w", err)
 	}
 	log.Debug("transaction created for new unit of work")
+
+	londonTime, err := time.LoadLocation("Europe/London")
+	if err != nil {
+		return nil, err
+	}
+
 	return &UnitOfWork{
 		ctx:         ctx,
 		log:         log,
+		timezone:    londonTime,
 		tx:          tx,
 		fg:          fg,
 		messageID:   messageID,
