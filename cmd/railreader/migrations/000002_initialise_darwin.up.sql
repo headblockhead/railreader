@@ -6,7 +6,7 @@ SET search_path TO darwin, public;
 CREATE TABLE IF NOT EXISTS darwin.message_xml ( 
 				id text PRIMARY KEY 
 				,kafka_offset bigint NOT NULL
-				,pport_sequence bigint NOT NULL
+				,pport_sequence text NOT NULL
 				,xml xml NOT NULL
 );
 

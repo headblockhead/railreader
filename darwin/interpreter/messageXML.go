@@ -5,7 +5,7 @@ import "github.com/jackc/pgx/v5"
 type MessageXMLRecord struct {
 	ID            string
 	KafkaOffset   int64
-	PPortSequence int64
+	PPortSequence string
 	XML           string
 }
 

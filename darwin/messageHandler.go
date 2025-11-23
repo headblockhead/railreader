@@ -29,11 +29,15 @@ func NewMessageHandler(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Po
 }
 
 // messageCapsule is the raw JSON structure as received from the Rail Data Marketplace's Kafka topic.
-// The JSON itself has a lot of useless data, so I ignore everything but what I want.
+// The JSON itself has a lot of useless data, so I cherry-pick out what I want.
 type messageCapsule struct {
-	MessageID     string `json:"messageID"`
-	PPortSequence int64  `json:"properties>PushPortSequence>string"`
-	XML           string `json:"bytes"`
+	MessageID  string `json:"messageID"`
+	Properties struct {
+		PushPortSequence struct {
+			String string `json:"string"`
+		} `json:"PushPortSequence"`
+	} `json:"properties"`
+	XML string `json:"bytes"`
 }
 
 func (m MessageHandler) Handle(msg kafka.Message) error {
@@ -63,7 +67,7 @@ func insertMessageCapsule(ctx context.Context, log *slog.Logger, dbpool *pgxpool
 	if err := u.InsertMessageXMLRecord(interpreter.MessageXMLRecord{
 		ID:            capsule.MessageID,
 		KafkaOffset:   offset,
-		PPortSequence: capsule.PPortSequence,
+		PPortSequence: capsule.Properties.PushPortSequence.String,
 		XML:           capsule.XML,
 	}); err != nil {
 		_ = u.Rollback()
