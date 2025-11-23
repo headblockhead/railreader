@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"sync"
 	"time"
 
@@ -60,7 +61,7 @@ func (c IngestCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("error connecting to database: %w", err)
 	}
-	defer dbpool.Close(databaseContext)
+	defer dbpool.Close()
 
 	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(log.With(slog.String("source", "darwin")), dbpool)
 	if err != nil {
@@ -78,9 +79,12 @@ func (c IngestCommand) Run() error {
 		close(darwinKafkaMessages)
 	})
 	var handlerGroup sync.WaitGroup
-	handlerGroup.Go(func() {
-		handleMessages(log.With(slog.String("source", "darwin"), slog.String("process", "handler")), darwinKafkaMessages, darwinFetcherCommiter, darwinMessageHandler)
-	})
+	threadCount := runtime.NumCPU()
+	for i := range threadCount {
+		handlerGroup.Go(func() {
+			handleMessages(log.With(slog.String("source", "darwin"), slog.String("process", "handler"), slog.Int("goroutine", i)), darwinKafkaMessages, darwinFetcherCommiter, darwinMessageHandler)
+		})
+	}
 
 	// The fetcher group will run until messageFetcherContext is cancelled (when the program receives an exit signal).
 	fetcherGroup.Wait()

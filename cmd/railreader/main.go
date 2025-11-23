@@ -40,7 +40,7 @@ func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
 	return log
 }
 
-// onSignal blocks until a SIGINT or SIGTERM signal is recieved, then calls f() in a new goroutine.
+// onSignal blocks until a SIGINT or SIGTERM signal is received, then calls f() in a new goroutine.
 // The context that is passed to onSignal should be cancelled when shutdown has completed successfully.
 func onSignal(log *slog.Logger, ctx context.Context, f func()) {
 	signalchan := make(chan os.Signal, 1)

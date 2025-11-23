@@ -42,14 +42,15 @@ func (u UnitOfWork) alarmToRecord(alarm unmarshaller.Alarm) (alarmRecord, error)
 	if alarm.ClearedAlarm != nil {
 		record.HasCleared = true
 		record.AlarmID = *alarm.ClearedAlarm
-	} else if alarm.NewAlarm != nil {
+		return record, nil
+	}
+	if alarm.NewAlarm != nil {
 		record.TrainDescriberFailure = alarm.NewAlarm.TDFailure
 		record.AllTrainDescribersFailed = (*bool)(&alarm.NewAlarm.TDTotalFailure)
 		record.TyrellFailed = (*bool)(&alarm.NewAlarm.TyrellTotalFailure)
-	} else {
-		return record, errors.New("no alarm data present")
+		return record, nil
 	}
-	return record, nil
+	return record, errors.New("no alarm data present")
 }
 
 // insertAlarmRecord inserts a new alarm record in the database.

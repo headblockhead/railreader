@@ -139,7 +139,7 @@ type scheduleLocationForecastRecord struct {
 	PlatformIsSuppressed      *bool
 	PlatformIsSuppressedByCIS *bool
 	PlatformDataSource        *string
-	PlatformConfirmed         *bool
+	PlatformIsConfirmed       *bool
 	Platform                  *string
 	IsSuppressed              *bool
 	DetachesFromFront         *bool
@@ -209,7 +209,7 @@ func (u UnitOfWork) forecastTimeLocationToRecord(scheduleID string, forecastL un
 		record.PlatformIsSuppressed = &forecastL.PlatformData.Suppressed
 		record.PlatformIsSuppressedByCIS = &forecastL.PlatformData.SuppressedByCIS
 		record.PlatformDataSource = &forecastL.PlatformData.Source
-		record.PlatformConfirmed = &forecastL.PlatformData.Confirmed
+		record.PlatformIsConfirmed = &forecastL.PlatformData.Confirmed
 		record.Platform = &forecastL.PlatformData.Platform
 	}
 	record.IsSuppressed = &forecastL.Suppressed
@@ -270,7 +270,7 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 				,platform_is_suppressed
 				,platform_is_suppressed_by_cis
 				,platform_data_source
-				,platform_confirmed
+				,platform_is_confirmed
 				,platform
 				,is_suppressed
 				,detaches_from_front
@@ -323,7 +323,7 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 				,@platform_is_suppressed
 				,@platform_is_suppressed_by_cis
 				,@platform_data_source
-				,@platform_confirmed
+				,@platform_is_confirmed
 				,@platform
 				,@is_suppressed
 				,@detaches_from_front
@@ -377,7 +377,7 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 			"platform_is_suppressed":                  record.PlatformIsSuppressed,
 			"platform_is_suppressed_by_cis":           record.PlatformIsSuppressedByCIS,
 			"platform_data_source":                    record.PlatformDataSource,
-			"platform_confirmed":                      record.PlatformConfirmed,
+			"platform_is_confirmed":                   record.PlatformIsConfirmed,
 			"platform":                                record.Platform,
 			"is_suppressed":                           record.IsSuppressed,
 			"detaches_from_front":                     record.DetachesFromFront,

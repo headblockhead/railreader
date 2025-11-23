@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 )
 
+const ExpectedPushPortVersion = "18.0"
+
 // Built for Darwin PushPort version 18.0
 type PushPortMessage struct {
 	// Timestamp is in the ISO 8601 YYYY-MM-DDTHH:MM:SS.sssssssss±HH:MM format (time.RFC3339Nano).
@@ -84,16 +86,16 @@ type Response struct {
 	// 0 or more of any of these updated elements can be present in a response.
 	// This includes 0 of all, which is a valid response.
 
-	Schedules         []Schedule            `xml:"schedule"`
-	Deactivations     []Deactivation        `xml:"deactivated"`
+	Alarms            []Alarm               `xml:"alarm"`
 	Associations      []Association         `xml:"association"`
-	Formations        []FormationsOfService `xml:"scheduleFormations"`
+	Deactivations     []Deactivation        `xml:"deactivated"`
 	ForecastTimes     []ForecastTime        `xml:"TS"`
-	ServiceLoadings   []ServiceLoading      `xml:"serviceLoading"`
 	FormationLoadings []FormationLoading    `xml:"formationLoading"`
+	Formations        []FormationsOfService `xml:"scheduleFormations"`
+	HeadcodeChanges   []HeadcodeChange      `xml:"trackingID"`
+	Schedules         []Schedule            `xml:"schedule"`
+	ServiceLoadings   []ServiceLoading      `xml:"serviceLoading"`
 	StationMessages   []StationMessage      `xml:"OW"`
 	TrainAlerts       []TrainAlert          `xml:"trainAlert"`
 	TrainOrders       []TrainOrder          `xml:"trainOrder"`
-	HeadcodeChanges   []HeadcodeChange      `xml:"trackingID"`
-	Alarms            []Alarm               `xml:"alarm"`
 }

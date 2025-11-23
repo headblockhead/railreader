@@ -74,7 +74,7 @@ func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingReco
 				,schedule_working_arrival_time
 				,schedule_working_passing_time
 				,schedule_working_departure_time
-				,schedule_public_arival_time
+				,schedule_public_arrival_time
 				,schedule_public_departure_time
 
 				,identifier
@@ -90,7 +90,7 @@ func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingReco
 				,@schedule_working_arrival_time
 				,@schedule_working_passing_time
 				,@schedule_working_departure_time
-				,@schedule_public_arival_time
+				,@schedule_public_arrival_time
 				,@schedule_public_departure_time
 
 				,@identifier
@@ -107,7 +107,7 @@ func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingReco
 			"schedule_working_arrival_time":   record.ScheduleWorkingArrivalTime,
 			"schedule_working_passing_time":   record.ScheduleWorkingPassingTime,
 			"schedule_working_departure_time": record.ScheduleWorkingDepartureTime,
-			"schedule_public_arival_time":     record.SchedulePublicArrivalTime,
+			"schedule_public_arrival_time":    record.SchedulePublicArrivalTime,
 			"schedule_public_departure_time":  record.SchedulePublicDepartureTime,
 			"identifier":                      record.Identifier,
 			"source":                          record.Source,

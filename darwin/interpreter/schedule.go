@@ -35,7 +35,7 @@ type scheduleRecord struct {
 	ScheduledStartDate string
 
 	Headcode           string
-	RetailServiceID    string
+	RetailServiceID    *string
 	TOCid              string
 	Service            string
 	Category           string
@@ -95,7 +95,7 @@ func (u UnitOfWork) scheduleToRecords(schedule unmarshaller.Schedule) (scheduleR
 	sRecord.UID = schedule.UID
 	sRecord.ScheduledStartDate = schedule.ScheduledStartDate
 	sRecord.Headcode = schedule.Headcode
-	sRecord.RetailServiceID = *schedule.RetailServiceID
+	sRecord.RetailServiceID = schedule.RetailServiceID
 	sRecord.TOCid = schedule.TOC
 	sRecord.Service = string(schedule.Service)
 	sRecord.Category = string(schedule.Category)

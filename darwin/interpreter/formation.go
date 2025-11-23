@@ -105,14 +105,14 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) 
 	batch := &pgx.Batch{}
 	for _, record := range records {
 		batch.Queue(`
-			INSERT INTO darwin.formations (
+			INSERT INTO darwin.formation_coaches (
 				id
 				,formation_uuid
 				,formation_id
 				,identifier
 				,class
 				,toilet_type
-				,toliet_status
+				,toilet_status
 			) VALUES (
 				@id
 				,@formation_uuid
@@ -120,7 +120,7 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) 
 				,@identifier
 				,@class
 				,@toilet_type
-				,@toliet_status
+				,@toilet_status
 			);
 			`, pgx.StrictNamedArgs{
 			"id":             record.ID,
