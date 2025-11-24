@@ -13,6 +13,7 @@ import (
 
 type CLI struct {
 	Ingest IngestCommand `cmd:"ingest" help:"Ingest data into the database from the message feeds."`
+	SFTP   SFTPCommand   `cmd:"sftp" help:"Host an SFTP server that the Rail Data Marketplace can copy to."`
 }
 
 func getLogger(logLevel string, JSONOutput bool) *slog.Logger {

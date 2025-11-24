@@ -52,9 +52,6 @@ type messageHandler interface {
 func (c IngestCommand) Run() error {
 	log := getLogger(c.Logging.Level, c.Logging.Format == "json")
 
-	var signalContext, signalCancel = context.WithCancel(context.Background())
-	defer signalCancel()
-
 	var databaseContext, databaseCancel = context.WithCancel(context.Background())
 	defer databaseCancel()
 	dbpool, err := connectToDatabase(databaseContext, log.With(slog.String("process", "database")), c.DatabaseURL)
@@ -70,6 +67,8 @@ func (c IngestCommand) Run() error {
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
+	var signalContext, signalCancel = context.WithCancel(context.Background())
+	defer signalCancel()
 	go onSignal(log, signalContext, func() {
 		messageFetcherCancel()
 	})
