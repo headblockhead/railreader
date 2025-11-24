@@ -3,9 +3,9 @@ package darwin
 import (
 	"context"
 	"encoding/json"
+	"io/fs"
 	"log/slog"
 
-	"github.com/headblockhead/railreader/darwin/filegetter"
 	"github.com/headblockhead/railreader/darwin/interpreter"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,15 +16,15 @@ type MessageHandler struct {
 	log    *slog.Logger
 	ctx    context.Context
 	dbpool *pgxpool.Pool
-	fg     filegetter.FileGetter
+	fs     fs.FS
 }
 
-func NewMessageHandler(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fg filegetter.FileGetter) MessageHandler {
+func NewMessageHandler(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fs fs.FS) MessageHandler {
 	return MessageHandler{
 		ctx:    ctx,
 		log:    log,
 		dbpool: dbpool,
-		fg:     fg,
+		fs:     fs,
 	}
 }
 
@@ -53,7 +53,7 @@ func (m MessageHandler) Handle(msg kafka.Message) error {
 	if err != nil {
 		return err
 	}
-	if err := interpretPushPortMessage(m.ctx, log, m.dbpool, m.fg, capsule.MessageID, pport); err != nil {
+	if err := interpretPushPortMessage(m.ctx, log, m.dbpool, m.fs, capsule.MessageID, pport); err != nil {
 		return err
 	}
 	return nil
@@ -80,8 +80,8 @@ func insertMessageCapsule(ctx context.Context, log *slog.Logger, dbpool *pgxpool
 	return nil
 }
 
-func interpretPushPortMessage(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fg filegetter.FileGetter, messageID string, pport unmarshaller.PushPortMessage) error {
-	u, err := interpreter.NewUnitOfWork(ctx, log, dbpool, fg, &messageID, nil)
+func interpretPushPortMessage(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fs fs.FS, messageID string, pport unmarshaller.PushPortMessage) error {
+	u, err := interpreter.NewUnitOfWork(ctx, log, dbpool, fs, &messageID, nil)
 	if err != nil {
 		return err
 	}

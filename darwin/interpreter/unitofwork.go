@@ -3,10 +3,10 @@ package interpreter
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"time"
 
-	"github.com/headblockhead/railreader/darwin/filegetter"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -17,14 +17,13 @@ type UnitOfWork struct {
 	log      *slog.Logger
 	timezone *time.Location
 	tx       pgx.Tx
-	fg       filegetter.FileGetter
+	fs       fs.FS
 
-	// IDs
 	messageID   *string
 	timetableID *string
 }
 
-func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fg filegetter.FileGetter, messageID *string, timetableID *string) (unit *UnitOfWork, err error) {
+func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fs fs.FS, messageID *string, timetableID *string) (unit *UnitOfWork, err error) {
 	log.Debug("creating new transaction for new unit of work")
 	tx, err := dbpool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
@@ -42,7 +41,7 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, 
 		log:         log,
 		timezone:    londonTime,
 		tx:          tx,
-		fg:          fg,
+		fs:          fs,
 		messageID:   messageID,
 		timetableID: timetableID,
 	}, nil

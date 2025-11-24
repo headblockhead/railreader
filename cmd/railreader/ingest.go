@@ -13,30 +13,26 @@ import (
 )
 
 type IngestCommand struct {
-	DatabaseURL string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
-	Darwin      struct {
+	DatabaseURL          string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
+	SFTPWorkingDirectory string `env:"SFTP_WORKING_DIRECTORY" help:"Directory that the railreader SFTP server writes its files to." type:"existingdir" required:""`
+	Darwin               struct {
 		Kafka struct {
-			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" required:"" default:"pkc-z3p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
-			Topic             string        `env:"DARWIN_KAFKA_TOPIC" required:"" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic to subscribe to for Darwin's XML feed."`
+			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" default:"pkc-z4p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
+			Topic             string        `env:"DARWIN_KAFKA_TOPIC" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic for Darwin's XML feed."`
 			Group             string        `env:"DARWIN_KAFKA_GROUP" required:""`
 			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:""`
 			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:""`
-			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" required:"" default:"30s" help:"Timeout for connecting to the Kafka broker."`
+			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"30s" help:"Timeout for connecting to the Kafka broker."`
 		} `embed:"" prefix:"kafka."`
-		S3 struct {
-			Bucket    string `env:"DARWIN_S3_BUCKET" required:"" default:"darwin.xmltimetable" help:"AWS S3 bucket to read reference data from."`
-			Prefix    string `env:"DARWIN_S3_PREFIX" required:"" default:"PPTimetable/" help:"Prefix within the bucket to read reference data from."`
-			AccessKey string `env:"DARWIN_S3_ACCESS_KEY" required:""`
-			SecretKey string `env:"DARWIN_S3_SECRET_KEY" required:""`
-			Region    string `env:"DARWIN_S3_REGION" required:"" default:"eu-west-1"`
-		} `embed:"" prefix:"s3."`
-		QueueSize int `env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once. This does not affect data integrity, but will affect memory usage, bandwidth usage on startup, and how long it will take for the server to cleanly exit."`
+		QueueSize int `env:"DARWIN_QUEUE_SIZE" default:"32" help:"Maximum number of incoming messages to queue for processing at once."`
 	} `embed:"" prefix:"darwin."`
 
 	Logging struct {
 		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
-		Format string `enum:"json,console" env:"LOG_FORMAT" default:"json"`
+		Format string `enum:"json,console" env:"LOG_FORMAT" default:"console"`
 	} `embed:"" prefix:"log."`
+
+	log *slog.Logger `kong:"-"`
 }
 
 type messageFetcherCommitter interface {
@@ -50,49 +46,47 @@ type messageHandler interface {
 }
 
 func (c IngestCommand) Run() error {
-	log := getLogger(c.Logging.Level, c.Logging.Format == "json")
+	c.log = getLogger(c.Logging.Level, c.Logging.Format == "json")
 
 	var databaseContext, databaseCancel = context.WithCancel(context.Background())
 	defer databaseCancel()
-	dbpool, err := connectToDatabase(databaseContext, log.With(slog.String("process", "database")), c.DatabaseURL)
+	dbpool, err := connectToDatabase(databaseContext, c.log.With(slog.String("process", "database")), c.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("error connecting to database: %w", err)
 	}
 	defer dbpool.Close()
 
-	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(log.With(slog.String("source", "darwin")), dbpool)
+	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(c.log.With(slog.String("source", "darwin")), dbpool)
 	if err != nil {
 		return fmt.Errorf("error setting up darwin connection: %w", err)
 	}
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
-	var signalContext, signalCancel = context.WithCancel(context.Background())
-	defer signalCancel()
-	go onSignal(log, signalContext, func() {
+	go onSignal(c.log, func() {
 		messageFetcherCancel()
 	})
 	var fetcherGroup sync.WaitGroup
 	fetcherGroup.Go(func() {
-		fetchMessages(messageFetcherContext, log.With(slog.String("source", "darwin"), slog.String("process", "fetcher")), darwinKafkaMessages, darwinFetcherCommiter)
+		fetchMessages(messageFetcherContext, c.log.With(slog.String("source", "darwin"), slog.String("process", "fetcher")), darwinKafkaMessages, darwinFetcherCommiter)
 		close(darwinKafkaMessages)
 	})
 	var handlerGroup sync.WaitGroup
 	threadCount := runtime.NumCPU()
 	for i := range threadCount {
 		handlerGroup.Go(func() {
-			handleMessages(log.With(slog.String("source", "darwin"), slog.String("process", "handler"), slog.Int("goroutine", i)), darwinKafkaMessages, darwinFetcherCommiter, darwinMessageHandler)
+			handleMessages(c.log.With(slog.String("source", "darwin"), slog.String("process", "handler"), slog.Int("goroutine", i)), darwinKafkaMessages, darwinFetcherCommiter, darwinMessageHandler)
 		})
 	}
 
 	// The fetcher group will run until messageFetcherContext is cancelled (when the program receives an exit signal).
 	fetcherGroup.Wait()
-	log.Info("waiting to finish processing all queued messages")
+	c.log.Info("waiting to finish processing all queued messages")
 	handlerGroup.Wait()
 
-	log.Info("closing connections")
+	c.log.Info("closing connections")
 	if err := darwinFetcherCommiter.Close(); err != nil {
-		log.Error("error closing darwin kafka connection", slog.Any("error", err))
+		c.log.Error("error closing darwin kafka connection", slog.Any("error", err))
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -9,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kong"
+	"github.com/phsym/console-slog"
 )
 
 type CLI struct {
@@ -34,7 +34,7 @@ func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
 			Level: level,
 		}))
 	} else {
-		log = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		log = slog.New(console.NewHandler(os.Stderr, &console.HandlerOptions{
 			Level: level,
 		}))
 	}
@@ -42,24 +42,20 @@ func getLogger(logLevel string, JSONOutput bool) *slog.Logger {
 }
 
 // onSignal blocks until a SIGINT or SIGTERM signal is received, then calls f() in a new goroutine.
-// The context that is passed to onSignal should be cancelled when shutdown has completed successfully.
-func onSignal(log *slog.Logger, ctx context.Context, f func()) {
+func onSignal(log *slog.Logger, f func()) {
 	signalchan := make(chan os.Signal, 1)
 	defer close(signalchan)
 	signal.Notify(signalchan, syscall.SIGINT, syscall.SIGTERM)
 
-	signal := <-signalchan // block until a signal is received
-	fmt.Println()          // Always print a newline so the terminal prompt appears correctly.
-	log.Info(signal.String() + " received, stopping gracefully...")
+	// Block until a signal is received.
+	signal := <-signalchan
+	fmt.Print("\n") // an interactive terminal user may have pressed ^C (which is echoed) to produce a SIGINT, so add a newline for readability.
+	log.Info(signal.String() + " received, stopping gracefully")
 	go f()
 
-	select {
-	case <-signalchan:
-		log.Error("received multiple exit signals, exiting immediately")
-		os.Exit(1)
-	case <-ctx.Done():
-		log.Debug("graceful shutdown complete")
-	}
+	<-signalchan // block until a second signal is received.
+	log.Error("received multiple exit signals, exiting immediately")
+	os.Exit(1)
 }
 
 func main() {

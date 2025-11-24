@@ -13,18 +13,6 @@ import (
 )
 
 func (c IngestCommand) newDarwin(log *slog.Logger, dbpool *pgxpool.Pool) (messageFetcherCommitter, messageHandler, error) {
-	/* creds := credentials.NewStaticCredentialsProvider(c.Darwin.S3.AccessKey, c.Darwin.S3.SecretKey, "")*/
-	/*cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(c.Darwin.S3.Region), config.WithCredentialsProvider(creds))*/
-	/*if err != nil {*/
-	/*return nil, nil, fmt.Errorf("error creating AWS config: %w", err)*/
-	/*}*/
-	/*darwinAWSS3Client := s3.NewFromConfig(cfg)*/
-	/*darwinFileGetter := filegetter.NewS3(context.Background(), log.With(slog.String("package", "filegetter")), darwinAWSS3Client, c.Darwin.S3.Bucket, c.Darwin.S3.Prefix)*/
-
-	/*if err := loadNewestDarwinFiles(log, dbpool, darwinFileGetter); err != nil {*/
-	/*return nil, nil, fmt.Errorf("error loading newest darwin files: %w", err)*/
-	/*}*/
-
 	kafkaContext := context.Background()
 	darwinKafkaConnection := fetchercommitter.NewKafka(kafkaContext, log.With(slog.String("process", "messagefetchercommitter")), kafka.ReaderConfig{
 		Brokers: c.Darwin.Kafka.Brokers,

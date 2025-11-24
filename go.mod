@@ -5,6 +5,7 @@ go 1.25rc3
 require (
 	github.com/alecthomas/kong v1.12.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.88.1
+	github.com/fatih/color v1.18.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -34,6 +35,9 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect
 	github.com/lib/pq v1.10.9 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/phsym/console-slog v0.3.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.16 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
