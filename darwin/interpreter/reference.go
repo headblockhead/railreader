@@ -2,10 +2,22 @@ package interpreter
 
 import (
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
+	"github.com/jackc/pgx/v5"
 )
 
 func (u *UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
-
+	locationRecords := make([]locationRecord, 0, len(reference.Locations))
+	for _, loc := range reference.Locations {
+		record, err := u.locationToRecord(loc)
+		if err != nil {
+			return err
+		}
+		locationRecords = append(locationRecords, record)
+	}
+	if err := u.copyNewLocationRecords(locationRecords); err != nil {
+		return err
+	}
+	return nil
 }
 
 type locationRecord struct {
@@ -24,4 +36,12 @@ func (u *UnitOfWork) locationToRecord(location unmarshaller.LocationReference) (
 		record.Name = &location.Name
 	}
 	return record, nil
+}
+
+func (u *UnitOfWork) copyNewLocationRecords(locations []locationRecord) error {
+	_, err := u.tx.CopyFrom(u.ctx, pgx.Identifier{"darwin", "locations"}, []string{"id", "crs_id", "toc_id", "name"}, pgx.CopyFromSlice(len(locations), func(i int) ([]interface{}, error) {
+		loc := locations[i]
+		return []interface{}{loc.ID, loc.CRSid, loc.TOCid, loc.Name}, nil
+	}))
+	return err
 }
