@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
+func (u *UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
 	u.log.Debug("interpreting a PushPortMessage")
 	if pport.Version != unmarshaller.ExpectedPushPortVersion {
 		// Warn, but attempt to continue anyway.
@@ -79,7 +79,7 @@ type messageRecord struct {
 	RequestID           *string
 }
 
-func (u UnitOfWork) doesMessageRecordExist(ID string) (bool, error) {
+func (u *UnitOfWork) doesMessageRecordExist(ID string) (bool, error) {
 	row := u.tx.QueryRow(u.ctx, `SELECT id FROM darwin.messages WHERE id = @id;`, pgx.StrictNamedArgs{
 		"id": ID,
 	})
@@ -94,7 +94,7 @@ func (u UnitOfWork) doesMessageRecordExist(ID string) (bool, error) {
 	return true, nil
 }
 
-func (u UnitOfWork) messageToRecord(message unmarshaller.PushPortMessage) (messageRecord, error) {
+func (u *UnitOfWork) messageToRecord(message unmarshaller.PushPortMessage) (messageRecord, error) {
 	var record messageRecord
 	record.ID = *u.messageID
 	record.Version = message.Version
@@ -130,7 +130,7 @@ func (u UnitOfWork) messageToRecord(message unmarshaller.PushPortMessage) (messa
 	return record, nil
 }
 
-func (u UnitOfWork) insertMessageRecord(record messageRecord) error {
+func (u *UnitOfWork) insertMessageRecord(record messageRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 	INSERT INTO darwin.messages (
 		id
@@ -174,7 +174,8 @@ func (u UnitOfWork) insertMessageRecord(record messageRecord) error {
 	}
 	return nil
 }
-func (u UnitOfWork) updateMessageRecordTime(ID string) error {
+
+func (u *UnitOfWork) updateMessageRecordTime(ID string) error {
 	_, err := u.tx.Exec(u.ctx, `
 	UPDATE darwin.messages SET (
 		last_received_at = @last_received_at
@@ -189,7 +190,7 @@ func (u UnitOfWork) updateMessageRecordTime(ID string) error {
 	return nil
 }
 
-func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
+func (u *UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 	u.log.Debug("handling NewFiles")
 	// Filter for specific version numbers of the files we care about.
 	if strings.HasSuffix(tf.ReferenceFile, "_ref_v4.xml.gz") {
@@ -201,7 +202,7 @@ func (u UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 	return nil
 }
 
-func (u UnitOfWork) InterpretFromPath(path string) error {
+func (u *UnitOfWork) InterpretFromPath(path string) error {
 	u.log.Debug("handling a filename", slog.String("path", path))
 	if strings.HasSuffix(path, "_ref_v4.xml.gz") {
 		return GetUnmarshalAndInterpretFile(u.log, u.fg, path, unmarshaller.NewReference, u.InterpretReference)
@@ -242,7 +243,7 @@ func GetUnmarshalAndInterpretFile[T any](log *slog.Logger, fg filegetter.FileGet
 	return nil
 }
 
-func (u UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
+func (u *UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
 	for _, alarm := range resp.Alarms {
 		if err := u.interpretAlarm(alarm); err != nil {
 			return err
