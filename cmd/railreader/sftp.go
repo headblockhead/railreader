@@ -74,13 +74,13 @@ func (c *SFTPCommand) Run() error {
 	c.root = root
 
 	// Setup directory structure for each 'user' (service).
-	if err := c.root.Mkdir("darwin", 0755); err != nil {
+	if err := c.root.Mkdir("darwin", 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("failed to create darwin directory: %w", err)
 	}
-	if err := c.root.Mkdir("darwin/EHSnapshot", 0755); err != nil {
+	if err := c.root.Mkdir("darwin/EHSnapshot", 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("failed to create darwin/EHSnapshot directory: %w", err)
 	}
-	if err := c.root.Mkdir("darwin/PPTimetable", 0755); err != nil {
+	if err := c.root.Mkdir("darwin/PPTimetable", 0755); err != nil && !errors.Is(err, os.ErrExist) {
 		return fmt.Errorf("failed to create darwin/PPTimetable directory: %w", err)
 	}
 

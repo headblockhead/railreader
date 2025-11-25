@@ -2,12 +2,10 @@ package railreader
 
 import (
 	"context"
-
-	"github.com/segmentio/kafka-go"
 )
 
-type Ingester interface {
-	FetchMessage(ctx context.Context) (kafka.Message, error)
-	ProcessAndCommitMessage(msg kafka.Message) error
+type Ingester[T any] interface {
+	Fetch(context.Context) (T, error)
+	ProcessAndCommit(T) error
 	Close() error
 }

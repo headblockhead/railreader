@@ -12,7 +12,7 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-// Ingester implements the interface railreader.Ingester
+// Ingester implements the interface railreader.Ingester[kafka.Message].
 type Ingester struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -40,8 +40,8 @@ func (i *Ingester) Close() error {
 	return i.reader.Close()
 }
 
-// FetchMessage blocks until a message is available, or the provided context is cancelled.
-func (i *Ingester) FetchMessage(ctx context.Context) (kafka.Message, error) {
+// Fetch blocks until a message is available, or the provided context is cancelled.
+func (i *Ingester) Fetch(ctx context.Context) (kafka.Message, error) {
 	msg, err := i.reader.FetchMessage(ctx)
 	if err != nil {
 		return msg, err
@@ -62,17 +62,17 @@ type messageCapsule struct {
 	XML string `json:"bytes"`
 }
 
-func (c *Ingester) ProcessAndCommitMessage(msg kafka.Message) error {
+func (i *Ingester) ProcessAndCommit(msg kafka.Message) error {
 	// Unmarshal the message capsule from JSON to extract its fields.
 	var capsule messageCapsule
 	err := json.Unmarshal(msg.Value, &capsule)
 	if err != nil {
 		return err
 	}
-	messageLog := c.log.With(slog.String("messageID", capsule.MessageID))
+	messageLog := i.log.With(slog.String("messageID", capsule.MessageID))
 
 	// Unit of work 1: Insert the message XML record.
-	u1, err := interpreter.NewUnitOfWork(c.ctx, messageLog, c.dbpool, c.fs, &capsule.MessageID, nil)
+	u1, err := interpreter.NewUnitOfWork(i.ctx, messageLog, i.dbpool, i.fs, &capsule.MessageID, nil)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func (c *Ingester) ProcessAndCommitMessage(msg kafka.Message) error {
 	}
 
 	// Unit of work 2: Insert the message's data into the various tables.
-	u2, err := interpreter.NewUnitOfWork(c.ctx, messageLog, c.dbpool, c.fs, &capsule.MessageID, nil)
+	u2, err := interpreter.NewUnitOfWork(i.ctx, messageLog, i.dbpool, i.fs, &capsule.MessageID, nil)
 	if err != nil {
 		return err
 	}
@@ -115,10 +115,10 @@ func (c *Ingester) ProcessAndCommitMessage(msg kafka.Message) error {
 	}
 
 	// Mark the message as committed in Kafka.
-	err = c.reader.CommitMessages(c.ctx, msg)
+	err = i.reader.CommitMessages(i.ctx, msg)
 	if err != nil {
 		return err
 	}
-	c.log.Info("committed message", slog.Int64("offset", msg.Offset))
+	i.log.Info("committed message", slog.Int64("offset", msg.Offset))
 	return nil
 }

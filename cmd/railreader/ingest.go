@@ -2,15 +2,20 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"runtime"
 	"sync"
 	"time"
 
 	"github.com/headblockhead/railreader"
+	"github.com/headblockhead/railreader/darwin"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
 type IngestCommand struct {
@@ -18,9 +23,9 @@ type IngestCommand struct {
 	SFTPWorkingDirectory string `env:"SFTP_WORKING_DIRECTORY" help:"Directory that the railreader SFTP server writes its files to." type:"existingdir" required:""`
 	Darwin               struct {
 		Kafka struct {
-			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" default:"pkc-z4p1v0.europe-west2.gcp.confluent.cloud:9092" help:"Kafka broker(s) to connect to."`
-			Topic             string        `env:"DARWIN_KAFKA_TOPIC" default:"prod-1010-Darwin-Train-Information-Push-Port-IIII2_0-XML" help:"Kafka topic for Darwin's XML feed."`
-			Group             string        `env:"DARWIN_KAFKA_GROUP" required:""`
+			Brokers           []string      `env:"DARWIN_KAFKA_BROKERS" help:"Kafka 'bootstrap server' to connect to." required:""`
+			Topic             string        `env:"DARWIN_KAFKA_TOPIC" help:"Kafka topic for Darwin's XML feed." required:""`
+			Group             string        `env:"DARWIN_KAFKA_GROUP" help:"Kafka 'consumer group'" required:""`
 			Username          string        `env:"DARWIN_KAFKA_USERNAME" required:""`
 			Password          string        `env:"DARWIN_KAFKA_PASSWORD" required:""`
 			ConnectionTimeout time.Duration `env:"DARWIN_KAFKA_CONNECTION_TIMEOUT" default:"30s" help:"Timeout for connecting to the Kafka broker."`
@@ -47,24 +52,25 @@ func (c IngestCommand) Run() error {
 	}
 	defer dbpool.Close()
 
-	var ingesters []railreader.Ingester
-
-	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
+	darwinIngester, err := c.createDarwinIngester(dbpool)
+	if err != nil {
+		return fmt.Errorf("error creating darwin ingester: %w", err)
+	}
+	darwinIngestQueue := make(chan kafka.Message, c.Darwin.QueueSize)
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())
-	go onSignal(c.log, func() {
-		messageFetcherCancel()
-	})
+	go onSignal(c.log, messageFetcherCancel)
+
 	var fetcherGroup sync.WaitGroup
 	fetcherGroup.Go(func() {
-		fetchMessages(messageFetcherContext, c.log.With(slog.String("source", "darwin"), slog.String("process", "fetcher")), darwinKafkaMessages, darwinFetcherCommiter)
-		close(darwinKafkaMessages)
+		fetchMessages(messageFetcherContext, c.log.With(slog.String("source", "darwin"), slog.String("process", "fetcher")), darwinIngestQueue, darwinIngester)
+		close(darwinIngestQueue)
 	})
 	var handlerGroup sync.WaitGroup
-	threadCount := runtime.NumCPU()
-	for i := range threadCount {
+	cpus := runtime.NumCPU()
+	for i := range cpus {
 		handlerGroup.Go(func() {
-			handleMessages(c.log.With(slog.String("source", "darwin"), slog.String("process", "handler"), slog.Int("goroutine", i)), darwinKafkaMessages, darwinFetcherCommiter, darwinMessageHandler)
+			processAndCommitMessages(c.log.With(slog.String("source", "darwin"), slog.String("process", "handler"), slog.Int("goroutine", i)), darwinIngestQueue, darwinIngester)
 		})
 	}
 
@@ -74,18 +80,43 @@ func (c IngestCommand) Run() error {
 	handlerGroup.Wait()
 
 	c.log.Info("closing connections")
-	if err := darwinFetcherCommiter.Close(); err != nil {
+	err = darwinIngester.Close()
+	if err != nil {
 		c.log.Error("error closing darwin kafka connection", slog.Any("error", err))
 	}
 
 	return nil
 }
 
+func (c IngestCommand) createDarwinIngester(dbpool *pgxpool.Pool) (railreader.Ingester[kafka.Message], error) {
+	reader := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: c.Darwin.Kafka.Brokers,
+		GroupID: c.Darwin.Kafka.Group,
+		Topic:   c.Darwin.Kafka.Topic,
+		Dialer: &kafka.Dialer{
+			Timeout:   c.Darwin.Kafka.ConnectionTimeout,
+			DualStack: true,
+			SASLMechanism: plain.Mechanism{
+				Username: c.Darwin.Kafka.Username,
+				Password: c.Darwin.Kafka.Password,
+			},
+			TLS: &tls.Config{},
+		},
+	})
+
+	root, err := os.OpenRoot(c.SFTPWorkingDirectory)
+	if err != nil {
+		return nil, err
+	}
+
+	di := darwin.NewIngester(context.Background(), c.log.With(slog.String("source", "darwin")), reader, dbpool, root.FS())
+	return di, nil
+}
+
 // fetchMessages will run until the context is cancelled.
-func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.Message, fetcherCommitter messageFetcherCommitter) {
-	log.Debug("starting message fetcher loop")
+func fetchMessages[T any](ctx context.Context, log *slog.Logger, messages chan<- T, ingester railreader.Ingester[T]) {
 	for {
-		message, err := fetcherCommitter.FetchMessage(ctx)
+		msg, err := ingester.Fetch(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				break
@@ -93,23 +124,16 @@ func fetchMessages(ctx context.Context, log *slog.Logger, messages chan<- kafka.
 			log.Error("error fetching message", slog.Any("error", err))
 			continue
 		}
-		messages <- message
+		messages <- msg
 	}
-	log.Debug("stopped fetching new messages")
 }
 
-// handleMessages will run until there are no more messages to handle (the channel is closed and there are 0 messages remaining in it).
-func handleMessages(log *slog.Logger, messages <-chan kafka.Message, fetcherCommitter messageFetcherCommitter, handler messageHandler) {
-	log.Debug("starting message handler loop")
+// processAndCommitMessages will run until there are no more messages to handle (the channel is closed and there are 0 messages remaining in it).
+func processAndCommitMessages[T any](log *slog.Logger, messages <-chan T, ingester railreader.Ingester[T]) {
 	for msg := range messages {
-		if err := handler.Handle(msg); err != nil {
-			log.Error("error handling message", slog.Any("error", err))
-			continue
-		}
-		if err := fetcherCommitter.CommitMessage(msg); err != nil {
-			log.Error("error committing message", slog.Any("error", err))
-			continue
+		err := ingester.ProcessAndCommit(msg)
+		if err != nil {
+			log.Error("error processing and committing message", slog.Any("error", err))
 		}
 	}
-	log.Debug("all queued messages handled")
 }

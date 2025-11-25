@@ -59,7 +59,7 @@ func (u *UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage
 		return nil
 	}
 
-	return errors.New("PushPortMessage was empty")
+	return nil
 }
 
 type messageRecord struct {
@@ -209,22 +209,22 @@ func (u *UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 		}
 	}
 	if strings.HasSuffix(tf.TimetableFile, "_v8.xml.gz") {
-		file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)
-		if err != nil {
-			return err
-		}
-		bytes, err := decompressAndReadGzipFile(file)
-		if err != nil {
-			return err
-		}
-		timetable, err := unmarshaller.NewTimetable(string(bytes))
-		if err != nil {
-			return err
-		}
-		err = u.InterpretTimetable(timetable)
-		if err != nil {
-			return err
-		}
+		/*   file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)*/
+		/*if err != nil {*/
+		/*return err*/
+		/*}*/
+		/*bytes, err := decompressAndReadGzipFile(file)*/
+		/*if err != nil {*/
+		/*return err*/
+		/*}*/
+		/*timetable, err := unmarshaller.NewTimetable(string(bytes))*/
+		/*if err != nil {*/
+		/*return err*/
+		/*}*/
+		/*   err = u.InterpretTimetable(timetable)*/
+		/*if err != nil {*/
+		/*return err*/
+		/*}*/
 	}
 	return nil
 }
