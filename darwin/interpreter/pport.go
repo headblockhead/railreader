@@ -3,8 +3,8 @@ package interpreter
 import (
 	"compress/gzip"
 	"errors"
-	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"strings"
 	"time"
@@ -14,7 +14,6 @@ import (
 )
 
 func (u *UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
-	u.log.Debug("interpreting a PushPortMessage")
 	if pport.Version != unmarshaller.ExpectedPushPortVersion {
 		// Warn, but attempt to continue anyway.
 		u.log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", unmarshaller.ExpectedPushPortVersion), slog.String("actual_version", pport.Version))
@@ -43,7 +42,7 @@ func (u *UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage
 
 	if pport.NewFiles != nil {
 		if err := u.handleNewFiles(pport.NewFiles); err != nil {
-			return fmt.Errorf("failed to handle NewFiles: %w", err)
+			return err
 		}
 		return nil
 	}
@@ -191,56 +190,56 @@ func (u *UnitOfWork) updateMessageRecordTime(ID string) error {
 }
 
 func (u *UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
-	u.log.Debug("handling NewFiles")
-	// Filter for specific version numbers of the files we care about.
 	if strings.HasSuffix(tf.ReferenceFile, "_ref_v4.xml.gz") {
-		GetUnmarshalAndInterpretFile(u.log, u.fg, tf.ReferenceFile, unmarshaller.NewReference, u.InterpretReference)
+		file, err := u.fs.Open("PPTimetable/" + tf.ReferenceFile)
+		if err != nil {
+			return err
+		}
+		bytes, err := decompressAndReadGzipFile(file)
+		if err != nil {
+			return err
+		}
+		reference, err := unmarshaller.NewReference(string(bytes))
+		if err != nil {
+			return err
+		}
+		err = u.InterpretReference(reference)
+		if err != nil {
+			return err
+		}
 	}
 	if strings.HasSuffix(tf.TimetableFile, "_v8.xml.gz") {
-		GetUnmarshalAndInterpretFile(u.log, u.fg, tf.TimetableFile, unmarshaller.NewTimetable, u.InterpretTimetable)
+		file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)
+		if err != nil {
+			return err
+		}
+		bytes, err := decompressAndReadGzipFile(file)
+		if err != nil {
+			return err
+		}
+		timetable, err := unmarshaller.NewTimetable(string(bytes))
+		if err != nil {
+			return err
+		}
+		err = u.InterpretTimetable(timetable)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (u *UnitOfWork) InterpretFromPath(path string) error {
-	u.log.Debug("handling a filename", slog.String("path", path))
-	if strings.HasSuffix(path, "_ref_v4.xml.gz") {
-		return GetUnmarshalAndInterpretFile(u.log, u.fg, path, unmarshaller.NewReference, u.InterpretReference)
-	}
-	if strings.HasSuffix(path, "_v8.xml.gz") {
-		return GetUnmarshalAndInterpretFile(u.log, u.fg, path, unmarshaller.NewTimetable, u.InterpretTimetable)
-	}
-	u.log.Info("filename does not match any known patterns, ignoring", slog.String("path", path))
-	return nil
-}
-
-func GetUnmarshalAndInterpretFile[T any](log *slog.Logger, fg filegetter.FileGetter, path string, unmarshal func(string) (T, error), interpret func(T, string) error) error {
-	log.Debug("getting file", slog.String("path", path))
-	file, err := fg.Get(path)
-	if err != nil {
-		return fmt.Errorf("failed to get from filegetter: %w", err)
-	}
-	log.Debug("file gotten")
+func decompressAndReadGzipFile(file fs.File) ([]byte, error) {
 	reader, err := gzip.NewReader(file)
 	if err != nil {
-		return fmt.Errorf("failed to create gzip reader: %w", err)
+		return nil, err
 	}
 	defer reader.Close()
 	contents, err := io.ReadAll(reader)
 	if err != nil {
-		return fmt.Errorf("failed to read all of gzip reader: %w", err)
+		return nil, err
 	}
-	log.Debug("file read")
-	data, err := unmarshal(string(contents))
-	if err != nil {
-		return err
-	}
-	log.Debug("file unmarshalled")
-	if err := interpret(data, path); err != nil {
-		return err
-	}
-	log.Debug("file interpreted")
-	return nil
+	return contents, nil
 }
 
 func (u *UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {

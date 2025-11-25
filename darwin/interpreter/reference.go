@@ -39,9 +39,9 @@ func (u *UnitOfWork) locationToRecord(location unmarshaller.LocationReference) (
 }
 
 func (u *UnitOfWork) copyNewLocationRecords(locations []locationRecord) error {
-	_, err := u.tx.CopyFrom(u.ctx, pgx.Identifier{"darwin", "locations"}, []string{"id", "crs_id", "toc_id", "name"}, pgx.CopyFromSlice(len(locations), func(i int) ([]interface{}, error) {
+	_, err := u.tx.CopyFrom(u.ctx, pgx.Identifier{"darwin", "locations"}, []string{"id", "crs_id", "toc_id", "name"}, pgx.CopyFromSlice(len(locations), func(i int) ([]any, error) {
 		loc := locations[i]
-		return []interface{}{loc.ID, loc.CRSid, loc.TOCid, loc.Name}, nil
+		return []any{loc.ID, loc.CRSid, loc.TOCid, loc.Name}, nil
 	}))
 	return err
 }

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/headblockhead/railreader"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -35,16 +36,6 @@ type IngestCommand struct {
 	log *slog.Logger `kong:"-"`
 }
 
-type messageFetcherCommitter interface {
-	Close() error
-	FetchMessage(ctx context.Context) (kafka.Message, error)
-	CommitMessage(msg kafka.Message) error
-}
-
-type messageHandler interface {
-	Handle(msg kafka.Message) error
-}
-
 func (c IngestCommand) Run() error {
 	c.log = getLogger(c.Logging.Level, c.Logging.Format == "json")
 
@@ -56,10 +47,8 @@ func (c IngestCommand) Run() error {
 	}
 	defer dbpool.Close()
 
-	darwinFetcherCommiter, darwinMessageHandler, err := c.newDarwin(c.log.With(slog.String("source", "darwin")), dbpool)
-	if err != nil {
-		return fmt.Errorf("error setting up darwin connection: %w", err)
-	}
+	var ingesters []railreader.Ingester
+
 	darwinKafkaMessages := make(chan kafka.Message, c.Darwin.QueueSize)
 
 	messageFetcherContext, messageFetcherCancel := context.WithCancel(context.Background())

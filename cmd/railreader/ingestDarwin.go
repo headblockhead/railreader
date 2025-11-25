@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"log/slog"
+	"os"
 
 	"github.com/headblockhead/railreader/darwin"
 	"github.com/headblockhead/railreader/darwin/fetchercommitter"
@@ -13,8 +14,7 @@ import (
 )
 
 func (c IngestCommand) newDarwin(log *slog.Logger, dbpool *pgxpool.Pool) (messageFetcherCommitter, messageHandler, error) {
-	kafkaContext := context.Background()
-	darwinKafkaConnection := fetchercommitter.NewKafka(kafkaContext, log.With(slog.String("process", "messagefetchercommitter")), kafka.ReaderConfig{
+	mfc := fetchercommitter.NewKafka(context.Background(), log.With(slog.String("process", "kafka")), kafka.ReaderConfig{
 		Brokers: c.Darwin.Kafka.Brokers,
 		GroupID: c.Darwin.Kafka.Group,
 		Topic:   c.Darwin.Kafka.Topic,
@@ -29,10 +29,14 @@ func (c IngestCommand) newDarwin(log *slog.Logger, dbpool *pgxpool.Pool) (messag
 		},
 	})
 
-	messageHandlerContext := context.Background()
-	darwinMessageHandler := darwin.NewMessageHandler(messageHandlerContext, log.With(slog.String("source", "darwin.handler")), dbpool, nil)
+	root, err := os.OpenRoot(c.SFTPWorkingDirectory)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return darwinKafkaConnection, darwinMessageHandler, nil
+	mh := darwin.NewMessageHandler(context.Background(), log.With(slog.String("process", "handler")), dbpool, root.FS())
+
+	return mfc, mh, nil
 }
 
 /*func loadNewestDarwinFiles(log *slog.Logger, dbpool *pgxpool.Pool, fg filegetter.FileGetter) error {*/
