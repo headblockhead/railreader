@@ -293,11 +293,11 @@ func (u *UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
 			return err
 		}
 	}
-	/* for _, trainAlert := range resp.TrainAlerts {*/
-	/*if err := u.interpretTrainAlert(trainAlert); err != nil {*/
-	/*return err*/
-	/*}*/
-	/*}*/
+	for _, trainAlert := range resp.TrainAlerts {
+		if err := u.interpretTrainAlert(trainAlert); err != nil {
+			return err
+		}
+	}
 	//for _,trainOrder:=range resp.TrainOrders{if err:=u.interpretTrainOrder(trainOrder);err!=nil{return err}}
 	return nil
 }

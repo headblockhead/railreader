@@ -456,8 +456,8 @@ CREATE TABLE IF NOT EXISTS darwin.train_alerts (
 CREATE TABLE IF NOT EXISTS darwin.train_alert_schedule_locations (
 				id uuid PRIMARY KEY
 
-				,train_alert_id uuid NOT NULL
-				,CONSTRAINT fk_train_alert FOREIGN KEY(train_alert_id) REFERENCES train_alerts(id) ON DELETE CASCADE
+				,train_alert_uuid uuid NOT NULL
+				,CONSTRAINT fk_train_alert FOREIGN KEY(train_alert_uuid) REFERENCES train_alerts(id) ON DELETE CASCADE
 
 				,schedule_id char(16) NOT NULL
 				,location_ids varchar(7) ARRAY NOT NULL
