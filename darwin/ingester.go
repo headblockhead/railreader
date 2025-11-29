@@ -3,8 +3,10 @@ package darwin
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io/fs"
 	"log/slog"
+	"strings"
 
 	"github.com/headblockhead/railreader/darwin/interpreter"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
@@ -19,10 +21,81 @@ type Ingester struct {
 	log    *slog.Logger
 	reader *kafka.Reader
 	dbpool *pgxpool.Pool
-	fs     fs.FS
+	fs     fs.ReadDirFS
 }
 
-func NewIngester(ctx context.Context, log *slog.Logger, reader *kafka.Reader, dbpool *pgxpool.Pool, filesystem fs.FS) *Ingester {
+func NewIngester(ctx context.Context, log *slog.Logger, reader *kafka.Reader, dbpool *pgxpool.Pool, fs fs.ReadDirFS) (*Ingester, error) {
+
+	// Grab the latest timetable and/or reference files from the SFTP directory.
+	files, err := fs.ReadDir("PPTimetable") // fs.ReadDir returns entries in sorted order
+	if err != nil {
+		return nil, err
+	}
+
+	var foundReferenceFile bool
+	// Search for the most recent reference file:
+	for _, fileEntry := range files {
+		if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), unmarshaller.ExpectedReferenceFileSuffix) {
+			continue
+		}
+
+		file, err := fs.Open("./PPTimetable/" + fileEntry.Name())
+		if err != nil {
+			return nil, err
+		}
+
+		ur, err := interpreter.NewUnitOfWork(ctx, log, dbpool, fs, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		err = ur.InterpretReferenceFile(file)
+		if err != nil {
+			_ = ur.Rollback()
+			return nil, err
+		}
+		err = ur.Commit()
+		if err != nil {
+			_ = ur.Rollback()
+			return nil, err
+		}
+
+		foundReferenceFile = true
+		break
+	}
+
+	if !foundReferenceFile {
+		return nil, errors.New("no reference file found in SFTP directory")
+	}
+
+	// Search for the most recent timetable file:
+	/* for _, fileEntry := range files {*/
+	/*if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), unmarshaller.ExpectedTimetableFileSuffix) {*/
+	/*continue*/
+	/*}*/
+
+	/*file, err := fs.Open("./PPTimetable/" + fileEntry.Name())*/
+	/*if err != nil {*/
+	/*return nil, err*/
+	/*}*/
+
+	/*ur, err := interpreter.NewUnitOfWork(ctx, log, dbpool, fs, nil, nil)*/
+	/*if err != nil {*/
+	/*return nil, err*/
+	/*}*/
+	/*err = ur.InterpretTimetableFile(file)*/
+	/*if err != nil {*/
+	/*_ = ur.Rollback()*/
+	/*return nil, err*/
+	/*}*/
+	/*err = ur.Commit()*/
+	/*if err != nil {*/
+	/*_ = ur.Rollback()*/
+	/*return nil, err*/
+	/*}*/
+
+	/*break*/
+	/*}*/
+
 	newCtx, cancel := context.WithCancel(ctx)
 	return &Ingester{
 		ctx:    newCtx,
@@ -30,8 +103,8 @@ func NewIngester(ctx context.Context, log *slog.Logger, reader *kafka.Reader, db
 		log:    log,
 		reader: reader,
 		dbpool: dbpool,
-		fs:     filesystem,
-	}
+		fs:     fs,
+	}, nil
 }
 
 func (i *Ingester) Close() error {

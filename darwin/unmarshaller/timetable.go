@@ -7,6 +7,8 @@ import (
 	"github.com/headblockhead/railreader"
 )
 
+const ExpectedTimetableFileSuffix = "_v8.xml.gz"
+
 // Timetable version 8
 type Timetable struct {
 	ID           string        `xml:"timetableID,attr"`

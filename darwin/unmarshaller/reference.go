@@ -4,6 +4,8 @@ import (
 	"encoding/xml"
 )
 
+const ExpectedReferenceFileSuffix = "_ref_v4.xml.gz"
+
 // Reference version 4
 type Reference struct {
 	ID string `xml:"timetableID,attr"`

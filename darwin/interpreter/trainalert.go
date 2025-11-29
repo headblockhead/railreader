@@ -69,6 +69,7 @@ func (u *UnitOfWork) trainAlertToRecords(trainAlert unmarshaller.TrainAlert) (tr
 		taslRecord.TrainAlertUUID = taRecord.ID
 		taslRecord.ScheduleID = *tasl.RID // ruh roh
 		taslRecord.LocationIDs = tasl.Locations
+		taslRecords = append(taslRecords, taslRecord)
 	}
 
 	return taRecord, taslRecords, nil
@@ -121,4 +122,30 @@ func (u *UnitOfWork) insertTrainAlertRecord(record trainAlertRecord) error {
 		return err
 	}
 	return nil
+}
+
+func (u *UnitOfWork) insertTrainAlertScheduleLocationRecords(records []trainAlertScheduleLocationsRecord) error {
+	batch := &pgx.Batch{}
+	for _, record := range records {
+		batch.Queue(`
+			INSERT INTO darwin.train_alert_schedule_locations (
+				id
+				,train_alert_id
+				,schedule_id
+				,location_ids
+			) VALUES (
+				@id
+				,@train_alert_id
+				,@schedule_id
+				,@location_ids
+			)
+		`, pgx.StrictNamedArgs{
+			"id":             record.ID,
+			"train_alert_id": record.TrainAlertUUID,
+			"schedule_id":    record.ScheduleID,
+			"location_ids":   record.LocationIDs,
+		})
+	}
+	results := u.tx.SendBatch(u.ctx, batch)
+	return results.Close()
 }

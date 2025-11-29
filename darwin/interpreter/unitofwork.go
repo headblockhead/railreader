@@ -17,13 +17,13 @@ type UnitOfWork struct {
 	log      *slog.Logger
 	timezone *time.Location
 	tx       pgx.Tx
-	fs       fs.FS
+	fs       fs.ReadDirFS
 
 	messageID   *string
 	timetableID *string
 }
 
-func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fs fs.FS, messageID *string, timetableID *string) (unit *UnitOfWork, err error) {
+func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fs fs.ReadDirFS, messageID *string, timetableID *string) (*UnitOfWork, error) {
 	log.Debug("creating new transaction for new unit of work")
 	tx, err := dbpool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"runtime"
@@ -104,13 +105,15 @@ func (c IngestCommand) createDarwinIngester(dbpool *pgxpool.Pool) (railreader.In
 		},
 	})
 
-	root, err := os.OpenRoot(c.SFTPWorkingDirectory)
+	root, err := os.OpenRoot(c.SFTPWorkingDirectory + "/darwin")
 	if err != nil {
 		return nil, err
 	}
 
-	di := darwin.NewIngester(context.Background(), c.log.With(slog.String("source", "darwin")), reader, dbpool, root.FS())
-	return di, nil
+	var rootFS fs.FS = root.FS()
+	var rdfs fs.ReadDirFS = rootFS.(fs.ReadDirFS)
+
+	return darwin.NewIngester(context.Background(), c.log.With(slog.String("source", "darwin")), reader, dbpool, rdfs)
 }
 
 // fetchMessages will run until the context is cancelled.

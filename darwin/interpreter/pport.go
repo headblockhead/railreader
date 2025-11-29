@@ -190,44 +190,54 @@ func (u *UnitOfWork) updateMessageRecordTime(ID string) error {
 }
 
 func (u *UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
-	if strings.HasSuffix(tf.ReferenceFile, "_ref_v4.xml.gz") {
+	if strings.HasSuffix(tf.ReferenceFile, unmarshaller.ExpectedReferenceFileSuffix) {
 		file, err := u.fs.Open("PPTimetable/" + tf.ReferenceFile)
 		if err != nil {
 			return err
 		}
-		bytes, err := decompressAndReadGzipFile(file)
-		if err != nil {
-			return err
-		}
-		reference, err := unmarshaller.NewReference(string(bytes))
-		if err != nil {
-			return err
-		}
-		err = u.InterpretReference(reference)
-		if err != nil {
-			return err
-		}
+		return u.InterpretReferenceFile(file)
 	}
-	if strings.HasSuffix(tf.TimetableFile, "_v8.xml.gz") {
-		/*   file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)*/
-		/*if err != nil {*/
-		/*return err*/
-		/*}*/
-		/*bytes, err := decompressAndReadGzipFile(file)*/
-		/*if err != nil {*/
-		/*return err*/
-		/*}*/
-		/*timetable, err := unmarshaller.NewTimetable(string(bytes))*/
-		/*if err != nil {*/
-		/*return err*/
-		/*}*/
-		/*   err = u.InterpretTimetable(timetable)*/
-		/*if err != nil {*/
-		/*return err*/
-		/*}*/
+	if strings.HasSuffix(tf.TimetableFile, unmarshaller.ExpectedTimetableFileSuffix) {
+		//file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)
+		//if err != nil {
+		//return err
+		//}
+		//return u.InterpretTimetableFile(file)
 	}
 	return nil
 }
+
+func (u *UnitOfWork) InterpretReferenceFile(file fs.File) error {
+	bytes, err := decompressAndReadGzipFile(file)
+	if err != nil {
+		return err
+	}
+	reference, err := unmarshaller.NewReference(string(bytes))
+	if err != nil {
+		return err
+	}
+	err = u.InterpretReference(reference)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// func (u *UnitOfWork) InterpretTimetableFile(file fs.File) error {
+// bytes, err := decompressAndReadGzipFile(file)
+// if err != nil {
+// return err
+// }
+// timetable, err := unmarshaller.NewTimetable(string(bytes))
+// if err != nil {
+// return err
+// }
+// err = u.InterpretTimetable(timetable)
+// if err != nil {
+// return err
+// }
+// return nil
+// }
 
 func decompressAndReadGzipFile(file fs.File) ([]byte, error) {
 	reader, err := gzip.NewReader(file)
