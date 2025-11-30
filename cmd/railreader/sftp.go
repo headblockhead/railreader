@@ -23,9 +23,11 @@ import (
 )
 
 type SFTPCommand struct {
-	ListenAddress    string `env:"SFTP_LISTEN_ADDRESS" help:"Address to listen for SFTP on." default:"127.0.0.1:822"`
+	ListenAddress    string `env:"SFTP_LISTEN_ADDRESS" help:"Address to listen for SFTP on." default:"0.0.0.0:64022"`
 	HashedPassword   string `env:"SFTP_HASHED_PASSWORD" help:"A bcrypt hashed password to authenticate incoming connections." required:""`
 	WorkingDirectory string `env:"SFTP_WORKING_DIRECTORY" help:"An existing directory to write incoming files into." type:"existingdir" required:""`
+
+	UPnPEnabled bool `env:"SFTP_UPNP_ENABLED" help:"Whether to attempt to setup UPnP port forwarding on startup." default:"true"`
 
 	Logging struct {
 		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
@@ -112,7 +114,7 @@ func (c *SFTPCommand) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to listen on %s: %w", c.ListenAddress, err)
 	}
-	c.log.Info("listening on", slog.String("address", c.ListenAddress))
+	c.log.Info("listening on", slog.String("address", listener.Addr().String()))
 
 	// Handle what to do on exit signals.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -123,6 +125,35 @@ func (c *SFTPCommand) Run() error {
 		c.log.Debug("no longer listening on", slog.String("address", listener.Addr().String()))
 	})
 
+	// Search for UPnP routers.
+	if c.UPnPEnabled {
+		c.log.Info("searching for UPnP router")
+		router, err := PickRouterClient(ctx)
+		if err != nil {
+			return err
+		}
+		externalIP, err := router.GetExternalIPAddress()
+		if err != nil {
+			return err
+		}
+		c.log.Info("found UPnP router", slog.String("internal-ip", router.LocalAddr().String()), slog.String("external-ip", externalIP))
+
+		var port uint16
+		switch addr := listener.Addr().(type) {
+		case *net.UDPAddr:
+			port = uint16(addr.Port)
+		case *net.TCPAddr:
+			port = uint16(addr.Port)
+		}
+
+		err = router.AddPortMapping("", port, listener.Addr().Network(), port, router.LocalAddr().String(), true, "rrsftp", 0)
+		if err != nil {
+			return err
+		}
+
+		c.log.Info("added port mapping to router", slog.Int("port", int(port)))
+	}
+
 	var handlerGroup sync.WaitGroup
 
 	listenerGroup.Go(func() {
@@ -132,7 +163,7 @@ func (c *SFTPCommand) Run() error {
 			if err != nil {
 				// If the listeners have not been closed, log the error.
 				if ctx.Err() == nil {
-					c.log.Error("error accepting an incoming connection", slog.Any("error", err))
+					c.log.Warn("error accepting an incoming connection", slog.Any("error", err))
 				}
 				break
 			}
@@ -183,22 +214,26 @@ func (c *SFTPCommand) handleSSHChannelRequests(sessionLog *slog.Logger, sshConne
 		}
 
 		for request := range requests {
-			ok := false
-			if request.Type == "subsystem" {
-				if len(request.Payload) >= 4 && bytes.Equal(request.Payload[4:], []byte("sftp")) {
-					ok = true
-					if err := c.handleSFTPChannel(sessionLog, sshConnection, channel); err != nil {
-						sessionLog.Warn("error handling sftp channel", slog.Any("error", err))
-						continue
-					}
-				} else {
-					sessionLog.Warn("rejected request to access subsystem of unhandled type (first 4 bytes of payload != 'sftp')")
-				}
-			} else {
+			if request.Type != "subsystem" {
 				sessionLog.Warn("rejected request of unhandled type (type != 'subsystem')")
+				if request.WantReply {
+					request.Reply(false, nil)
+				}
+				continue
 			}
+			if len(request.Payload) < 4 || !bytes.Equal(request.Payload[4:], []byte("sftp")) {
+				sessionLog.Warn("rejected request to access subsystem of unhandled type (last 4 bytes of payload != 'sftp')")
+				if request.WantReply {
+					request.Reply(false, nil)
+				}
+				continue
+			}
+
 			if request.WantReply {
-				request.Reply(ok, nil)
+				request.Reply(true, nil)
+			}
+			if err := c.handleSFTPChannel(sessionLog, sshConnection, channel); err != nil {
+				sessionLog.Warn("error handling sftp channel", slog.Any("error", err))
 			}
 		}
 	}
@@ -214,6 +249,7 @@ func (c *SFTPCommand) handleSFTPChannel(sessionLog *slog.Logger, sshConnection s
 	}
 	sessionLog.Info("serving sftp session")
 	defer srv.GracefulStop()
+
 	err := srv.Serve(channel)
 	if err != nil {
 		return fmt.Errorf("sftp server completed with error: %w", err)

@@ -63,8 +63,7 @@ func main() {
 	kctx := kong.Parse(&cli, kong.Description("Middleman between various UK rail data sources and your project."), kong.UsageOnError())
 
 	if err := kctx.Run(); err != nil {
-		// Assume logs should be output in JSON if the option cannot be obtained from the CLI.
-		log := getLogger("error", true)
+		log := getLogger("error", false)
 		log.Error("error", slog.Any("error", err))
 		os.Exit(1)
 	}
