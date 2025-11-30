@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/headblockhead/railreader/darwin/unmarshaller"
+	"github.com/headblockhead/railreader/inputs/darwin/unmarshaller"
 	"github.com/jackc/pgx/v5"
 )
 

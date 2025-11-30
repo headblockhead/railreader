@@ -1,6 +1,6 @@
 package interpreter
 
-import "github.com/headblockhead/railreader/darwin/unmarshaller"
+import "github.com/headblockhead/railreader/inputs/darwin/unmarshaller"
 
 func (u *UnitOfWork) interpretTrainOrder(trainOrder unmarshaller.TrainOrder) error {
 	return nil

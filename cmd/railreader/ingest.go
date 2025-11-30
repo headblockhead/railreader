@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/headblockhead/railreader"
-	"github.com/headblockhead/railreader/darwin"
+	"github.com/headblockhead/railreader/inputs/darwin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl/plain"
