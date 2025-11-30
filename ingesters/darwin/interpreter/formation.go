@@ -2,7 +2,7 @@ package interpreter
 
 import (
 	"github.com/google/uuid"
-	"github.com/headblockhead/railreader/inputs/darwin/unmarshaller"
+	"github.com/headblockhead/railreader/ingesters/darwin/unmarshaller"
 	"github.com/jackc/pgx/v5"
 )
 

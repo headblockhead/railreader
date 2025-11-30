@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/headblockhead/railreader/outputs/restful"
+	"github.com/headblockhead/railreader/egesters/restful"
 )
 
 type ServeCommand struct {

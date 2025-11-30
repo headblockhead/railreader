@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/headblockhead/railreader/inputs/darwin/interpreter"
-	"github.com/headblockhead/railreader/inputs/darwin/unmarshaller"
+	"github.com/headblockhead/railreader/ingesters/darwin/interpreter"
+	"github.com/headblockhead/railreader/ingesters/darwin/unmarshaller"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/segmentio/kafka-go"
 )
