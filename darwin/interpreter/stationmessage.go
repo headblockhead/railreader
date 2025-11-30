@@ -50,7 +50,7 @@ func (u UnitOfWork) stationMessageToRecord(stationMessage unmarshaller.StationMe
 
 func (u UnitOfWork) insertStationMessageRecord(record stationMessageRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
-		INSERT INTO darwin_station_messages (
+		INSERT INTO darwin.station_messages (
 			id,
 			message_id,
 			station_message_id,

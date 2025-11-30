@@ -5,7 +5,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u *UnitOfWork) InterpretReference(reference unmarshaller.Reference) error {
+func (u *UnitOfWork) InterpretReference(reference *unmarshaller.Reference) error {
 	locationRecords := make([]locationRecord, 0, len(reference.Locations))
 	for _, loc := range reference.Locations {
 		record, err := u.locationToRecord(loc)
@@ -39,7 +39,14 @@ func (u *UnitOfWork) locationToRecord(location unmarshaller.LocationReference) (
 }
 
 func (u *UnitOfWork) copyNewLocationRecords(locations []locationRecord) error {
-	_, err := u.tx.CopyFrom(u.ctx, pgx.Identifier{"darwin", "locations"}, []string{"id", "crs_id", "toc_id", "name"}, pgx.CopyFromSlice(len(locations), func(i int) ([]any, error) {
+	_, err := u.tx.Exec(u.ctx, `
+		DELETE FROM darwin.locations
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = u.tx.CopyFrom(u.ctx, pgx.Identifier{"darwin", "locations"}, []string{"id", "crs_id", "toc_id", "name"}, pgx.CopyFromSlice(len(locations), func(i int) ([]any, error) {
 		loc := locations[i]
 		return []any{loc.ID, loc.CRSid, loc.TOCid, loc.Name}, nil
 	}))

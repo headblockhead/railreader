@@ -3,6 +3,7 @@ package unmarshaller
 import (
 	"encoding/xml"
 	"fmt"
+	"io"
 
 	"github.com/headblockhead/railreader"
 )
@@ -16,11 +17,13 @@ type Timetable struct {
 	Associations []Association `xml:"Association"`
 }
 
-func NewTimetable(xmlData string) (tt Timetable, err error) {
-	if err = xml.Unmarshal([]byte(xmlData), &tt); err != nil {
-		return
+func NewTimetable(xmlData io.Reader) (*Timetable, error) {
+	decoder := xml.NewDecoder(xmlData)
+	var tt Timetable
+	if err := decoder.Decode(&tt); err != nil {
+		return nil, err
 	}
-	return
+	return &tt, nil
 }
 
 // Journey is very similar to Service, but without some fields, and with a few extras.

@@ -6,7 +6,9 @@ import (
 	"errors"
 	"io/fs"
 	"log/slog"
+	"slices"
 	"strings"
+	"sync"
 
 	"github.com/headblockhead/railreader/darwin/interpreter"
 	"github.com/headblockhead/railreader/darwin/unmarshaller"
@@ -25,21 +27,20 @@ type Ingester struct {
 }
 
 func NewIngester(ctx context.Context, log *slog.Logger, reader *kafka.Reader, dbpool *pgxpool.Pool, fs fs.ReadDirFS) (*Ingester, error) {
-
 	// Grab the latest timetable and/or reference files from the SFTP directory.
 	files, err := fs.ReadDir("PPTimetable") // fs.ReadDir returns entries in sorted order
 	if err != nil {
 		return nil, err
 	}
+	slices.Reverse(files) // most recent files first
 
 	var foundReferenceFile bool
-	// Search for the most recent reference file:
 	for _, fileEntry := range files {
 		if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), unmarshaller.ExpectedReferenceFileSuffix) {
 			continue
 		}
 
-		file, err := fs.Open("./PPTimetable/" + fileEntry.Name())
+		file, err := fs.Open("PPTimetable/" + fileEntry.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -58,43 +59,47 @@ func NewIngester(ctx context.Context, log *slog.Logger, reader *kafka.Reader, db
 			_ = ur.Rollback()
 			return nil, err
 		}
-
+		log.Info("loaded reference file", slog.String("filename", fileEntry.Name()))
 		foundReferenceFile = true
+		// Only bother loading the most recent reference file
 		break
 	}
-
 	if !foundReferenceFile {
 		return nil, errors.New("no reference file found in SFTP directory")
 	}
 
-	// Search for the most recent timetable file:
-	/* for _, fileEntry := range files {*/
-	/*if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), unmarshaller.ExpectedTimetableFileSuffix) {*/
-	/*continue*/
-	/*}*/
+	var timetableLoaders sync.WaitGroup
 
-	/*file, err := fs.Open("./PPTimetable/" + fileEntry.Name())*/
-	/*if err != nil {*/
-	/*return nil, err*/
-	/*}*/
+	for _, fileEntry := range files {
+		if fileEntry.IsDir() || !strings.HasSuffix(fileEntry.Name(), unmarshaller.ExpectedTimetableFileSuffix) {
+			continue
+		}
 
-	/*ur, err := interpreter.NewUnitOfWork(ctx, log, dbpool, fs, nil, nil)*/
-	/*if err != nil {*/
-	/*return nil, err*/
-	/*}*/
-	/*err = ur.InterpretTimetableFile(file)*/
-	/*if err != nil {*/
-	/*_ = ur.Rollback()*/
-	/*return nil, err*/
-	/*}*/
-	/*err = ur.Commit()*/
-	/*if err != nil {*/
-	/*_ = ur.Rollback()*/
-	/*return nil, err*/
-	/*}*/
+		timetableLoaders.Go(func() {
+			file, err := fs.Open("PPTimetable/" + fileEntry.Name())
+			if err != nil {
+				log.Warn("failed to open timetable file", slog.String("filename", fileEntry.Name()), slog.Any("error", err))
+			}
 
-	/*break*/
-	/*}*/
+			ut, err := interpreter.NewUnitOfWork(ctx, log, dbpool, fs, nil, nil)
+			if err != nil {
+				slog.Warn("failed to create unit of work", slog.Any("error", err))
+			}
+			err = ut.InterpretTimetableFile(file)
+			if err != nil {
+				_ = ut.Rollback()
+				slog.Warn("failed to interpret timetable file", slog.String("filename", fileEntry.Name()), slog.Any("error", err))
+			}
+			err = ut.Commit()
+			if err != nil {
+				_ = ut.Rollback()
+				slog.Warn("failed to commit timetable file", slog.String("filename", fileEntry.Name()), slog.Any("error", err))
+			}
+			log.Info("loaded timetable file", slog.String("filename", fileEntry.Name()))
+		})
+	}
+
+	timetableLoaders.Wait()
 
 	newCtx, cancel := context.WithCancel(ctx)
 	return &Ingester{

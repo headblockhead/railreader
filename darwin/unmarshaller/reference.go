@@ -2,6 +2,7 @@ package unmarshaller
 
 import (
 	"encoding/xml"
+	"io"
 )
 
 const ExpectedReferenceFileSuffix = "_ref_v4.xml.gz"
@@ -25,11 +26,13 @@ type Reference struct {
 	LoadingCategories []LoadingCategoryReference `xml:"LoadingCategories>category"`
 }
 
-func NewReference(xmlData string) (ref Reference, err error) {
-	if err = xml.Unmarshal([]byte(xmlData), &ref); err != nil {
-		return
+func NewReference(xmlData io.Reader) (*Reference, error) {
+	decoder := xml.NewDecoder(xmlData)
+	var ref Reference
+	if err := decoder.Decode(&ref); err != nil {
+		return nil, err
 	}
-	return
+	return &ref, nil
 }
 
 // LocationReference holds data about a timing point location.

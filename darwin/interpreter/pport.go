@@ -3,7 +3,6 @@ package interpreter
 import (
 	"compress/gzip"
 	"errors"
-	"io"
 	"io/fs"
 	"log/slog"
 	"strings"
@@ -13,7 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u *UnitOfWork) InterpretPushPortMessage(pport unmarshaller.PushPortMessage) error {
+func (u *UnitOfWork) InterpretPushPortMessage(pport *unmarshaller.PushPortMessage) error {
 	if pport.Version != unmarshaller.ExpectedPushPortVersion {
 		// Warn, but attempt to continue anyway.
 		u.log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", unmarshaller.ExpectedPushPortVersion), slog.String("actual_version", pport.Version))
@@ -93,7 +92,7 @@ func (u *UnitOfWork) doesMessageRecordExist(ID string) (bool, error) {
 	return true, nil
 }
 
-func (u *UnitOfWork) messageToRecord(message unmarshaller.PushPortMessage) (messageRecord, error) {
+func (u *UnitOfWork) messageToRecord(message *unmarshaller.PushPortMessage) (messageRecord, error) {
 	var record messageRecord
 	record.ID = *u.messageID
 	record.Version = message.Version
@@ -198,21 +197,22 @@ func (u *UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
 		return u.InterpretReferenceFile(file)
 	}
 	if strings.HasSuffix(tf.TimetableFile, unmarshaller.ExpectedTimetableFileSuffix) {
-		//file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)
-		//if err != nil {
-		//return err
-		//}
-		//return u.InterpretTimetableFile(file)
+		file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)
+		if err != nil {
+			return err
+		}
+		return u.InterpretTimetableFile(file)
 	}
 	return nil
 }
 
 func (u *UnitOfWork) InterpretReferenceFile(file fs.File) error {
-	bytes, err := decompressAndReadGzipFile(file)
+	reader, err := gzip.NewReader(file)
 	if err != nil {
 		return err
 	}
-	reference, err := unmarshaller.NewReference(string(bytes))
+	defer reader.Close()
+	reference, err := unmarshaller.NewReference(reader)
 	if err != nil {
 		return err
 	}
@@ -223,33 +223,21 @@ func (u *UnitOfWork) InterpretReferenceFile(file fs.File) error {
 	return nil
 }
 
-// func (u *UnitOfWork) InterpretTimetableFile(file fs.File) error {
-// bytes, err := decompressAndReadGzipFile(file)
-// if err != nil {
-// return err
-// }
-// timetable, err := unmarshaller.NewTimetable(string(bytes))
-// if err != nil {
-// return err
-// }
-// err = u.InterpretTimetable(timetable)
-// if err != nil {
-// return err
-// }
-// return nil
-// }
-
-func decompressAndReadGzipFile(file fs.File) ([]byte, error) {
+func (u *UnitOfWork) InterpretTimetableFile(file fs.File) error {
 	reader, err := gzip.NewReader(file)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer reader.Close()
-	contents, err := io.ReadAll(reader)
+	timetable, err := unmarshaller.NewTimetable(reader)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return contents, nil
+	err = u.InterpretTimetable(timetable)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (u *UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
@@ -308,6 +296,10 @@ func (u *UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
 			return err
 		}
 	}
-	//for _,trainOrder:=range resp.TrainOrders{if err:=u.interpretTrainOrder(trainOrder);err!=nil{return err}}
+	for _, trainOrder := range resp.TrainOrders {
+		if err := u.interpretTrainOrder(trainOrder); err != nil {
+			return err
+		}
+	}
 	return nil
 }

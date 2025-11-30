@@ -20,11 +20,12 @@ type PushPortMessage struct {
 	SnapshotResponse *Response `xml:"sR"`
 }
 
-func NewPushPortMessage(xmlData string) (pport PushPortMessage, err error) {
-	if err = xml.Unmarshal([]byte(xmlData), &pport); err != nil {
-		return
+func NewPushPortMessage(xmlData string) (*PushPortMessage, error) {
+	var pport PushPortMessage
+	if err := xml.Unmarshal([]byte(xmlData), &pport); err != nil {
+		return nil, err
 	}
-	return
+	return &pport, nil
 }
 
 // NewFiles is sent when there is an update to the timetable and/or reference data, and includes the filenames of the latest versions to be used.
