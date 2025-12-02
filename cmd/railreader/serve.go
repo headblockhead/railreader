@@ -4,13 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-
-	"github.com/headblockhead/railreader/egesters/restful"
 )
 
 type ServeCommand struct {
-	DatabaseURL          string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
-	RESTfulListenAddress string `env:"RESTFUL_LISTEN_ADDRESS" default:"0.0.0.0:8034"`
+	DatabaseURL string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
 
 	Logging struct {
 		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
@@ -30,8 +27,4 @@ func (c ServeCommand) Run() error {
 		return fmt.Errorf("error connecting to database: %w", err)
 	}
 	defer dbpool.Close()
-
-	router := restful.NewRouter(c.log, dbpool)
-
-	return router.Run()
 }
