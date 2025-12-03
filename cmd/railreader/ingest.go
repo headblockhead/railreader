@@ -42,7 +42,7 @@ type IngestCommand struct {
 	log *slog.Logger `kong:"-"`
 }
 
-func (c IngestCommand) Run() error {
+func (c *IngestCommand) Run() error {
 	c.log = getLogger(c.Logging.Level, c.Logging.Format == "json")
 
 	var databaseContext, databaseCancel = context.WithCancel(context.Background())
@@ -89,7 +89,7 @@ func (c IngestCommand) Run() error {
 	return nil
 }
 
-func (c IngestCommand) createDarwinIngester(dbpool *pgxpool.Pool) (railreader.Ingester[kafka.Message], error) {
+func (c *IngestCommand) createDarwinIngester(dbpool *pgxpool.Pool) (railreader.Ingester[kafka.Message], error) {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers: c.Darwin.Kafka.Brokers,
 		GroupID: c.Darwin.Kafka.Group,

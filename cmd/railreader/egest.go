@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type ServeCommand struct {
+type EgestCommand struct {
 	DatabaseURL string `env:"POSTGRESQL_URL" required:"" help:"PostgreSQL database URL to store data in."`
-	GRPCAddress string `env:"GRPC_ADDRESS" default:":50051"`
+	GRPCAddress string `env:"GRPC_ADDRESS" default:"0.0.0.0:50051"`
 
 	Logging struct {
 		Level  string `enum:"debug,info,warn,error" env:"LOG_LEVEL" default:"warn"`
@@ -23,7 +23,7 @@ type ServeCommand struct {
 	log *slog.Logger `kong:"-"`
 }
 
-func (c ServeCommand) Run() error {
+func (c *EgestCommand) Run() error {
 	c.log = getLogger(c.Logging.Level, c.Logging.Format == "json")
 
 	var databaseContext, databaseCancel = context.WithCancel(context.Background())
@@ -50,6 +50,6 @@ func (c ServeCommand) Run() error {
 	return grpcEgester.Serve(lis)
 }
 
-func (c ServeCommand) createGRPCServer(dbpool *pgxpool.Pool) (*grpc.Egester, error) {
+func (c EgestCommand) createGRPCServer(dbpool *pgxpool.Pool) (*grpc.Egester, error) {
 	return grpc.NewEgester(context.Background(), c.log.With(slog.String("source", "grpc")), dbpool)
 }
