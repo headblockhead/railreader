@@ -119,3 +119,13 @@ go run ./cmd/railreader ingest --help
 
 Github Copilot was used to autocomplete predictable or repetative lines of code.
 All logic and documentation (including this file) was written **without** the assistance of AI in order to ensure accuracy.
+
+## Tasks
+
+### code-gen
+
+Directory: `egesters/grpc/proto`
+
+```bash
+protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative *.proto
+```

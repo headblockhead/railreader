@@ -14,6 +14,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.48
 	golang.org/x/crypto v0.45.0
 	golang.org/x/sync v0.18.0
+	google.golang.org/grpc v1.64.1
 )
 
 require (
@@ -27,6 +28,9 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240513163218-0867130af1f8 // indirect
+	google.golang.org/protobuf v1.34.2 // indirect
 )

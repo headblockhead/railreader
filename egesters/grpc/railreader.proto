@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-option go_package = "github.com/headblockhead/railreader/egesters/grpc";
-
-package railreader;
-
-service TODO {
-
-}
