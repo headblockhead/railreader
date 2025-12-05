@@ -1,8 +1,0 @@
-syntax = "proto3";
-option go_package = "github.com/headblockhead/railreader/egesters/grpc/proto";
-
-import "departures.proto";
-
-service RailReader {
-  rpc GetDepartures(DepartureRequest) returns (stream DepartureResponse);
-}

@@ -40,6 +40,8 @@ github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
+github.com/headblockhead/railreader-grpc v0.0.0-20251205214611-a07ea844e418 h1:/OyzOAyPlb6dA5rV9uXSkf7qWL4xAzaPffOB3nwchl8=
+github.com/headblockhead/railreader-grpc v0.0.0-20251205214611-a07ea844e418/go.mod h1:fRl1zAMpThd8lhwWSMatQQkwlSy8F0ZZfcN2LNySAsk=
 github.com/headblockhead/sftp v0.0.0-20251124152351-293288dc578c h1:+jATRHACLO3ktceQb0cPgJ7CynN52Rly1hPmDxpB3cE=
 github.com/headblockhead/sftp v0.0.0-20251124152351-293288dc578c/go.mod h1:VctDhrGoP9iaJ75nHbHXcgXHLjdo/IzFucJbxaow3eY=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=

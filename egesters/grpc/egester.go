@@ -5,14 +5,14 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/headblockhead/railreader/egesters/grpc/proto"
+	pb "github.com/headblockhead/railreader-grpc"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 )
 
 // Egester implements the interface railreader.Egester.
 type Egester struct {
-	proto.UnimplementedRailReaderServer
+	pb.UnimplementedRailReaderServer
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -24,7 +24,7 @@ type Egester struct {
 func NewEgester(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool) (*Egester, error) {
 	cctx, cancel := context.WithCancel(ctx)
 	server := grpc.NewServer()
-	proto.RegisterRailReaderServer(server, &Egester{})
+	pb.RegisterRailReaderServer(server, &Egester{})
 	return &Egester{
 		ctx:    cctx,
 		cancel: cancel,
