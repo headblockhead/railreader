@@ -34,19 +34,23 @@ CREATE TABLE IF NOT EXISTS darwin.messages (
 
 -- Reference data
 
-CREATE TABLE IF NOT EXISTS darwin.references ( -- Reference data files that have been imported
+CREATE TABLE IF NOT EXISTS darwin.reference_files ( -- Reference data files that have been imported
 				id char(14) PRIMARY KEY
 				,filename varchar(128) NOT NULL
 				,imported_at timestamp WITH TIME ZONE NOT NULL
 				,message_id text NULL -- set if the reference data import was triggered by a Darwin message
-				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.locations ( -- TIming Point LOCcations
-				id varchar(7) PRIMARY KEY 
+				id uuid PRIMARY KEY
+
+				,location_id varchar(7)
 				,crs_id char(3) NULL
 				,toc_id char(2) NULL -- No foreign key constraint is used here because not all possible toc_ids are included in the reference data set.
 				,name varchar(30) NULL
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.user_location_overrides ( -- User-defined overrides for location names
@@ -55,36 +59,59 @@ CREATE TABLE IF NOT EXISTS darwin.user_location_overrides ( -- User-defined over
 );
 
 CREATE TABLE IF NOT EXISTS darwin.tocs ( -- Train Operating Companies
-				id char(2) PRIMARY KEY
+				id uuid PRIMARY KEY
+			
+  			,toc_id char(2) 
 				,name varchar(256) NOT NULL
 				,url varchar(512) NULL
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.late_reasons ( -- Reasons why a train service is running late.
-				id int PRIMARY KEY 
+				id uuid PRIMARY KEY
+
+				,reason_id int
 				,description varchar(256) NOT NULL
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.cancellation_reasons ( -- Reasons why a train service is cancelled.
-				id int PRIMARY KEY
+				id uuid PRIMARY KEY
+
+				,reason_id int 
 				,description varchar(256) NOT NULL
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.via_conditions ( -- A set of conditions that must be met for a 'via' message to be displayed for a service.
 				id uuid PRIMARY KEY
 
-				,sequence int -- Sequence number is important here, as only the lowest-numbered (first) matching via condition should be displayed.
+				,sequence int NOT NULL -- Sequence number is important here, as only the lowest-numbered (first) matching via condition should be displayed.
 
 				,display_at_crs_id char(3) NOT NULL 
 				,first_required_location_id varchar(7) NOT NULL
 				,second_required_location_id varchar(7) NULL
 				,destination_required_location_id varchar(7) NOT NULL 
 				,text varchar(256) NOT NULL
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.cis ( -- Customer Information Systems 
-				id char(4) PRIMARY KEY
-				,name varchar(30) NOT NULL
+				id uuid PRIMARY KEY
+
+				,cis_id char(4) NOT NULL 
+				,name text NOT NULL -- should be varchar(30), but some data exceeds that.
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS darwin.loading_categories ( -- Categories that can be used to represent a rough estimate on how full a train is
@@ -92,7 +119,6 @@ CREATE TABLE IF NOT EXISTS darwin.loading_categories ( -- Categories that can be
 
 				,code varchar(4) NOT NULL
 				,toc_id char(2) NULL
-				,CONSTRAINT uq_code_toc UNIQUE NULLS NOT DISTINCT (code, toc_id)
 				-- Default values for each code are specified here as records where toc_id is NULL.
 				-- TOCs give an override for the default values of a code using a seperate record with the same code, but containing their toc_id.
 
@@ -100,11 +126,14 @@ CREATE TABLE IF NOT EXISTS darwin.loading_categories ( -- Categories that can be
 				,description_typical varchar(200) NOT NULL
 				,description_expected	varchar(200) NOT NULL
 				,definition varchar(1000) NOT NULL
+
+				,reference_id char(14) NOT NULL
+				,CONSTRAINT fk_reference FOREIGN KEY(reference_id) REFERENCES reference_files(id) ON DELETE CASCADE
 );
 
 -- timetable
 
-CREATE TABLE IF NOT EXISTS darwin.timetables ( -- Timetable files that have been imported
+CREATE TABLE IF NOT EXISTS darwin.timetable_files ( -- Timetable files that have been imported
 				id char(14) PRIMARY KEY
 				,filename varchar(128) NOT NULL
 				,imported_at timestamp WITH TIME ZONE NOT NULL
@@ -137,7 +166,7 @@ CREATE TABLE IF NOT EXISTS darwin.associations ( -- Links between two schedules
 				,message_id text NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 				,timetable_id char(14) NULL
-				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(id) ON DELETE CASCADE
+				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetable_files(id) ON DELETE CASCADE
 
 				,location_id varchar(7) NOT NULL
 				,category char(2) NOT NULL -- "JJ", "VV", "LK", "NP"
@@ -172,7 +201,7 @@ CREATE TABLE IF NOT EXISTS darwin.deactivations (
 
 -- forecast
 
-CREATE TABLE IF NOT EXISTS darwin.schedule_forecasts (
+CREATE TABLE IF NOT EXISTS darwin.forecasts (
 				id uuid PRIMARY KEY
 
 				,message_id text NOT NULL
@@ -187,7 +216,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_forecasts (
 				,late_reason_is_near_location boolean NULL
 );
 
-CREATE TABLE IF NOT EXISTS darwin.schedule_location_forecasts (
+CREATE TABLE IF NOT EXISTS darwin.forecast_locations (
 				id uuid PRIMARY KEY
 
 				,message_id text NOT NULL
@@ -247,7 +276,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedule_location_forecasts (
 				,platform_is_suppressed_by_cis boolean NULL
 				,platform_data_source char NULL -- "P", "A", "M"
 				,platform_is_confirmed boolean NULL
-				,platform varchar(3) NULL -- also set by Journey data in timetables
+				,platform varchar(3) NULL -- also set by Journey data in timetable_files
 
 				,is_suppressed boolean NOT NULL
 				,detaches_from_front boolean NOT NULL
@@ -326,7 +355,7 @@ CREATE TABLE IF NOT EXISTS darwin.schedules ( -- Schedule for a specific train s
 				,message_id text NULL
 				,CONSTRAINT fk_message FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
 				,timetable_id char(14) NULL
-				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetables(id) ON DELETE CASCADE
+				,CONSTRAINT fk_timetable FOREIGN KEY(timetable_id) REFERENCES timetable_files(id) ON DELETE CASCADE
 
 				,schedule_id char(16) NOT NULL -- the RID
 				,uid char(6) NOT NULL
@@ -476,16 +505,16 @@ CREATE TABLE IF NOT EXISTS darwin.train_orders (
 
 				,clear_order boolean NOT NULL
 
-				,first_service_rid char(16) NOT NULL
-				,first_service_headcode char(4) NOT NULL
+				,first_service_rid char(16) NULL
+				,first_service_headcode char(4) NULL
 				,first_service_working_arrival_time varchar(8) NULL
 				,first_service_working_passing_time varchar(8) NULL
 				,first_service_working_departure_time varchar(8) NULL
 				,first_service_public_arrival_time char(5) NULL
 				,first_service_public_departure_time char(5) NULL
 
-				,second_service_rid char(16) NOT NULL
-				,second_service_headcode char(4) NOT NULL
+				,second_service_rid char(16) NULL
+				,second_service_headcode char(4) NULL
 				,second_service_working_arrival_time varchar(8) NULL
 				,second_service_working_passing_time varchar(8) NULL
 				,second_service_working_departure_time varchar(8) NULL
@@ -493,7 +522,7 @@ CREATE TABLE IF NOT EXISTS darwin.train_orders (
 				,second_service_public_departure_time char(5)  NULL
 
 				,third_service_rid char(16) NULL
-				,third_service_headcode char(4)  NULL
+				,third_service_headcode char(4) NULL
 				,third_service_working_arrival_time varchar(8) NULL
 				,third_service_working_passing_time varchar(8) NULL
 				,third_service_working_departure_time varchar(8) NULL

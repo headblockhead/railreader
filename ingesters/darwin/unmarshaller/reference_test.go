@@ -38,6 +38,7 @@ var referenceTestCases = []unmarshalTestCase[Reference]{
 		</PportTimetableRef>
 		`,
 		expected: Reference{
+			ID: "20050121105940",
 			Locations: []LocationReference{
 				{
 					Location: "LEEDS",

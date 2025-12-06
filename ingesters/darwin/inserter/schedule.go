@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretSchedule(schedule unmarshaller.Schedule) error {
+func (u *UnitOfWork) insertSchedule(schedule unmarshaller.Schedule) error {
 	scheduleRecord, scheduleLocationRecords, err := u.scheduleToRecords(schedule)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ type scheduleLocationRecord struct {
 	CancellationReasonIsNearLocation *bool
 }
 
-func (u UnitOfWork) scheduleToRecords(schedule unmarshaller.Schedule) (scheduleRecord, []scheduleLocationRecord, error) {
+func (u *UnitOfWork) scheduleToRecords(schedule unmarshaller.Schedule) (scheduleRecord, []scheduleLocationRecord, error) {
 	var sRecord scheduleRecord
 	var slRecords []scheduleLocationRecord
 
@@ -221,8 +221,8 @@ func sliceActivities(activities string) []string {
 	return slice
 }
 
-func (u UnitOfWork) insertScheduleRecord(record scheduleRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertScheduleRecord(record scheduleRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.schedules (
 			id,
 			message_id,
@@ -297,16 +297,12 @@ func (u UnitOfWork) insertScheduleRecord(record scheduleRecord) error {
 		"diversion_reason_is_near_location":    record.DiversionReasonIsNearLocation,
 		"is_cancelled":                         record.IsCancelled,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func (u UnitOfWork) insertScheduleLocationRecords(records []scheduleLocationRecord) error {
-	batch := &pgx.Batch{}
+func (u *UnitOfWork) insertScheduleLocationRecords(records []scheduleLocationRecord) error {
 	for _, record := range records {
-		batch.Queue(`
+		u.batch.Queue(`
 			INSERT INTO darwin.schedule_locations (
 				id,
 				schedule_uuid,
@@ -373,6 +369,5 @@ func (u UnitOfWork) insertScheduleLocationRecords(records []scheduleLocationReco
 			"cancellation_reason_is_near_location": record.CancellationReasonIsNearLocation,
 		})
 	}
-	results := u.tx.SendBatch(u.ctx, batch)
-	return results.Close()
+	return nil
 }

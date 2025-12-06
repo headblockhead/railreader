@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,8 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// interpretAssociation takes an unmarshalled Association object, converts it into a database record, and inserts it into the database.
-func (u UnitOfWork) interpretAssociation(association unmarshaller.Association) error {
+func (u *UnitOfWork) insertAssociation(association unmarshaller.Association) error {
 	record, err := u.associationToRecord(association)
 	if err != nil {
 		return err
@@ -45,8 +44,7 @@ type associationRecord struct {
 	AssociatedSchedulePublicDepartureTime  *string
 }
 
-// associationToRecord converts an unmarshalled Association object into an association database record.
-func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (associationRecord, error) {
+func (u *UnitOfWork) associationToRecord(association unmarshaller.Association) (associationRecord, error) {
 	var record associationRecord
 	record.ID = uuid.New()
 	record.MessageID = u.messageID
@@ -70,9 +68,8 @@ func (u UnitOfWork) associationToRecord(association unmarshaller.Association) (a
 	return record, nil
 }
 
-// insertAssociationRecord inserts a new association record in the database.
-func (u UnitOfWork) insertAssociationRecord(record associationRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertAssociationRecord(record associationRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.associations (
 			id
 			,message_id
@@ -135,8 +132,5 @@ func (u UnitOfWork) insertAssociationRecord(record associationRecord) error {
 		"associated_schedule_public_arrival_time":    record.AssociatedSchedulePublicArrivalTime,
 		"associated_schedule_public_departure_time":  record.AssociatedSchedulePublicDepartureTime,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }

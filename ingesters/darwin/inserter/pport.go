@@ -1,8 +1,9 @@
-package interpreter
+package inserter
 
 import (
 	"compress/gzip"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"strings"
@@ -12,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u *UnitOfWork) InterpretPushPortMessage(pport *unmarshaller.PushPortMessage) error {
+func (u *UnitOfWork) InsertPushPortMessage(pport unmarshaller.PushPortMessage) error {
 	if pport.Version != unmarshaller.ExpectedPushPortVersion {
 		// Warn, but attempt to continue anyway.
 		u.log.Warn("PushPortMessage version does not match expected version", slog.String("expected_version", unmarshaller.ExpectedPushPortVersion), slog.String("actual_version", pport.Version))
@@ -22,37 +23,33 @@ func (u *UnitOfWork) InterpretPushPortMessage(pport *unmarshaller.PushPortMessag
 	if err != nil {
 		return err
 	}
-
 	if alreadyExists {
-		err := u.updateMessageRecordTime(*u.messageID)
-		if err != nil {
-			return err
-		}
-	} else {
-		record, err := u.messageToRecord(pport)
-		if err != nil {
-			return err
-		}
-		err = u.insertMessageRecord(record)
-		if err != nil {
-			return err
-		}
+		return u.updateMessageRecordTime(*u.messageID)
+	}
+
+	record, err := u.messageToRecord(pport)
+	if err != nil {
+		return err
+	}
+	err = u.insertMessageRecord(record)
+	if err != nil {
+		return err
 	}
 
 	if pport.NewFiles != nil {
-		if err := u.handleNewFiles(pport.NewFiles); err != nil {
+		if err := u.handleNewFiles(*pport.NewFiles); err != nil {
 			return err
 		}
 		return nil
 	}
 	if pport.UpdateResponse != nil {
-		if err := u.interpretResponse(pport.UpdateResponse); err != nil {
+		if err := u.insertResponse(*pport.UpdateResponse); err != nil {
 			return err
 		}
 		return nil
 	}
 	if pport.SnapshotResponse != nil {
-		if err := u.interpretResponse(pport.SnapshotResponse); err != nil {
+		if err := u.insertResponse(*pport.SnapshotResponse); err != nil {
 			return err
 		}
 		return nil
@@ -77,22 +74,7 @@ type messageRecord struct {
 	RequestID           *string
 }
 
-func (u *UnitOfWork) doesMessageRecordExist(ID string) (bool, error) {
-	row := u.tx.QueryRow(u.ctx, `SELECT id FROM darwin.messages WHERE id = @id;`, pgx.StrictNamedArgs{
-		"id": ID,
-	})
-	var id string
-	err := row.Scan(&id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
-}
-
-func (u *UnitOfWork) messageToRecord(message *unmarshaller.PushPortMessage) (messageRecord, error) {
+func (u *UnitOfWork) messageToRecord(message unmarshaller.PushPortMessage) (messageRecord, error) {
 	var record messageRecord
 	record.ID = *u.messageID
 	record.Version = message.Version
@@ -129,32 +111,33 @@ func (u *UnitOfWork) messageToRecord(message *unmarshaller.PushPortMessage) (mes
 }
 
 func (u *UnitOfWork) insertMessageRecord(record messageRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
-	INSERT INTO darwin.messages (
-		id
-		,version
-		,sent_at
-		,first_received_at
-		,last_received_at
-		,status_code
-		,status_description
-		,response_is_snapshot
-		,request_source
-		,request_source_system
-		,request_id
-	) VALUES (
-		@id
-		,@version
-		,@sent_at
-		,@first_received_at
-		,@last_received_at
-		,@status_code
-		,@status_description
-		,@response_is_snapshot
-		,@request_source
-		,@request_source_system
-		,@request_id
-	);	`, pgx.StrictNamedArgs{
+	u.batch.Queue(`
+		INSERT INTO darwin.messages (
+			id
+			,version
+			,sent_at
+			,first_received_at
+			,last_received_at
+			,status_code
+			,status_description
+			,response_is_snapshot
+			,request_source
+			,request_source_system
+			,request_id
+		) VALUES (
+			@id
+			,@version
+			,@sent_at
+			,@first_received_at
+			,@last_received_at
+			,@status_code
+			,@status_description
+			,@response_is_snapshot
+			,@request_source
+			,@request_source_system
+			,@request_id
+		);
+	`, pgx.StrictNamedArgs{
 		"id":                    record.ID,
 		"version":               record.Version,
 		"sent_at":               record.SentAt,
@@ -167,19 +150,16 @@ func (u *UnitOfWork) insertMessageRecord(record messageRecord) error {
 		"request_source_system": record.RequestSourceSystem,
 		"request_id":            record.RequestID,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
-func (u *UnitOfWork) updateMessageRecordTime(ID string) error {
+func (u *UnitOfWork) updateMessageRecordTime(id string) error {
 	_, err := u.tx.Exec(u.ctx, `
-	UPDATE darwin.messages SET (
-		last_received_at = @last_received_at
-	) WHERE id = @id;
+		UPDATE darwin.messages SET (
+			last_received_at = @last_received_at
+		) WHERE id = @id;
 	`, pgx.StrictNamedArgs{
-		"id":               ID,
+		"id":               id,
 		"last_received_at": time.Now().In(u.timezone),
 	})
 	if err != nil {
@@ -188,116 +168,137 @@ func (u *UnitOfWork) updateMessageRecordTime(ID string) error {
 	return nil
 }
 
-func (u *UnitOfWork) handleNewFiles(tf *unmarshaller.NewFiles) error {
+func (u *UnitOfWork) doesMessageRecordExist(id string) (bool, error) {
+	err := u.tx.QueryRow(u.ctx, `SELECT 1 FROM darwin.messages WHERE id = @id;`, pgx.StrictNamedArgs{
+		"id": id,
+	}).Scan(new(int))
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+func (u *UnitOfWork) handleNewFiles(tf unmarshaller.NewFiles) error {
 	if strings.HasSuffix(tf.ReferenceFile, unmarshaller.ExpectedReferenceFileSuffix) {
 		file, err := u.fs.Open("PPTimetable/" + tf.ReferenceFile)
 		if err != nil {
 			return err
 		}
-		return u.InterpretReferenceFile(file)
+		return u.LoadReferenceFile(file)
 	}
 	if strings.HasSuffix(tf.TimetableFile, unmarshaller.ExpectedTimetableFileSuffix) {
 		file, err := u.fs.Open("PPTimetable/" + tf.TimetableFile)
 		if err != nil {
 			return err
 		}
-		return u.InterpretTimetableFile(file)
+		return u.LoadTimetableFile(file)
 	}
 	return nil
 }
 
-func (u *UnitOfWork) InterpretReferenceFile(file fs.File) error {
+func (u *UnitOfWork) LoadReferenceFile(file fs.File) error {
 	reader, err := gzip.NewReader(file)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 	defer reader.Close()
 	reference, err := unmarshaller.NewReference(reader)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal reference file: %w", err)
 	}
-	err = u.InterpretReference(reference)
+	stat, err := file.Stat()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to stat reference file: %w", err)
+	}
+	err = u.InsertReference(*reference, stat.Name())
+	if err != nil {
+		return fmt.Errorf("failed to insert reference data: %w", err)
 	}
 	return nil
 }
 
-func (u *UnitOfWork) InterpretTimetableFile(file fs.File) error {
+func (u *UnitOfWork) LoadTimetableFile(file fs.File) error {
 	reader, err := gzip.NewReader(file)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create gzip reader: %w", err)
 	}
 	defer reader.Close()
 	timetable, err := unmarshaller.NewTimetable(reader)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal timetable file: %w", err)
 	}
-	err = u.InterpretTimetable(timetable)
+	stat, err := file.Stat()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to stat timetable file: %w", err)
+	}
+	err = u.InsertTimetable(*timetable, stat.Name())
+	if err != nil {
+		return fmt.Errorf("failed to insert timetable data: %w", err)
 	}
 	return nil
 }
 
-func (u *UnitOfWork) interpretResponse(resp *unmarshaller.Response) error {
+func (u *UnitOfWork) insertResponse(resp unmarshaller.Response) error {
 	for _, alarm := range resp.Alarms {
-		if err := u.interpretAlarm(alarm); err != nil {
+		if err := u.insertAlarm(alarm); err != nil {
 			return err
 		}
 	}
 	for _, association := range resp.Associations {
-		if err := u.interpretAssociation(association); err != nil {
+		if err := u.insertAssociation(association); err != nil {
 			return err
 		}
 	}
 	for _, deactivation := range resp.Deactivations {
-		if err := u.interpretDeactivation(deactivation); err != nil {
+		if err := u.insertDeactivation(deactivation); err != nil {
 			return err
 		}
 	}
 	for _, forecastTime := range resp.ForecastTimes {
-		if err := u.interpretForecast(forecastTime); err != nil {
+		if err := u.insertForecast(forecastTime); err != nil {
 			return err
 		}
 	}
 	for _, formationLoading := range resp.FormationLoadings {
-		if err := u.interpretFormationLoading(formationLoading); err != nil {
+		if err := u.insertFormationLoading(formationLoading); err != nil {
 			return err
 		}
 	}
 	for _, formation := range resp.Formations {
-		if err := u.interpretFormation(formation); err != nil {
+		if err := u.insertFormation(formation); err != nil {
 			return err
 		}
 	}
 	for _, headcodeChange := range resp.HeadcodeChanges {
-		if err := u.interpretHeadcodeChange(headcodeChange); err != nil {
+		if err := u.insertHeadcodeChange(headcodeChange); err != nil {
 			return err
 		}
 	}
 	for _, schedule := range resp.Schedules {
-		if err := u.interpretSchedule(schedule); err != nil {
+		if err := u.insertSchedule(schedule); err != nil {
 			return err
 		}
 	}
 	for _, serviceLoading := range resp.ServiceLoadings {
-		if err := u.interpretServiceLoading(serviceLoading); err != nil {
+		if err := u.insertServiceLoading(serviceLoading); err != nil {
 			return err
 		}
 	}
 	for _, stationMessage := range resp.StationMessages {
-		if err := u.interpretStationMessage(stationMessage); err != nil {
+		if err := u.insertStationMessage(stationMessage); err != nil {
 			return err
 		}
 	}
 	for _, trainAlert := range resp.TrainAlerts {
-		if err := u.interpretTrainAlert(trainAlert); err != nil {
+		if err := u.insertTrainAlert(trainAlert); err != nil {
 			return err
 		}
 	}
 	for _, trainOrder := range resp.TrainOrders {
-		if err := u.interpretTrainOrder(trainOrder); err != nil {
+		if err := u.insertTrainOrder(trainOrder); err != nil {
 			return err
 		}
 	}

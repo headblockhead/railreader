@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,25 +6,23 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretForecast(forecastT unmarshaller.ForecastTime) error {
-	// Update schedules record
-	sfrecord := u.forecastTimeToRecord(forecastT)
-	if err := u.insertScheduleForecastRecord(sfrecord); err != nil {
+func (u *UnitOfWork) insertForecast(forecastT unmarshaller.ForecastTime) error {
+	sfRecord, sflRecords, err := u.forecastTimeToRecords(forecastT)
+	if err != nil {
 		return err
 	}
-	// Update schedule_locations records
-	var records []scheduleLocationForecastRecord
-	for _, forecastL := range forecastT.Locations {
-		record, err := u.forecastTimeLocationToRecord(forecastT.RID, forecastL)
-		if err != nil {
-			return err
-		}
-		records = append(records, record)
+	err = u.insertForecastRecord(sfRecord)
+	if err != nil {
+		return err
 	}
-	return u.insertScheduleLocationForecastRecords(records)
+	err = u.insertForecastLocationRecords(sflRecords)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-type scheduleForecastRecord struct {
+type forecastRecord struct {
 	ID uuid.UUID
 
 	MessageID string
@@ -38,51 +36,7 @@ type scheduleForecastRecord struct {
 	LateReasonIsNearLocation *bool
 }
 
-func (u UnitOfWork) forecastTimeToRecord(forecastT unmarshaller.ForecastTime) scheduleForecastRecord {
-	var scheduleUpdates scheduleForecastRecord
-	scheduleUpdates.ID = uuid.New()
-	scheduleUpdates.MessageID = *u.messageID
-	scheduleUpdates.ScheduleID = forecastT.RID
-	scheduleUpdates.IsReverseFormation = forecastT.ReverseFormation
-	if forecastT.LateReason != nil {
-		scheduleUpdates.LateReasonID = &forecastT.LateReason.ReasonID
-		scheduleUpdates.LateReasonTIPLOC = forecastT.LateReason.TIPLOC
-		scheduleUpdates.LateReasonIsNearLocation = &forecastT.LateReason.Near
-	}
-	return scheduleUpdates
-}
-func (u UnitOfWork) insertScheduleForecastRecord(record scheduleForecastRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
-		INSERT INTO darwin.schedule_forecasts (
-			id
-			,message_id
-			,schedule_id
-			,is_reverse_formation
-			,late_reason_id
-			,late_reason_location_id
-			,late_reason_is_near_location
-		) VALUES (
-			@id
-			,@message_id
-			,@schedule_id
-			,@is_reverse_formation
-			,@late_reason_id
-			,@late_reason_location_id
-			,@late_reason_is_near_location
-		);
-		`, pgx.StrictNamedArgs{
-		"id":                           record.ID,
-		"message_id":                   record.MessageID,
-		"schedule_id":                  record.ScheduleID,
-		"is_reverse_formation":         record.IsReverseFormation,
-		"late_reason_id":               record.LateReasonID,
-		"late_reason_location_id":      record.LateReasonTIPLOC,
-		"late_reason_is_near_location": record.LateReasonIsNearLocation,
-	})
-	return err
-}
-
-type scheduleLocationForecastRecord struct {
+type forecastLocationRecord struct {
 	ID uuid.UUID
 
 	MessageID string
@@ -145,83 +99,128 @@ type scheduleLocationForecastRecord struct {
 	DetachesFromFront         *bool
 }
 
-func (u UnitOfWork) forecastTimeLocationToRecord(scheduleID string, forecastL unmarshaller.ForecastLocation) (scheduleLocationForecastRecord, error) {
-	var record scheduleLocationForecastRecord
-	record.ID = uuid.New()
-	record.MessageID = *u.messageID
-	record.ScheduleID = scheduleID
-	record.LocationID = forecastL.TIPLOC
-	record.ScheduleWorkingArrivalTime = forecastL.LocationTimeIdentifiers.WorkingArrivalTime
-	record.ScheduleWorkingPassingTime = forecastL.LocationTimeIdentifiers.WorkingPassingTime
-	record.ScheduleWorkingDepartureTime = forecastL.LocationTimeIdentifiers.WorkingDepartureTime
-	record.SchedulePublicArrivalTime = forecastL.LocationTimeIdentifiers.PublicArrivalTime
-	record.SchedulePublicDepartureTime = forecastL.LocationTimeIdentifiers.PublicDepartureTime
+func (u *UnitOfWork) forecastTimeToRecords(forecastT unmarshaller.ForecastTime) (forecastRecord, []forecastLocationRecord, error) {
+	var sfRecord forecastRecord
+	sfRecord.ID = uuid.New()
+	sfRecord.MessageID = *u.messageID
+	sfRecord.ScheduleID = forecastT.RID
+	sfRecord.IsReverseFormation = forecastT.ReverseFormation
+	if forecastT.LateReason != nil {
+		sfRecord.LateReasonID = &forecastT.LateReason.ReasonID
+		sfRecord.LateReasonTIPLOC = forecastT.LateReason.TIPLOC
+		sfRecord.LateReasonIsNearLocation = &forecastT.LateReason.Near
+	}
 
-	if forecastL.ArrivalData != nil {
-		record.ArrivalEstimatedTime = forecastL.ArrivalData.EstimatedTime
-		record.ArrivalEstimatedWorkingTime = forecastL.ArrivalData.EstimatedWorkingTime
-		record.ArrivalMinimumEstimatedTime = forecastL.ArrivalData.EstimatedTimeMinimum
-		record.ArrivalEstimatedTimeIsUnknown = &forecastL.ArrivalData.EstimatedTimeUnknown
-		record.ArrivalIsDelayed = &forecastL.ArrivalData.Delayed
-		record.ArrivalActualTime = forecastL.ArrivalData.ActualTime
-		record.ArrivalActualTimeClass = forecastL.ArrivalData.ActualTimeClass
-		record.ArrivalDataSource = forecastL.ArrivalData.Source
-		record.ArrivalDataSourceSystem = forecastL.ArrivalData.SourceSystem
-	}
-	if forecastL.PassingData != nil {
-		record.PassingEstimatedTime = forecastL.PassingData.EstimatedTime
-		record.PassingEstimatedWorkingTime = forecastL.PassingData.EstimatedWorkingTime
-		record.PassingMinimumEstimatedTime = forecastL.PassingData.EstimatedTimeMinimum
-		record.PassingEstimatedTimeIsUnknown = &forecastL.PassingData.EstimatedTimeUnknown
-		record.PassingIsDelayed = &forecastL.PassingData.Delayed
-		record.PassingActualTime = forecastL.PassingData.ActualTime
-		record.PassingActualTimeClass = forecastL.PassingData.ActualTimeClass
-		record.PassingDataSource = forecastL.PassingData.Source
-		record.PassingDataSourceSystem = forecastL.PassingData.SourceSystem
-	}
-	if forecastL.DepartureData != nil {
-		record.DepartureEstimatedTime = forecastL.DepartureData.EstimatedTime
-		record.DepartureEstimatedWorkingTime = forecastL.DepartureData.EstimatedWorkingTime
-		record.DepartureMinimumEstimatedTime = forecastL.DepartureData.EstimatedTimeMinimum
-		record.DepartureEstimatedTimeIsUnknown = &forecastL.DepartureData.EstimatedTimeUnknown
-		record.DepartureIsDelayed = &forecastL.DepartureData.Delayed
-		record.DepartureActualTime = forecastL.DepartureData.ActualTime
-		record.DepartureActualTimeClass = forecastL.DepartureData.ActualTimeClass
-		record.DepartureDataSource = forecastL.DepartureData.Source
-		record.DepartureDataSourceSystem = forecastL.DepartureData.SourceSystem
-	}
-	if forecastL.LateReason != nil {
-		record.LateReasonID = &forecastL.LateReason.ReasonID
-		record.LateReasonTIPLOC = forecastL.LateReason.TIPLOC
-		record.LateReasonIsNearLocation = &forecastL.LateReason.Near
-	}
-	if forecastL.DisruptionRisk != nil {
-		record.DisruptionRisk = &forecastL.DisruptionRisk.Effect
-		if forecastL.DisruptionRisk.Reason != nil {
-			record.DisruptionRiskReasonID = &forecastL.DisruptionRisk.Reason.ReasonID
-			record.DisruptionRiskReasonTIPLOC = forecastL.DisruptionRisk.Reason.TIPLOC
-			record.DisruptionRiskReasonIsNearLocation = &forecastL.DisruptionRisk.Reason.Near
+	var sflRecords []forecastLocationRecord
+	for _, forecastL := range forecastT.Locations {
+		var sflRecord forecastLocationRecord
+		sflRecord.ID = uuid.New()
+		sflRecord.MessageID = *u.messageID
+		sflRecord.ScheduleID = forecastT.RID
+		sflRecord.LocationID = forecastL.TIPLOC
+		sflRecord.ScheduleWorkingArrivalTime = forecastL.LocationTimeIdentifiers.WorkingArrivalTime
+		sflRecord.ScheduleWorkingPassingTime = forecastL.LocationTimeIdentifiers.WorkingPassingTime
+		sflRecord.ScheduleWorkingDepartureTime = forecastL.LocationTimeIdentifiers.WorkingDepartureTime
+		sflRecord.SchedulePublicArrivalTime = forecastL.LocationTimeIdentifiers.PublicArrivalTime
+		sflRecord.SchedulePublicDepartureTime = forecastL.LocationTimeIdentifiers.PublicDepartureTime
+
+		if forecastL.ArrivalData != nil {
+			sflRecord.ArrivalEstimatedTime = forecastL.ArrivalData.EstimatedTime
+			sflRecord.ArrivalEstimatedWorkingTime = forecastL.ArrivalData.EstimatedWorkingTime
+			sflRecord.ArrivalMinimumEstimatedTime = forecastL.ArrivalData.EstimatedTimeMinimum
+			sflRecord.ArrivalEstimatedTimeIsUnknown = &forecastL.ArrivalData.EstimatedTimeUnknown
+			sflRecord.ArrivalIsDelayed = &forecastL.ArrivalData.Delayed
+			sflRecord.ArrivalActualTime = forecastL.ArrivalData.ActualTime
+			sflRecord.ArrivalActualTimeClass = forecastL.ArrivalData.ActualTimeClass
+			sflRecord.ArrivalDataSource = forecastL.ArrivalData.Source
+			sflRecord.ArrivalDataSourceSystem = forecastL.ArrivalData.SourceSystem
 		}
+		if forecastL.PassingData != nil {
+			sflRecord.PassingEstimatedTime = forecastL.PassingData.EstimatedTime
+			sflRecord.PassingEstimatedWorkingTime = forecastL.PassingData.EstimatedWorkingTime
+			sflRecord.PassingMinimumEstimatedTime = forecastL.PassingData.EstimatedTimeMinimum
+			sflRecord.PassingEstimatedTimeIsUnknown = &forecastL.PassingData.EstimatedTimeUnknown
+			sflRecord.PassingIsDelayed = &forecastL.PassingData.Delayed
+			sflRecord.PassingActualTime = forecastL.PassingData.ActualTime
+			sflRecord.PassingActualTimeClass = forecastL.PassingData.ActualTimeClass
+			sflRecord.PassingDataSource = forecastL.PassingData.Source
+			sflRecord.PassingDataSourceSystem = forecastL.PassingData.SourceSystem
+		}
+		if forecastL.DepartureData != nil {
+			sflRecord.DepartureEstimatedTime = forecastL.DepartureData.EstimatedTime
+			sflRecord.DepartureEstimatedWorkingTime = forecastL.DepartureData.EstimatedWorkingTime
+			sflRecord.DepartureMinimumEstimatedTime = forecastL.DepartureData.EstimatedTimeMinimum
+			sflRecord.DepartureEstimatedTimeIsUnknown = &forecastL.DepartureData.EstimatedTimeUnknown
+			sflRecord.DepartureIsDelayed = &forecastL.DepartureData.Delayed
+			sflRecord.DepartureActualTime = forecastL.DepartureData.ActualTime
+			sflRecord.DepartureActualTimeClass = forecastL.DepartureData.ActualTimeClass
+			sflRecord.DepartureDataSource = forecastL.DepartureData.Source
+			sflRecord.DepartureDataSourceSystem = forecastL.DepartureData.SourceSystem
+		}
+		if forecastL.LateReason != nil {
+			sflRecord.LateReasonID = &forecastL.LateReason.ReasonID
+			sflRecord.LateReasonTIPLOC = forecastL.LateReason.TIPLOC
+			sflRecord.LateReasonIsNearLocation = &forecastL.LateReason.Near
+		}
+		if forecastL.DisruptionRisk != nil {
+			sflRecord.DisruptionRisk = &forecastL.DisruptionRisk.Effect
+			if forecastL.DisruptionRisk.Reason != nil {
+				sflRecord.DisruptionRiskReasonID = &forecastL.DisruptionRisk.Reason.ReasonID
+				sflRecord.DisruptionRiskReasonTIPLOC = forecastL.DisruptionRisk.Reason.TIPLOC
+				sflRecord.DisruptionRiskReasonIsNearLocation = &forecastL.DisruptionRisk.Reason.Near
+			}
+		}
+		sflRecord.AffectedBy = forecastL.AffectedBy
+		sflRecord.Length = &forecastL.Length
+		if forecastL.PlatformData != nil {
+			sflRecord.PlatformIsSuppressed = &forecastL.PlatformData.Suppressed
+			sflRecord.PlatformIsSuppressedByCIS = &forecastL.PlatformData.SuppressedByCIS
+			sflRecord.PlatformDataSource = &forecastL.PlatformData.Source
+			sflRecord.PlatformIsConfirmed = &forecastL.PlatformData.Confirmed
+			sflRecord.Platform = &forecastL.PlatformData.Platform
+		}
+		sflRecord.IsSuppressed = &forecastL.Suppressed
+		sflRecord.DetachesFromFront = &forecastL.DetachesFromFront
+		sflRecords = append(sflRecords, sflRecord)
 	}
-	record.AffectedBy = forecastL.AffectedBy
-	record.Length = &forecastL.Length
-	if forecastL.PlatformData != nil {
-		record.PlatformIsSuppressed = &forecastL.PlatformData.Suppressed
-		record.PlatformIsSuppressedByCIS = &forecastL.PlatformData.SuppressedByCIS
-		record.PlatformDataSource = &forecastL.PlatformData.Source
-		record.PlatformIsConfirmed = &forecastL.PlatformData.Confirmed
-		record.Platform = &forecastL.PlatformData.Platform
-	}
-	record.IsSuppressed = &forecastL.Suppressed
-	record.DetachesFromFront = &forecastL.DetachesFromFront
-	return record, nil
+	return sfRecord, sflRecords, nil
 }
 
-func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLocationForecastRecord) error {
-	batch := &pgx.Batch{}
+func (u *UnitOfWork) insertForecastRecord(record forecastRecord) error {
+	u.batch.Queue(`
+		INSERT INTO darwin.forecasts (
+			id
+			,message_id
+			,schedule_id
+			,is_reverse_formation
+			,late_reason_id
+			,late_reason_location_id
+			,late_reason_is_near_location
+		) VALUES (
+			@id
+			,@message_id
+			,@schedule_id
+			,@is_reverse_formation
+			,@late_reason_id
+			,@late_reason_location_id
+			,@late_reason_is_near_location
+		);
+		`, pgx.StrictNamedArgs{
+		"id":                           record.ID,
+		"message_id":                   record.MessageID,
+		"schedule_id":                  record.ScheduleID,
+		"is_reverse_formation":         record.IsReverseFormation,
+		"late_reason_id":               record.LateReasonID,
+		"late_reason_location_id":      record.LateReasonTIPLOC,
+		"late_reason_is_near_location": record.LateReasonIsNearLocation,
+	})
+	return nil
+}
+
+func (u *UnitOfWork) insertForecastLocationRecords(records []forecastLocationRecord) error {
 	for _, record := range records {
-		batch.Queue(`
-			INSERT INTO darwin.schedule_location_forecasts (
+		u.batch.Queue(`
+			INSERT INTO darwin.forecast_locations (
 				id
 				,message_id
 				,schedule_id
@@ -383,6 +382,5 @@ func (u UnitOfWork) insertScheduleLocationForecastRecords(records []scheduleLoca
 			"detaches_from_front":                     record.DetachesFromFront,
 		})
 	}
-	results := u.tx.SendBatch(u.ctx, batch)
-	return results.Close()
+	return nil
 }

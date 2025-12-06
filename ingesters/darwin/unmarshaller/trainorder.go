@@ -16,8 +16,9 @@ type TrainOrder struct {
 }
 
 type TrainOrderServices struct {
-	First  TrainOrderService `xml:"first"`
-	Second TrainOrderService `xml:"second"`
+	First TrainOrderService `xml:"first"`
+	// Second may be optional?
+	Second *TrainOrderService `xml:"second"`
 	// Third is optional.
 	Third *TrainOrderService `xml:"third"`
 }

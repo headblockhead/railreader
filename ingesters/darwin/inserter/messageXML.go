@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import "github.com/jackc/pgx/v5"
 
@@ -9,7 +9,7 @@ type MessageXMLRecord struct {
 	XML           string
 }
 
-func (u UnitOfWork) InsertMessageXMLRecord(record MessageXMLRecord) error {
+func (u *UnitOfWork) InsertMessageXMLRecord(record MessageXMLRecord) error {
 	_, err := u.tx.Exec(u.ctx, `
 		INSERT INTO darwin.message_xml (
 			id

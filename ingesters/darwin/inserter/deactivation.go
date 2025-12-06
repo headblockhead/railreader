@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,13 +6,12 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// interpretDeactivation takes an unmarshalled Deactivation event, and adds it to the database.
-func (u UnitOfWork) interpretDeactivation(deactivation unmarshaller.Deactivation) error {
+func (u *UnitOfWork) insertDeactivation(deactivation unmarshaller.Deactivation) error {
 	record, err := u.deactivationToRecord(deactivation)
 	if err != nil {
 		return err
 	}
-	err = u.insertDeactivation(record)
+	err = u.insertDeactivationRecord(record)
 	if err != nil {
 		return err
 	}
@@ -25,7 +24,7 @@ type deactivationRecord struct {
 	ScheduleID string
 }
 
-func (u UnitOfWork) deactivationToRecord(deactivation unmarshaller.Deactivation) (deactivationRecord, error) {
+func (u *UnitOfWork) deactivationToRecord(deactivation unmarshaller.Deactivation) (deactivationRecord, error) {
 	var record deactivationRecord
 	record.ID = uuid.New()
 	record.MessageID = *u.messageID
@@ -33,8 +32,8 @@ func (u UnitOfWork) deactivationToRecord(deactivation unmarshaller.Deactivation)
 	return record, nil
 }
 
-func (u UnitOfWork) insertDeactivation(record deactivationRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertDeactivationRecord(record deactivationRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.deactivations (
 			id
 			,message_id
@@ -49,8 +48,5 @@ func (u UnitOfWork) insertDeactivation(record deactivationRecord) error {
 		"message_id":  u.messageID,
 		"schedule_id": record.ScheduleID,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }

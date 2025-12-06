@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u *UnitOfWork) interpretTrainAlert(trainAlert unmarshaller.TrainAlert) error {
+func (u *UnitOfWork) insertTrainAlert(trainAlert unmarshaller.TrainAlert) error {
 	taRecord, taslRecords, err := u.trainAlertToRecords(trainAlert)
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (u *UnitOfWork) trainAlertToRecords(trainAlert unmarshaller.TrainAlert) (tr
 }
 
 func (u *UnitOfWork) insertTrainAlertRecord(record trainAlertRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+	u.batch.Queue(`
 		INSERT INTO darwin.train_alerts (
 			id
 			,message_id
@@ -118,16 +118,12 @@ func (u *UnitOfWork) insertTrainAlertRecord(record trainAlertRecord) error {
 		"type":                 record.Type,
 		"body":                 record.Body,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 func (u *UnitOfWork) insertTrainAlertScheduleLocationRecords(records []trainAlertScheduleLocationsRecord) error {
-	batch := &pgx.Batch{}
 	for _, record := range records {
-		batch.Queue(`
+		u.batch.Queue(`
 			INSERT INTO darwin.train_alert_schedule_locations (
 				id
 				,train_alert_id
@@ -146,6 +142,5 @@ func (u *UnitOfWork) insertTrainAlertScheduleLocationRecords(records []trainAler
 			"location_ids":   record.LocationIDs,
 		})
 	}
-	results := u.tx.SendBatch(u.ctx, batch)
-	return results.Close()
+	return nil
 }

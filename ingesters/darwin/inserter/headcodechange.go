@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretHeadcodeChange(headcodeChange unmarshaller.HeadcodeChange) error {
+func (u *UnitOfWork) insertHeadcodeChange(headcodeChange unmarshaller.HeadcodeChange) error {
 	record, err := u.headcodeChangeToRecord(headcodeChange)
 	if err != nil {
 		return err
@@ -30,7 +30,7 @@ type headcodeChangeRecord struct {
 	TrainDescriberBerth string
 }
 
-func (u UnitOfWork) headcodeChangeToRecord(headcodeChange unmarshaller.HeadcodeChange) (headcodeChangeRecord, error) {
+func (u *UnitOfWork) headcodeChangeToRecord(headcodeChange unmarshaller.HeadcodeChange) (headcodeChangeRecord, error) {
 	var record headcodeChangeRecord
 	record.ID = uuid.New()
 	record.MessageID = *u.messageID
@@ -41,8 +41,8 @@ func (u UnitOfWork) headcodeChangeToRecord(headcodeChange unmarshaller.HeadcodeC
 	return record, nil
 }
 
-func (u UnitOfWork) insertHeadcodeChangeRecord(record headcodeChangeRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertHeadcodeChangeRecord(record headcodeChangeRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.headcode_changes (
 			id
 			,message_id
@@ -66,5 +66,5 @@ func (u UnitOfWork) insertHeadcodeChangeRecord(record headcodeChangeRecord) erro
 		"train_describer":       record.TrainDescriber,
 		"train_describer_berth": record.TrainDescriberBerth,
 	})
-	return err
+	return nil
 }

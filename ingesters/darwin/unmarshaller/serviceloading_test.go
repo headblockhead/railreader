@@ -22,13 +22,13 @@ var serviceLoadingTestCases = []unmarshalTestCase[ServiceLoading]{
 				PublicArrivalTime:    pointerTo("00:04"),
 				PublicDepartureTime:  pointerTo("00:05"),
 			},
-			LoadingCategory: &LoadingCategory{
+			LoadingCategory: &ServiceLoadingCategory{
 				Type:         "Realtime",
 				Source:       pointerTo("CIS"),
 				SourceSystem: pointerTo("CIS1"),
 				Category:     "A",
 			},
-			LoadingPercentage: &LoadingPercentage{
+			LoadingPercentage: &ServiceLoadingPercentage{
 				Type:         "Realtime",
 				Source:       pointerTo("CIS"),
 				SourceSystem: pointerTo("CIS1"),
@@ -45,11 +45,11 @@ var serviceLoadingTestCases = []unmarshalTestCase[ServiceLoading]{
 		</serviceLoading>
 		`,
 		expected: ServiceLoading{
-			LoadingCategory: &LoadingCategory{
+			LoadingCategory: &ServiceLoadingCategory{
 				Type:     "Typical",
 				Category: "B",
 			},
-			LoadingPercentage: &LoadingPercentage{
+			LoadingPercentage: &ServiceLoadingPercentage{
 				Type:       "Typical",
 				Percentage: 41,
 			},

@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretServiceLoading(serviceLoading unmarshaller.ServiceLoading) error {
+func (u *UnitOfWork) insertServiceLoading(serviceLoading unmarshaller.ServiceLoading) error {
 	record, err := u.serviceLoadingToRecord(serviceLoading)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ type serviceLoadingRecord struct {
 	LoadingPercentageType         *string
 }
 
-func (u UnitOfWork) serviceLoadingToRecord(serviceLoading unmarshaller.ServiceLoading) (serviceLoadingRecord, error) {
+func (u *UnitOfWork) serviceLoadingToRecord(serviceLoading unmarshaller.ServiceLoading) (serviceLoadingRecord, error) {
 	var record serviceLoadingRecord
 	record.ID = uuid.New()
 	record.MessageID = *u.messageID
@@ -68,8 +68,8 @@ func (u UnitOfWork) serviceLoadingToRecord(serviceLoading unmarshaller.ServiceLo
 	return record, nil
 }
 
-func (u UnitOfWork) insertServiceLoadingRecord(record serviceLoadingRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertServiceLoadingRecord(record serviceLoadingRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.service_loadings (
 			id,
 			message_id,
@@ -126,8 +126,5 @@ func (u UnitOfWork) insertServiceLoadingRecord(record serviceLoadingRecord) erro
 		"loading_percentage_source_system": record.LoadingPercentageSourceSystem,
 		"loading_percentage_type":          record.LoadingPercentageType,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }

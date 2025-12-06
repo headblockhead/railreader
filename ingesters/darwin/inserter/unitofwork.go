@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"context"
@@ -16,7 +16,9 @@ type UnitOfWork struct {
 	ctx      context.Context
 	log      *slog.Logger
 	timezone *time.Location
+	conn     *pgxpool.Conn
 	tx       pgx.Tx
+	batch    *pgx.Batch
 	fs       fs.ReadDirFS
 
 	messageID   *string
@@ -24,12 +26,15 @@ type UnitOfWork struct {
 }
 
 func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, fs fs.ReadDirFS, messageID *string, timetableID *string) (*UnitOfWork, error) {
-	log.Debug("creating new transaction for new unit of work")
-	tx, err := dbpool.BeginTx(ctx, pgx.TxOptions{})
+	conn, err := dbpool.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to acquire database connection: %w", err)
+	}
+	tx, err := conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin new transaction: %w", err)
 	}
-	log.Debug("transaction created for new unit of work")
+	log.Debug("created new transcation for unit of work")
 
 	londonTime, err := time.LoadLocation("Europe/London")
 	if err != nil {
@@ -40,27 +45,34 @@ func NewUnitOfWork(ctx context.Context, log *slog.Logger, dbpool *pgxpool.Pool, 
 		ctx:         ctx,
 		log:         log,
 		timezone:    londonTime,
+		conn:        conn,
 		tx:          tx,
+		batch:       &pgx.Batch{},
 		fs:          fs,
 		messageID:   messageID,
 		timetableID: timetableID,
 	}, nil
 }
 
-func (u UnitOfWork) Commit() error {
-	u.log.Debug("committing transaction for unit of work")
+func (u *UnitOfWork) Commit() error {
+	batchResult := u.tx.SendBatch(u.ctx, u.batch)
+	if err := batchResult.Close(); err != nil {
+		return fmt.Errorf("failed to send batch: %w", err)
+	}
+	u.log.Debug("sent SQL batch to database")
 	if err := u.tx.Commit(u.ctx); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	u.log.Debug("transaction committed for unit of work")
+	u.log.Debug("committed unit of work transaction")
+	u.conn.Release()
 	return nil
 }
 
-func (u UnitOfWork) Rollback() error {
-	u.log.Debug("rolling back transaction for unit of work")
+func (u *UnitOfWork) Rollback() error {
 	if err := u.tx.Rollback(u.ctx); err != nil {
 		return fmt.Errorf("failed to rollback transaction: %w", err)
 	}
-	u.log.Debug("transaction rolled back for unit of work")
+	u.log.Debug("rolled back unit of work transaction")
+	u.conn.Release()
 	return nil
 }

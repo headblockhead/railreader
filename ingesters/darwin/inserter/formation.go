@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretFormation(formation unmarshaller.FormationsOfService) error {
+func (u *UnitOfWork) insertFormation(formation unmarshaller.FormationsOfService) error {
 	fRecords, cRecords, err := u.formationsToRecords(formation)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ type formationCoachRecord struct {
 	ToiletStatus string
 }
 
-func (u UnitOfWork) formationsToRecords(formations unmarshaller.FormationsOfService) ([]formationRecord, []formationCoachRecord, error) {
+func (u *UnitOfWork) formationsToRecords(formations unmarshaller.FormationsOfService) ([]formationRecord, []formationCoachRecord, error) {
 	var fRecords []formationRecord
 	var cRecords []formationCoachRecord
 	for _, f := range formations.Formations {
@@ -69,10 +69,9 @@ func (u UnitOfWork) formationsToRecords(formations unmarshaller.FormationsOfServ
 	return fRecords, cRecords, nil
 }
 
-func (u UnitOfWork) insertFormationRecords(records []formationRecord) error {
-	batch := &pgx.Batch{}
+func (u *UnitOfWork) insertFormationRecords(records []formationRecord) error {
 	for _, record := range records {
-		batch.Queue(`
+		u.batch.Queue(`
 			INSERT INTO darwin.formations (
 				id
 				,message_id
@@ -97,14 +96,12 @@ func (u UnitOfWork) insertFormationRecords(records []formationRecord) error {
 			"source_system": record.SourceSystem,
 		})
 	}
-	results := u.tx.SendBatch(u.ctx, batch)
-	return results.Close()
+	return nil
 }
 
-func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) error {
-	batch := &pgx.Batch{}
+func (u *UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) error {
 	for _, record := range records {
-		batch.Queue(`
+		u.batch.Queue(`
 			INSERT INTO darwin.formation_coaches (
 				id
 				,formation_uuid
@@ -132,6 +129,5 @@ func (u UnitOfWork) insertFormationCoachRecords(records []formationCoachRecord) 
 			"toilet_status":  record.ToiletStatus,
 		})
 	}
-	results := u.tx.SendBatch(u.ctx, batch)
-	return results.Close()
+	return nil
 }

@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretFormationLoading(formationLoading unmarshaller.FormationLoading) error {
+func (u *UnitOfWork) insertFormationLoading(formationLoading unmarshaller.FormationLoading) error {
 	records, err := u.formationLoadingToRecords(formationLoading)
 	if err != nil {
 		return err
@@ -36,7 +36,7 @@ type formationLoadingRecord struct {
 	Percentage   int
 }
 
-func (u UnitOfWork) formationLoadingToRecords(formationLoading unmarshaller.FormationLoading) ([]formationLoadingRecord, error) {
+func (u *UnitOfWork) formationLoadingToRecords(formationLoading unmarshaller.FormationLoading) ([]formationLoadingRecord, error) {
 	var records []formationLoadingRecord
 	for _, fl := range formationLoading.Loading {
 		var record formationLoadingRecord
@@ -61,10 +61,9 @@ func (u UnitOfWork) formationLoadingToRecords(formationLoading unmarshaller.Form
 	return records, nil
 }
 
-func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingRecord) error {
-	batch := &pgx.Batch{}
+func (u *UnitOfWork) insertFormationLoadingRecords(records []formationLoadingRecord) error {
 	for _, record := range records {
-		batch.Queue(`
+		u.batch.Queue(`
 			INSERT INTO darwin.formation_loading (
 				id
 				,message_id
@@ -76,7 +75,6 @@ func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingReco
 				,schedule_working_departure_time
 				,schedule_public_arrival_time
 				,schedule_public_departure_time
-
 				,identifier
 				,source
 				,source_system
@@ -92,7 +90,6 @@ func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingReco
 				,@schedule_working_departure_time
 				,@schedule_public_arrival_time
 				,@schedule_public_departure_time
-
 				,@identifier
 				,@source
 				,@source_system
@@ -115,6 +112,5 @@ func (u UnitOfWork) insertFormationLoadingRecords(records []formationLoadingReco
 			"percentage":                      record.Percentage,
 		})
 	}
-	results := u.tx.SendBatch(u.ctx, batch)
-	return results.Close()
+	return nil
 }

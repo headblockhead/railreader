@@ -14,11 +14,11 @@ type ServiceLoading struct {
 	TIPLOC string `xml:"tpl,attr"`
 
 	// zero or one of:
-	LoadingCategory   *LoadingCategory   `xml:"loadingCategory"`
-	LoadingPercentage *LoadingPercentage `xml:"loadingPercentage"`
+	LoadingCategory   *ServiceLoadingCategory   `xml:"loadingCategory"`
+	LoadingPercentage *ServiceLoadingPercentage `xml:"loadingPercentage"`
 }
 
-type LoadingCategory struct {
+type ServiceLoadingCategory struct {
 	// Type can be "Expected" or "Typical", and defaults to "Typical" if not specified.
 	Type LoadingCategoryType `xml:"type,attr"`
 	// Source is optional.
@@ -37,9 +37,9 @@ const (
 	LoadingCategoryTypeTypical  LoadingCategoryType = "Typical"
 )
 
-func (lc *LoadingCategory) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (lc *ServiceLoadingCategory) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// Alias type created to avoid recursion.
-	type Alias LoadingCategory
+	type Alias ServiceLoadingCategory
 	var loadingCategory Alias
 
 	// Set default values.
@@ -50,12 +50,12 @@ func (lc *LoadingCategory) UnmarshalXML(d *xml.Decoder, start xml.StartElement) 
 	}
 
 	// Convert the alias back to the original type.
-	*lc = LoadingCategory(loadingCategory)
+	*lc = ServiceLoadingCategory(loadingCategory)
 
 	return nil
 }
 
-type LoadingPercentage struct {
+type ServiceLoadingPercentage struct {
 	// Type defaults to "Typical" if not specified.
 	Type string `xml:"type,attr"`
 	// Source is optional.
@@ -67,9 +67,9 @@ type LoadingPercentage struct {
 	Percentage int `xml:",chardata"`
 }
 
-func (lp *LoadingPercentage) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+func (lp *ServiceLoadingPercentage) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	// Alias type created to avoid recursion.
-	type Alias LoadingPercentage
+	type Alias ServiceLoadingPercentage
 	var loadingPercentage Alias
 
 	// Set default values.
@@ -80,7 +80,7 @@ func (lp *LoadingPercentage) UnmarshalXML(d *xml.Decoder, start xml.StartElement
 	}
 
 	// Convert the alias back to the original type.
-	*lp = LoadingPercentage(loadingPercentage)
+	*lp = ServiceLoadingPercentage(loadingPercentage)
 
 	return nil
 }

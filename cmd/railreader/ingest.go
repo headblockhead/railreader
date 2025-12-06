@@ -68,8 +68,7 @@ func (c *IngestCommand) Run() error {
 		close(darwinIngestQueue)
 	})
 	var handlerGroup sync.WaitGroup
-	cpus := runtime.NumCPU()
-	for i := range cpus {
+	for i := range runtime.NumCPU() {
 		handlerGroup.Go(func() {
 			processAndCommitMessages(c.log.With(slog.String("source", "darwin"), slog.String("process", "handler"), slog.Int("goroutine", i)), darwinIngestQueue, darwinIngester)
 		})
@@ -103,6 +102,9 @@ func (c *IngestCommand) createDarwinIngester(dbpool *pgxpool.Pool) (railreader.I
 			},
 			TLS: &tls.Config{},
 		},
+		MaxBytes:       10e6, // 10MB
+		CommitInterval: time.Second,
+		StartOffset:    kafka.FirstOffset,
 	})
 
 	root, err := os.OpenRoot(c.SFTPWorkingDirectory + "/darwin")

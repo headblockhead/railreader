@@ -37,7 +37,7 @@ var trainOrderTestCases = []unmarshalTestCase[TrainOrder]{
 						},
 					},
 				},
-				Second: TrainOrderService{
+				Second: &TrainOrderService{
 					Headcode: pointerTo("2C04"),
 				},
 				Third: &TrainOrderService{

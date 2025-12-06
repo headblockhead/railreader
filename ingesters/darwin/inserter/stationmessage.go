@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"github.com/google/uuid"
@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (u UnitOfWork) interpretStationMessage(stationMessage unmarshaller.StationMessage) error {
+func (u *UnitOfWork) insertStationMessage(stationMessage unmarshaller.StationMessage) error {
 	record, err := u.stationMessageToRecord(stationMessage)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ type stationMessageRecord struct {
 	Body            string
 }
 
-func (u UnitOfWork) stationMessageToRecord(stationMessage unmarshaller.StationMessage) (stationMessageRecord, error) {
+func (u *UnitOfWork) stationMessageToRecord(stationMessage unmarshaller.StationMessage) (stationMessageRecord, error) {
 	var record stationMessageRecord
 	record.ID = uuid.New()
 	record.MessageID = *u.messageID
@@ -48,8 +48,8 @@ func (u UnitOfWork) stationMessageToRecord(stationMessage unmarshaller.StationMe
 	return record, nil
 }
 
-func (u UnitOfWork) insertStationMessageRecord(record stationMessageRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertStationMessageRecord(record stationMessageRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.station_messages (
 			id,
 			message_id,
@@ -79,5 +79,5 @@ func (u UnitOfWork) insertStationMessageRecord(record stationMessageRecord) erro
 		"station_crs_codes":  record.StationCRSCodes,
 		"body":               record.Body,
 	})
-	return err
+	return nil
 }

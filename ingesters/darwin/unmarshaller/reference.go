@@ -9,7 +9,7 @@ const ExpectedReferenceFileSuffix = "_ref_v4.xml.gz"
 
 // Reference version 4
 type Reference struct {
-	ID string `xml:"timetableID,attr"`
+	ID string `xml:"timetableId,attr"`
 	// All possible TIming Point LOCcations.
 	Locations []LocationReference `xml:"LocationRef"`
 	// Most (but not all) Train Operating Companies.

@@ -1,4 +1,4 @@
-package interpreter
+package inserter
 
 import (
 	"errors"
@@ -8,8 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// interpretAlarm takes an unmarshalled Alarm event, and records it in the database.
-func (u UnitOfWork) interpretAlarm(alarm unmarshaller.Alarm) error {
+func (u *UnitOfWork) insertAlarm(alarm unmarshaller.Alarm) error {
 	record, err := u.alarmToRecord(alarm)
 	if err != nil {
 		return err
@@ -34,8 +33,7 @@ type alarmRecord struct {
 	TyrellFailed             *bool
 }
 
-// alarmToRecord converts an unmarshalled Alarm object into an alarm database record.
-func (u UnitOfWork) alarmToRecord(alarm unmarshaller.Alarm) (alarmRecord, error) {
+func (u *UnitOfWork) alarmToRecord(alarm unmarshaller.Alarm) (alarmRecord, error) {
 	var record alarmRecord
 	record.ID = uuid.New()
 	record.MessageID = u.messageID
@@ -53,9 +51,8 @@ func (u UnitOfWork) alarmToRecord(alarm unmarshaller.Alarm) (alarmRecord, error)
 	return record, errors.New("no alarm data present")
 }
 
-// insertAlarmRecord inserts a new alarm record in the database.
-func (u UnitOfWork) insertAlarmRecord(record alarmRecord) error {
-	_, err := u.tx.Exec(u.ctx, `
+func (u *UnitOfWork) insertAlarmRecord(record alarmRecord) error {
+	u.batch.Queue(`
 		INSERT INTO darwin.alarms (
 			id
 			,message_id
@@ -82,8 +79,5 @@ func (u UnitOfWork) insertAlarmRecord(record alarmRecord) error {
 		"all_train_describers_failed": record.AllTrainDescribersFailed,
 		"tyrell_failed":               record.TyrellFailed,
 	})
-	if err != nil {
-		return err
-	}
 	return nil
 }
